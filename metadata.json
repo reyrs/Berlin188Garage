@@ -1,0 +1,6 @@
+{
+  "name": "Berlin 188 Garage",
+  "description": "Sistem Manajemen Bengkel dan Pelacakan Progres Servis Real-Time Berlin 188 Garage",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

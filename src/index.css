@@ -1,0 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Instrument Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-berlin-navy: #16225C;
+  --color-berlin-red: #E31E24;
+  --color-berlin-gold: #D4A017;
+  --color-cloud-white: #F4F6FF;
+  --color-jet-black: #181818;
+}
+

@@ -1,0 +1,1056 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  Package, Search, Plus, MapPin, Trash2, ClipboardList, AlertCircle, CheckCircle2, ChevronRight, CornerDownRight, PackagePlus, Compass, Sliders, Hash, Check, X, RotateCcw
+} from 'lucide-react';
+import { Order, ServiceItem, User as StaffUser, WarehouseStockItem } from '../types';
+
+interface StockItemCardProps {
+  stockItem: WarehouseStockItem;
+  onAdd: (stockItem: WarehouseStockItem, qty: number) => void;
+  formatRupiah: (num: number) => string;
+}
+
+function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
+  const [qtyToAssign, setQtyToAssign] = useState<number>(1);
+  const isOutOfStock = stockItem.stock <= 0;
+
+  return (
+    <div 
+      className={`border p-3.5 rounded-xl flex flex-col justify-between gap-3.5 transition-all ${
+        isOutOfStock 
+          ? 'bg-gray-50 border-gray-150 opacity-60' 
+          : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-xs'
+      }`}
+    >
+      <div className="space-y-1.5">
+        <div className="flex justify-between items-start gap-1">
+          <span className="font-mono text-[9px] font-bold text-gray-400 tracking-wider">
+            {stockItem.code}
+          </span>
+          
+          {/* Map Locator / Rack Location Badge - HIGH VISIBILITY */}
+          <div className="bg-berlin-navy text-white text-[9px] px-2 py-0.5 rounded font-bold flex items-center gap-1.5 shadow-sm border border-berlin-gold/25">
+            <MapPin className="w-3 h-3 text-[#E6C687] shrink-0 animate-bounce" />
+            <span>{stockItem.rackLocation}</span>
+          </div>
+        </div>
+
+        <div className="font-bold text-xs text-gray-800 leading-tight">
+          {stockItem.name}
+        </div>
+
+        <div className="flex items-baseline justify-between pt-1">
+          <span className="text-xs font-extrabold text-berlin-navy font-mono">
+            {formatRupiah(stockItem.price)}
+          </span>
+          <span className={`text-[10px] font-bold ${
+            stockItem.stock <= 2 ? 'text-red-600 animate-pulse' : 'text-gray-500'
+          }`}>
+            Stok: {stockItem.stock} unit
+          </span>
+        </div>
+      </div>
+
+      {/* Assignment controls */}
+      <div className="border-t border-gray-100 pt-3 flex items-center gap-2">
+        <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50 overflow-hidden h-8">
+          <button
+            type="button"
+            disabled={qtyToAssign <= 1 || isOutOfStock}
+            onClick={() => setQtyToAssign(q => Math.max(1, q - 1))}
+            className="px-2 text-xs font-bold hover:bg-gray-100 text-gray-500 disabled:opacity-40 cursor-pointer h-full"
+          >
+            -
+          </button>
+          <span className="px-2.5 text-xs font-mono font-bold text-gray-800 select-none">
+            {qtyToAssign}
+          </span>
+          <button
+            type="button"
+            disabled={qtyToAssign >= stockItem.stock || isOutOfStock}
+            onClick={() => setQtyToAssign(q => Math.min(stockItem.stock, q + 1))}
+            className="px-2 text-xs font-bold hover:bg-gray-100 text-gray-500 disabled:opacity-40 cursor-pointer h-full"
+          >
+            +
+          </button>
+        </div>
+
+        <button
+          type="button"
+          disabled={isOutOfStock}
+          onClick={() => {
+            onAdd(stockItem, qtyToAssign);
+            setQtyToAssign(1);
+          }}
+          className={`flex-1 h-8 text-[11px] font-black tracking-wider uppercase rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            isOutOfStock 
+              ? 'bg-gray-200 border border-gray-200 text-gray-400 cursor-not-allowed' 
+              : 'bg-black text-white hover:bg-neutral-800'
+          }`}
+        >
+          <Plus className="w-3.5 h-3.5 text-white shrink-0" />
+          Pasang
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface WarehousePanelProps {
+  orders: Order[];
+  warehouseStock: WarehouseStockItem[];
+  onUpdateServiceItems: (orderId: string, items: ServiceItem[]) => void;
+  onUpdateOrderStatus: (orderId: string, status: Order['status'], timelineDescription: string) => void;
+  onUpdateOrder: (orderId: string, updatedFields: Partial<Order>) => void;
+  onUpdateStock?: (itemId: string, newStock: number) => void;
+  activeUser: StaffUser;
+}
+
+export default function WarehousePanel({ 
+  orders,
+  warehouseStock: _warehouseStock,
+  onUpdateServiceItems, 
+  onUpdateOrderStatus,
+  onUpdateOrder,
+  onUpdateStock,
+  activeUser 
+}: WarehousePanelProps) {
+  const [warehouseStock, setWarehouseStock] = useState<WarehouseStockItem[]>(_warehouseStock);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [searchStockQuery, setSearchStockQuery] = useState('');
+  const [showCustomForm, setShowCustomForm] = useState(false);
+
+  // Custom Item Form State
+  const [customName, setCustomName] = useState('');
+  const [customPrice, setCustomPrice] = useState<number>(0);
+  const [customQty, setCustomQty] = useState<number>(1);
+  const [customCode, setCustomCode] = useState('');
+  const [customRack, setCustomRack] = useState('');
+
+  // Selected stock item map for resolving findings
+  const [selectedFindingStockMap, setSelectedFindingStockMap] = useState<Record<string, string>>({});
+
+  // Active orders that warehouse needs to support (excluding completed ones)
+  const activeOrders = useMemo(() => {
+    return orders.filter(o => o.status !== 'selesai');
+  }, [orders]);
+
+  const selectedOrder = useMemo(() => {
+    if (!selectedOrderId) return null;
+    return orders.find(o => o.id === selectedOrderId) || null;
+  }, [orders, selectedOrderId]);
+
+  // Filtered stock opname search
+  const filteredStock = useMemo(() => {
+    const query = searchStockQuery.trim().toLowerCase();
+    if (!query) return warehouseStock;
+    return warehouseStock.filter(item => 
+      item.name.toLowerCase().includes(query) || 
+      item.code.toLowerCase().includes(query) ||
+      item.rackLocation.toLowerCase().includes(query)
+    );
+  }, [warehouseStock, searchStockQuery]);
+
+  const formatRupiah = (num: number) => {
+    return 'Rp ' + num.toLocaleString('id-ID');
+  };
+
+  // Add stock item to order
+  const handleAddStockToOrder = (stockItem: WarehouseStockItem, qtyToAdd: number) => {
+    if (!selectedOrder) return;
+    if (qtyToAdd <= 0) return;
+
+    if (stockItem.stock < qtyToAdd) {
+      alert(`Stok tidak mencukupi! Tersedia: ${stockItem.stock}`);
+      return;
+    }
+
+    // Deduct stock locally & sync to database
+    const newStock = stockItem.stock - qtyToAdd;
+    setWarehouseStock(prev => 
+      prev.map(item => 
+        item.id === stockItem.id 
+          ? { ...item, stock: newStock } 
+          : item
+      )
+    );
+    onUpdateStock?.(stockItem.id, newStock);
+
+    // Create ServiceItem
+    const newItem: ServiceItem = {
+      id: `part-${Date.now()}-${stockItem.code}`,
+      name: `${stockItem.name} (${stockItem.code})`,
+      type: 'part',
+      price: stockItem.price,
+      qty: qtyToAdd,
+      status: 'pending' // Needs approval (ACC) by Service Advisor
+    };
+
+    const updatedItems = [...selectedOrder.serviceItems, newItem];
+    onUpdateServiceItems(selectedOrder.id, updatedItems);
+  };
+
+  // Add custom non-stock item to order
+  const handleAddCustomPart = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder || !customName || customPrice <= 0 || customQty <= 0) return;
+
+    const codeStr = customCode.trim() || `PART-OUT-${Date.now().toString().slice(-4)}`;
+    
+    const newItem: ServiceItem = {
+      id: `part-${Date.now()}-custom`,
+      name: `${customName} [Non-Stock] (${codeStr})`,
+      type: 'part',
+      price: customPrice,
+      qty: customQty,
+      status: 'pending' // Needs approval (ACC)
+    };
+
+    const updatedItems = [...selectedOrder.serviceItems, newItem];
+    onUpdateServiceItems(selectedOrder.id, updatedItems);
+
+    // Reset Form
+    setCustomName('');
+    setCustomPrice(0);
+    setCustomQty(1);
+    setCustomCode('');
+    setCustomRack('');
+    setShowCustomForm(false);
+  };
+
+  // Remove sparepart
+  const handleRemovePart = (itemId: string, itemCodeAndName: string, qty: number) => {
+    if (!selectedOrder) return;
+
+    const updatedItems = selectedOrder.serviceItems.filter(item => item.id !== itemId);
+    onUpdateServiceItems(selectedOrder.id, updatedItems);
+
+    // Try to restock if it was from warehouse stock
+    const codeMatch = itemCodeAndName.match(/\((SP-[\w-]+)\)/);
+    if (codeMatch) {
+      const code = codeMatch[1];
+      setWarehouseStock(prev => {
+        const updated = prev.map(item => 
+          item.code === code 
+            ? { ...item, stock: item.stock + qty } 
+            : item
+        );
+        const restocked = prev.find(item => item.code === code);
+        if (restocked) onUpdateStock?.(restocked.id, restocked.stock + qty);
+        return updated;
+      });
+    }
+  };
+
+  // Resolve finding using stock
+  // Resolve finding using stock
+  const handleResolveWithStock = (findingId: string, findingDescription: string) => {
+    if (!selectedOrder) return;
+    const stockItemId = selectedFindingStockMap[findingId];
+    if (!stockItemId) {
+      alert("Harap pilih sparepart dari stock opname terlebih dahulu!");
+      return;
+    }
+
+    const stockItem = warehouseStock.find(item => item.id === stockItemId);
+    if (!stockItem) return;
+
+    if (stockItem.stock <= 0) {
+      alert("Stok barang ini habis di gudang!");
+      return;
+    }
+
+    // Deduct stock locally & sync
+    const newStockAmt = stockItem.stock - 1;
+    setWarehouseStock(prev => 
+      prev.map(item => 
+        item.id === stockItem.id 
+          ? { ...item, stock: newStockAmt } 
+          : item
+      )
+    );
+    onUpdateStock?.(stockItem.id, newStockAmt);
+
+    const itemId = `part-${Date.now()}-${stockItem.code}`;
+    // Create ServiceItem
+    const newItem: ServiceItem = {
+      id: itemId,
+      name: `${stockItem.name} (${stockItem.code})`,
+      type: 'part',
+      price: stockItem.price,
+      qty: 1,
+      status: 'pending',
+      partSource: 'gudang_stock'
+    };
+
+    const updatedItems = [...selectedOrder.serviceItems, newItem];
+
+    // Update finding's resolvedParts
+    const updatedFindings = selectedOrder.findings.map(f => {
+      if (f.id === findingId) {
+        const currentParts = f.resolvedParts || [];
+        return {
+          ...f,
+          resolvedParts: [...currentParts, {
+            id: itemId,
+            name: `${stockItem.name} (${stockItem.code})`,
+            price: stockItem.price,
+            qty: 1,
+            source: 'gudang_stock' as const
+          }]
+        };
+      }
+      return f;
+    });
+
+    // Create timeline event
+    const newTimelineEvent = {
+      id: `t-wh-add-${Date.now()}`,
+      status: selectedOrder.status,
+      timestamp: new Date().toISOString(),
+      title: 'Barang Gudang Dialokasikan',
+      description: `Unit Gudang mengalokasikan sparepart "${stockItem.name}" (Lokasi: Rak ${stockItem.rackLocation}) untuk temuan "${findingDescription}".`,
+      actor: `Gudang (${activeUser.name})`
+    };
+
+    onUpdateOrder(selectedOrder.id, {
+      serviceItems: updatedItems,
+      findings: updatedFindings,
+      timeline: [...selectedOrder.timeline, newTimelineEvent]
+    });
+
+    // Reset map entry
+    setSelectedFindingStockMap(prev => {
+      const copy = { ...prev };
+      delete copy[findingId];
+      return copy;
+    });
+
+    alert(`Berhasil menambahkan ${stockItem.name} ke daftar temuan.`);
+  };
+
+  // Resolve finding using customer-brought sparepart
+  const handleResolveWithBawaSendiri = (findingId: string, findingDescription: string) => {
+    if (!selectedOrder) return;
+
+    const itemId = `part-${Date.now()}-bawa-sendiri`;
+    // Create free ServiceItem (Bawa Sendiri)
+    const newItem: ServiceItem = {
+      id: itemId,
+      name: `[Bawa Sendiri] Part untuk: ${findingDescription.split(',')[0]}`,
+      type: 'part',
+      price: 0,
+      qty: 1,
+      status: 'approved', // Auto-approved since price is 0 and customer brought it
+      partSource: 'bawa_sendiri'
+    };
+
+    const updatedItems = [...selectedOrder.serviceItems, newItem];
+
+    // Update finding's resolvedParts
+    const updatedFindings = selectedOrder.findings.map(f => {
+      if (f.id === findingId) {
+        const currentParts = f.resolvedParts || [];
+        return {
+          ...f,
+          resolvedParts: [...currentParts, {
+            id: itemId,
+            name: `Sparepart Bawa Sendiri`,
+            price: 0,
+            qty: 1,
+            source: 'bawa_sendiri' as const
+          }]
+        };
+      }
+      return f;
+    });
+
+    // Create timeline event
+    const newTimelineEvent = {
+      id: `t-wh-add-self-${Date.now()}`,
+      status: selectedOrder.status,
+      timestamp: new Date().toISOString(),
+      title: 'Sparepart Bawa Sendiri Ditambahkan',
+      description: `Unit Gudang mencatat tambahan sparepart bawa sendiri untuk temuan "${findingDescription}". Biaya pengadaan diatur Rp 0.`,
+      actor: `Gudang (${activeUser.name})`
+    };
+
+    onUpdateOrder(selectedOrder.id, {
+      serviceItems: updatedItems,
+      findings: updatedFindings,
+      timeline: [...selectedOrder.timeline, newTimelineEvent]
+    });
+
+    alert("Berhasil menambahkan sparepart bawa sendiri!");
+  };
+
+  // Resolve finding as "No Sparepart Needed"
+  const handleNoPartNeeded = (findingId: string, findingDescription: string) => {
+    if (!selectedOrder) return;
+
+    const updatedFindings = selectedOrder.findings.map(f => {
+      if (f.id === findingId) {
+        return {
+          ...f,
+          warehouseResolved: true,
+          resolvedPartName: 'Tidak Perlu Sparepart',
+          resolvedPartSource: 'none' as const,
+          resolvedParts: []
+        };
+      }
+      return f;
+    });
+
+    const newTimelineEvent = {
+      id: `t-wh-none-${Date.now()}`,
+      status: selectedOrder.status,
+      timestamp: new Date().toISOString(),
+      title: 'Temuan Tanpa Sparepart',
+      description: `Unit Gudang menandai temuan "${findingDescription}" tidak memerlukan penggantian sparepart.`,
+      actor: `Gudang (${activeUser.name})`
+    };
+
+    onUpdateOrder(selectedOrder.id, {
+      findings: updatedFindings,
+      timeline: [...selectedOrder.timeline, newTimelineEvent]
+    });
+
+    alert("Temuan berhasil ditandai tidak memerlukan sparepart.");
+  };
+
+  // Lock resolution for multiple parts
+  const handleLockResolution = (findingId: string, findingDescription: string) => {
+    if (!selectedOrder) return;
+    const finding = selectedOrder.findings.find(f => f.id === findingId);
+    if (!finding) return;
+
+    const parts = finding.resolvedParts || [];
+    if (parts.length === 0) {
+      alert("Harap tambahkan minimal 1 sparepart terlebih dahulu atau pilih 'Tidak Perlu Sparepart'!");
+      return;
+    }
+
+    const summaryName = parts.map(p => p.name).join(', ');
+    const primarySource = parts.some(p => p.source === 'gudang_stock') ? 'gudang_stock' : 'bawa_sendiri';
+
+    const updatedFindings = selectedOrder.findings.map(f => {
+      if (f.id === findingId) {
+        return {
+          ...f,
+          warehouseResolved: true,
+          resolvedPartName: summaryName,
+          resolvedPartSource: primarySource as 'gudang_stock' | 'bawa_sendiri'
+        };
+      }
+      return f;
+    });
+
+    const newTimelineEvent = {
+      id: `t-wh-lock-${Date.now()}`,
+      status: selectedOrder.status,
+      timestamp: new Date().toISOString(),
+      title: 'Sourcing Sparepart Selesai',
+      description: `Unit Gudang menyelesaikan & mengunci pencarian sparepart untuk temuan "${findingDescription}". Total: ${parts.length} sparepart dialokasikan (${summaryName}).`,
+      actor: `Gudang (${activeUser.name})`
+    };
+
+    onUpdateOrder(selectedOrder.id, {
+      findings: updatedFindings,
+      timeline: [...selectedOrder.timeline, newTimelineEvent]
+    });
+
+    alert("Penyelesaian pencarian sparepart berhasil disimpan & dikunci!");
+  };
+
+  // Remove a single part from a finding before locking
+  const handleRemovePartFromFinding = (findingId: string, itemId: string, itemName: string, source: string) => {
+    if (!selectedOrder) return;
+
+    // Filter out from serviceItems
+    const updatedItems = selectedOrder.serviceItems.filter(item => item.id !== itemId);
+
+    // Update finding's resolvedParts
+    const updatedFindings = selectedOrder.findings.map(f => {
+      if (f.id === findingId) {
+        const currentParts = f.resolvedParts || [];
+        return {
+          ...f,
+          resolvedParts: currentParts.filter(p => p.id !== itemId)
+        };
+      }
+      return f;
+    });
+
+    // Restock if it was from warehouse stock
+    if (source === 'gudang_stock') {
+      const codeMatch = itemName.match(/\((SP-[\w-]+)\)/);
+      const code = codeMatch ? codeMatch[1] : null;
+      setWarehouseStock(prev => {
+        const updated = prev.map(item => 
+          (code && item.code === code) || item.name === itemName
+            ? { ...item, stock: item.stock + 1 } 
+            : item
+        );
+        const restocked = prev.find(item => code ? item.code === code : item.name === itemName);
+        if (restocked) onUpdateStock?.(restocked.id, restocked.stock + 1);
+        return updated;
+      });
+    }
+
+    onUpdateOrder(selectedOrder.id, {
+      serviceItems: updatedItems,
+      findings: updatedFindings
+    });
+
+    alert(`Berhasil menghapus ${itemName} dari temuan ini.`);
+  };
+
+  // Reset resolution completely
+  const handleResetResolution = (findingId: string, findingDescription: string) => {
+    if (!selectedOrder) return;
+    const finding = selectedOrder.findings.find(f => f.id === findingId);
+    if (!finding) return;
+
+    const parts = finding.resolvedParts || [];
+    const partIdsToRemove = parts.map(p => p.id);
+    
+    // Filter out those items from serviceItems
+    const updatedItems = selectedOrder.serviceItems.filter(item => !partIdsToRemove.includes(item.id));
+
+    // Restock any parts that were from warehouse stock
+    parts.forEach(p => {
+      if (p.source === 'gudang_stock') {
+        const codeMatch = p.name.match(/\((SP-[\w-]+)\)/);
+        const code = codeMatch ? codeMatch[1] : null;
+        setWarehouseStock(prev => {
+          const updated = prev.map(item => 
+            (code && item.code === code) || item.name === p.name
+              ? { ...item, stock: item.stock + p.qty } 
+              : item
+          );
+          const restocked = prev.find(item => code ? item.code === code : item.name === p.name);
+          if (restocked) onUpdateStock?.(restocked.id, restocked.stock + p.qty);
+          return updated;
+        });
+      }
+    });
+
+    // Update finding
+    const updatedFindings = selectedOrder.findings.map(f => {
+      if (f.id === findingId) {
+        return {
+          ...f,
+          warehouseResolved: false,
+          resolvedPartName: undefined,
+          resolvedPartSource: undefined,
+          resolvedParts: []
+        };
+      }
+      return f;
+    });
+
+    const newTimelineEvent = {
+      id: `t-wh-reset-${Date.now()}`,
+      status: selectedOrder.status,
+      timestamp: new Date().toISOString(),
+      title: 'Reset Sourcing Temuan',
+      description: `Unit Gudang membatalkan & me-reset alokasi sparepart untuk temuan "${findingDescription}".`,
+      actor: `Gudang (${activeUser.name})`
+    };
+
+    onUpdateOrder(selectedOrder.id, {
+      serviceItems: updatedItems,
+      findings: updatedFindings,
+      timeline: [...selectedOrder.timeline, newTimelineEvent]
+    });
+
+    alert("Pencarian sparepart berhasil di-reset untuk temuan ini.");
+  };
+
+  return (
+    <div className="grid md:grid-cols-12 gap-6 items-start">
+
+      {/* Left Side: Active Orders List */}
+      <div className="md:col-span-4 bg-white border border-gray-200 p-5 rounded-2xl space-y-4 shadow-sm">
+        <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+          <ClipboardList className="w-5 h-5 text-black" />
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">Order Antrean Sparepart</h3>
+            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Gudang: {activeUser.name}</span>
+          </div>
+        </div>
+
+        <div className="space-y-2.5">
+          {activeOrders.map((o) => {
+            const partCount = o.serviceItems.filter(item => item.type === 'part').length;
+            const isCurrent = o.id === selectedOrderId;
+
+            return (
+              <button
+                key={o.id}
+                onClick={() => setSelectedOrderId(o.id)}
+                className={`w-full text-left p-3.5 rounded-xl border transition-all cursor-pointer block relative overflow-hidden ${
+                  isCurrent 
+                    ? 'bg-black text-white border-black shadow-md scale-[1.01]' 
+                    : 'bg-gray-50/50 hover:bg-gray-50 border-gray-150 text-gray-800'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      isCurrent ? 'bg-zinc-800 text-zinc-100' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {o.id}
+                    </span>
+                    <span className={`text-[10px] ml-2 font-semibold ${isCurrent ? 'text-gray-300' : 'text-gray-400'}`}>
+                      {o.plateNumber}
+                    </span>
+                  </div>
+                  <span className={`text-[9px] px-2 py-0.5 rounded font-extrabold tracking-wide uppercase ${
+                    o.status === 'dikerjakan' 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {o.status}
+                  </span>
+                </div>
+
+                <div className="mt-2.5">
+                  <p className="text-xs font-black truncate">{o.carBrand} {o.carModel}</p>
+                  <p className={`text-[11px] truncate mt-0.5 ${isCurrent ? 'text-gray-300' : 'text-gray-400'}`}>
+                    Cust: {o.customerName}
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2.5 border-t border-gray-200/20 flex justify-between items-center text-[10px]">
+                  <span className={isCurrent ? 'text-zinc-400' : 'text-gray-400'}>
+                    Sparepart terpasang:
+                  </span>
+                  <span className={`font-bold ${isCurrent ? 'text-berlin-gold' : 'text-berlin-navy'}`}>
+                    {partCount} Item
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+
+          {activeOrders.length === 0 && (
+            <div className="text-center p-8 text-gray-400 space-y-2">
+              <Package className="w-8 h-8 text-gray-300 mx-auto" />
+              <p className="text-xs font-semibold">Tidak ada antrean kendaraan aktif.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Side: Selected Order details & Spareparts lookup */}
+      <div className="md:col-span-8 space-y-5">
+        {selectedOrder ? (
+          <div className="space-y-5">
+            
+            {/* Header: Vehicle & Client details */}
+            <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150 pb-3">
+                <div>
+                  <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded font-mono font-bold">{selectedOrder.id}</span>
+                  <h3 className="text-base font-black text-berlin-navy mt-1.5">{selectedOrder.carBrand} {selectedOrder.carModel}</h3>
+                  <p className="text-[11px] text-gray-400 font-mono mt-0.5">No. Polisi: {selectedOrder.plateNumber} • Keluhan: "{selectedOrder.complaint}"</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[9px] text-gray-400 uppercase font-black tracking-wider block">Pelanggan</span>
+                  <span className="text-xs font-bold text-gray-800 block">{selectedOrder.customerName}</span>
+                  <span className="text-[10px] text-gray-500 font-mono">{selectedOrder.customerPhone}</span>
+                </div>
+              </div>
+
+              {/* Current parts list on this order */}
+              <div className="space-y-3">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-gray-400 block">
+                  Daftar Sparepart Terpasang & Estimasi Saat Ini:
+                </span>
+
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {selectedOrder.serviceItems.filter(item => item.type === 'part').map((item) => (
+                    <div key={item.id} className="bg-amber-50/40 border border-amber-200/50 p-3 rounded-xl flex items-center justify-between text-xs hover:border-amber-200 transition-colors">
+                      <div className="flex items-start gap-2.5">
+                        <Package className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+                        <div>
+                          <div className="font-bold text-gray-800">{item.name}</div>
+                          <div className="text-[9px] text-amber-800 font-bold tracking-wide uppercase mt-0.5 flex items-center gap-1.5">
+                            <span>Estimasi: {formatRupiah(item.price)} x {item.qty}</span>
+                            <span>•</span>
+                            <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold ${
+                              item.status === 'approved' ? 'bg-emerald-100 text-emerald-800' :
+                              item.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-amber-100 text-amber-800'
+                            }`}>
+                              {item.status === 'approved' ? 'ACC Disetujui' : 
+                               item.status === 'rejected' ? 'Ditolak' : 'Menunggu ACC SA'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right font-mono text-gray-800 font-bold">{formatRupiah(item.price * item.qty)}</div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePart(item.id, item.name, item.qty)}
+                          className="p-1 rounded bg-white hover:bg-red-50 text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-200 transition-all cursor-pointer"
+                          title="Hapus Part"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {selectedOrder.serviceItems.filter(item => item.type === 'part').length === 0 && (
+                    <div className="text-center py-4 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+                      <p className="text-[11px] text-gray-400 italic">Belum ada sparepart yang dicatatkan pada Work Order ini.</p>
+                    </div>
+                  )}
+
+                  {selectedOrder.serviceItems.filter(item => item.type === 'part' && item.status === 'pending').length > 0 && (
+                    <div className="pt-3.5 border-t border-gray-100 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onUpdateOrderStatus(
+                            selectedOrder.id,
+                            'temuan_dilaporkan',
+                            `Unit Gudang (${activeUser.name}) mengajukan persetujuan pengiriman barang/sparepart baru ke Sales Advisor untuk disetujui (ACC).`
+                          );
+                          alert("Pengajuan sparepart berhasil dikirim ke Sales Advisor!");
+                        }}
+                        className="bg-black hover:bg-neutral-850 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-berlin-gold animate-bounce" />
+                        Kirim Pengajuan Barang ke Sales Advisor
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* DIAGNOSIS TEMUAN MEKANIK & TINDAKAN GUDANG */}
+            <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-150 pb-3">
+                <span className="text-gray-600 font-bold text-xs uppercase tracking-wider bg-gray-100 px-2.5 py-0.5 rounded">Resolusi Temuan</span>
+                <h4 className="text-xs sm:text-sm font-bold text-berlin-navy">Penyelesaian Temuan Kerusakan Mekanik</h4>
+              </div>
+
+              <div className="bg-berlin-navy/5 p-3 rounded-xl border border-berlin-navy/10 text-[11px] text-berlin-navy leading-relaxed">
+                <span className="font-bold">Panduan:</span> Untuk setiap temuan kerusakan yang dilaporkan mekanik di bawah ini, unit gudang wajib mengalokasikan part dari <strong>Stok Gudang</strong> (mengajukan harga ke SA) ATAU mencatatkan sebagai sparepart <strong>Bawa Sendiri oleh Pelanggan</strong> (diatur Rp 0, otomatis disetujui).
+              </div>
+
+              <div className="space-y-3">
+                {selectedOrder.findings.map((finding) => {
+                  const resolved = finding.warehouseResolved || finding.resolvedPartName;
+                  return (
+                    <div key={finding.id} className="bg-gray-50 border border-gray-150 p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between items-center text-[10px] text-gray-400 font-mono">
+                        <span>TEMUAN MEKANIK</span>
+                        <span>{new Date(finding.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+
+                      <div className="text-xs font-bold text-gray-800 italic">
+                        "{finding.description}"
+                      </div>
+
+                      {finding.imageUrl && (
+                        <div className="rounded-lg overflow-hidden border border-gray-200 max-h-32 bg-gray-100 max-w-xs">
+                          <img src={finding.imageUrl} alt="Bukti Kerusakan" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                      )}
+
+                      {resolved ? (
+                        <div className="bg-emerald-50 border border-emerald-150 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-800">
+                          <div>
+                            <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-500 block">Sourcing Selesai:</span>
+                            <span className="font-bold text-sm">{finding.resolvedPartName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wider ${
+                              finding.resolvedPartSource === 'gudang_stock' ? 'bg-emerald-100 text-emerald-900 border border-emerald-200' :
+                              finding.resolvedPartSource === 'bawa_sendiri' ? 'bg-amber-100 text-amber-900 border border-amber-200' :
+                              'bg-gray-150 text-gray-700 border border-gray-250'
+                            }`}>
+                              {finding.resolvedPartSource === 'gudang_stock' ? 'Stok Gudang' :
+                               finding.resolvedPartSource === 'bawa_sendiri' ? 'Bawa Sendiri' : 'Tanpa Sparepart'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleResetResolution(finding.id, finding.description)}
+                              className="p-1.5 rounded-lg bg-white hover:bg-red-50 text-gray-500 hover:text-red-600 border border-gray-200 hover:border-red-200 cursor-pointer transition-all flex items-center gap-1 text-[10px] font-bold shadow-xs"
+                              title="Reset / Ubah Sourcing"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Reset</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-2 border-t border-gray-200/50 space-y-3">
+                          {/* List of currently allocated parts for this finding */}
+                          {finding.resolvedParts && finding.resolvedParts.length > 0 && (
+                            <div className="bg-white p-3 rounded-xl border border-gray-250/80 space-y-2">
+                              <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-wider">
+                                Sparepart Terpilih Untuk Temuan Ini:
+                              </span>
+                              <div className="space-y-1.5">
+                                {finding.resolvedParts.map((part) => (
+                                  <div key={part.id} className="flex justify-between items-center text-xs bg-gray-50/70 p-2.5 rounded-lg border border-gray-150">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-2 h-2 rounded-full ${part.source === 'gudang_stock' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                      <span className="font-bold text-gray-800">{part.name}</span>
+                                      <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">
+                                        ({part.source === 'gudang_stock' ? 'Gudang' : 'Bawa Sendiri'})
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2.5">
+                                      <span className="font-mono text-gray-800 font-bold">
+                                        {part.price > 0 ? formatRupiah(part.price) : 'Rp 0'}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemovePartFromFinding(finding.id, part.id, part.name, part.source)}
+                                        className="text-gray-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 border border-transparent hover:border-red-100 cursor-pointer"
+                                        title="Hapus dari temuan"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="grid sm:grid-cols-3 gap-2.5">
+                            {/* Option 1: Use Stock */}
+                            <div className="space-y-2 bg-white p-3.5 rounded-xl border border-gray-150 flex flex-col justify-between">
+                              <div className="space-y-1.5">
+                                <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-wider">Metode A: Alokasikan Stok</span>
+                                <select
+                                  value={selectedFindingStockMap[finding.id] || ''}
+                                  onChange={(e) => setSelectedFindingStockMap(prev => ({ ...prev, [finding.id]: e.target.value }))}
+                                  className="w-full bg-white border border-gray-200 rounded-lg py-1.5 px-2 text-[11px] text-gray-800 focus:outline-none focus:border-black"
+                                >
+                                  <option value="">-- Pilih Barang Stok --</option>
+                                  {warehouseStock.filter(s => s.stock > 0).map(s => (
+                                    <option key={s.id} value={s.id}>
+                                      {s.name} ({s.code}) - {formatRupiah(s.price)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleResolveWithStock(finding.id, finding.description)}
+                                className="w-full bg-black hover:bg-neutral-850 text-white font-bold text-[10px] py-1.5 px-3 rounded-lg transition-colors cursor-pointer mt-2"
+                              >
+                                Tambah dari Stok
+                              </button>
+                            </div>
+
+                            {/* Option 2: Customer brings own part */}
+                            <div className="space-y-2 bg-white p-3.5 rounded-xl border border-gray-150 flex flex-col justify-between">
+                              <div>
+                                <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-wider">Metode B: Pelanggan Bawa</span>
+                                <p className="text-[10px] text-gray-500 mt-1 leading-normal">
+                                  Catat pengerjaan dengan sparepart bawaan pelanggan sendiri (Biaya Rp 0).
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleResolveWithBawaSendiri(finding.id, finding.description)}
+                                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] py-1.5 px-3 rounded-lg transition-colors cursor-pointer"
+                              >
+                                Tambah Bawa Sendiri
+                              </button>
+                            </div>
+
+                            {/* Option 3: No sparepart needed */}
+                            <div className="space-y-2 bg-white p-3.5 rounded-xl border border-gray-150 flex flex-col justify-between">
+                              <div>
+                                <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-wider text-blue-500">Metode C: Tanpa Sparepart</span>
+                                <p className="text-[10px] text-gray-500 mt-1 leading-normal">
+                                  Tandai pengerjaan ini tidak memerlukan sparepart tambahan sama sekali.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleNoPartNeeded(finding.id, finding.description)}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] py-1.5 px-3 rounded-lg transition-colors cursor-pointer"
+                              >
+                                Tidak Perlu Sparepart
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Lock Resolution button (visible if there are added parts) */}
+                          {finding.resolvedParts && finding.resolvedParts.length > 0 && (
+                            <div className="pt-2 border-t border-dashed border-gray-200 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => handleLockResolution(finding.id, finding.description)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all"
+                              >
+                                <Check className="w-4 h-4 text-white" />
+                                Simpan & Kunci Sourcing ({finding.resolvedParts.length} Barang)
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {selectedOrder.findings.length === 0 && (
+                  <p className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    Tidak ada temuan diagnosis mekanik untuk dicarikan sparepart pada WO ini.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Warehouse Stock Selection & Locator (Stock Opname) */}
+            <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3.5">
+                <div className="flex items-center gap-2">
+                  <Compass className="w-5 h-5 text-[#E6C687] shrink-0" />
+                  <div>
+                    <h4 className="text-xs uppercase tracking-widest text-gray-400 font-extrabold leading-none">STOCK OPNAME GUDANG</h4>
+                    <span className="text-xs font-bold text-gray-800 mt-1 block">Pilih Barang & Ambil Sesuai Lokasi Rak</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowCustomForm(!showCustomForm)}
+                  className="bg-white hover:bg-gray-50 border border-gray-250 hover:border-gray-350 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors shrink-0"
+                >
+                  <PackagePlus className="w-4 h-4 text-berlin-gold" />
+                  {showCustomForm ? 'Batal Tambah' : '+ Barang Tidak Ada Di Gudang'}
+                </button>
+              </div>
+
+              {/* Custom Non-Stock Form */}
+              {showCustomForm && (
+                <form onSubmit={handleAddCustomPart} className="bg-amber-50/40 border border-amber-200/60 p-4 rounded-xl space-y-3.5 animate-fadeIn">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800">
+                    <PackagePlus className="w-4 h-4" />
+                    <span>FORM PENAMBAHAN BARANG NON-STOCK (TIDAK ADA DI GUDANG)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400">NAMA BARANG SPAREPART</label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Modul ECU BMW F30 LCI Original"
+                        value={customName}
+                        onChange={(e) => setCustomName(e.target.value)}
+                        required
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black transition-colors"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400">KODE BARANG (OPSIONAL)</label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: PART-OUT-BMW-02"
+                        value={customCode}
+                        onChange={(e) => setCustomCode(e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-mono transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400">ESTIMASI HARGA (RP)</label>
+                      <input
+                        type="number"
+                        placeholder="Contoh: 1250000"
+                        value={customPrice === 0 ? '' : customPrice}
+                        onChange={(e) => setCustomPrice(Number(e.target.value))}
+                        required
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-mono transition-colors"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400">QTY</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={customQty}
+                        onChange={(e) => setCustomQty(Number(e.target.value))}
+                        required
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-mono transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-black hover:bg-neutral-800 text-white py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4 text-white" />
+                    Tambahkan Barang Non-Stock ke WO
+                  </button>
+                </form>
+              )}
+
+              {/* Stock Search Engine */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Cari sparepart berdasarkan nama, kode, atau lokasi rak..."
+                  value={searchStockQuery}
+                  onChange={(e) => setSearchStockQuery(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-250 focus:border-black rounded-xl py-2.5 pl-9 pr-4 text-xs text-gray-800 placeholder-gray-400 focus:outline-none transition-all"
+                />
+                <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              </div>
+
+              {/* Stock Opname Items Listing with Locator (Rack Location) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-h-96 overflow-y-auto pr-1">
+                {filteredStock.map((stockItem) => (
+                  <div key={stockItem.id}>
+                    <StockItemCard
+                      stockItem={stockItem}
+                      onAdd={handleAddStockToOrder}
+                      formatRupiah={formatRupiah}
+                    />
+                  </div>
+                ))}
+
+                {filteredStock.length === 0 && (
+                  <div className="col-span-full text-center py-8 text-gray-400">
+                    <AlertCircle className="w-6 h-6 text-gray-300 mx-auto mb-1" />
+                    <p className="text-xs font-semibold">Tidak ada barang stock opname yang cocok.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        ) : (
+          <div className="bg-white border border-gray-200 p-16 rounded-2xl text-center space-y-4 shadow-sm">
+            <Package className="w-12 h-12 text-gray-300 mx-auto" />
+            <div>
+              <h4 className="text-sm font-bold text-[#1A1A1A]">Pilih Antrean Sparepart Mobil</h4>
+              <p className="text-gray-400 text-xs mt-1">Pilih nomor Work Order aktif di antrean kiri untuk memasangkan sparepart dari Stock Opname Gudang.</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+}

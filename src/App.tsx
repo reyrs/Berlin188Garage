@@ -666,13 +666,13 @@ export default function App() {
       { id: 'dashboard', label: 'Laporan', icon: LayoutDashboard, roles: ['owner'] },
       { id: 'create_order', label: 'Buat WO', icon: FilePlus, roles: ['advisor', 'owner'] },
       { id: 'track_dashboard', label: 'Kelola WO', icon: ClipboardList, roles: ['advisor', 'owner'] },
-      { id: 'accounting', label: 'Akunting', icon: BookOpen, roles: ['kasir', 'owner'] },
       { id: 'gudang', label: 'Gudang', icon: Package, roles: ['gudang', 'owner'] },
       { id: 'spk', label: 'Kerja Saya', icon: Wrench, roles: ['mekanik'] },
       { id: 'manager_dashboard', label: 'Pantauan', icon: LayoutDashboard, roles: ['manager'] },
       { id: 'marketing', label: 'Konten & Portofolio', icon: Monitor, roles: ['marketing'] },
       { id: 'monitor_service', label: 'Monitor Service', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager', 'mekanik'] },
       { id: 'monitor_tunggu', label: 'Monitor Tunggu', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager'] },
+      { id: 'accounting', label: 'Akunting', icon: BookOpen, roles: ['kasir', 'owner'] },
       { id: 'finance_report', label: 'Laporan Keuangan', icon: FileBarChart, roles: ['accounting', 'owner'] },
     ];
     return all.filter(t => t.roles.includes(role));

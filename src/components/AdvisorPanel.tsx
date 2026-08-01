@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
-import { UserPlus, Car, Wrench, ChevronRight, Check, Sparkles, User, HelpCircle, FileText, ArrowRight, ShieldAlert } from 'lucide-react';
+import { UserPlus, Car, Wrench, ChevronRight, Check, Sparkles, User, HelpCircle, FileText, ArrowRight, ShieldAlert, CheckCircle } from 'lucide-react';
 import { Order, User as StaffUser } from '../types';
 
 interface AdvisorPanelProps {
   onAddOrder: (newOrder: Order) => void;
-  staffUsers: StaffUser[];
   activeUser: StaffUser;
+  staffUsers: StaffUser[];
 }
 
-export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: AdvisorPanelProps) {
+// Date-scoped + random suffix so WO numbers stay short but effectively
+// collision-free (unlike a flat 3-digit random pick, which starts colliding
+// after only a few dozen orders). Ambiguous chars (0/O, 1/I) are excluded so
+// numbers read cleanly on a printed SPK or read aloud on the shop floor.
+function generateWoNumber(): string {
+  const now = new Date();
+  const datePart = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let suffix = '';
+  for (let i = 0; i < 5; i++) suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return `WO-${datePart}-${suffix}`;
+}
+
+export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: AdvisorPanelProps) {
+  const mechanics = staffUsers.filter(u => u.role === 'mekanik');
   const [step, setStep] = useState<number>(1);
   const [success, setSuccess] = useState<boolean>(false);
   const [lastOrderId, setLastOrderId] = useState<string>('');
@@ -26,9 +40,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
   const [engineCode, setEngineCode] = useState('');
   const [serviceType, setServiceType] = useState<Order['serviceType']>('Servis Rutin');
   const [complaint, setComplaint] = useState('');
-  const [mechanicNama, setMechanikNama] = useState('');
-
-  // Mekanik tidak punya akun — nama diinput manual SA saat buat WO
+  const [mechanicId, setMechanicId] = useState('');
 
   // Multi-step validator
   const canProceed = () => {
@@ -44,7 +56,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
       );
     }
     if (step === 3) return complaint.trim() !== '';
-    if (step === 4) return mechanicNama.trim() !== '';
+    if (step === 4) return mechanicId !== '';
     return true;
   };
 
@@ -59,8 +71,8 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
   };
 
   const handleSubmit = () => {
-    const nextWoNumber = `WO-${104 + Math.floor(Math.random() * 900)}`;
-    const selectedMechanic = { name: mechanicNama.trim() || 'Mekanik' };
+    const nextWoNumber = generateWoNumber();
+    const selectedMechanic = mechanics.find(m => m.id === mechanicId);
 
     const newOrder: Order = {
       id: nextWoNumber,
@@ -80,6 +92,8 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
       createdAt: new Date().toISOString(),
       advisorId: activeUser?.id || '',  // SA yang pegang WO
       advisorName: activeUser?.name || 'SA',  // SA bertanggung jawab
+      assignedMechanicId: selectedMechanic?.id,
+      assignedMechanicName: selectedMechanic?.name,
       findings: [],
       serviceItems: [],
       timeline: [
@@ -113,7 +127,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
     setEngineCode('');
     setServiceType('Servis Rutin');
     setComplaint('');
-    setMechanikNama('');
+    setMechanicId('');
     setStep(1);
     setSuccess(false);
   };
@@ -135,18 +149,18 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
       {success ? (
         <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200 space-y-5">
           <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center mx-auto text-2xl font-bold">
-            ✓
+            <CheckCircle className="w-8 h-8 text-emerald-600" />
           </div>
           <div className="space-y-1">
             <h4 className="text-md font-bold text-black">Work Order Berhasil Dibuat!</h4>
             <p className="text-gray-500 text-xs leading-relaxed max-w-md mx-auto">
-              Pesanan dengan kode <span className="text-black font-mono font-bold">{lastOrderId}</span> telah berhasil disimpan di server. Mekanik yang ditugaskan akan langsung melihat orderan ini di papan kerja mereka.
+              Pesanan dengan kode <span className="text-black font-sans font-bold">{lastOrderId}</span> telah berhasil disimpan di server. Mekanik yang ditugaskan akan langsung melihat orderan ini di papan kerja mereka.
             </p>
           </div>
           <div className="flex justify-center gap-3">
             <button
               onClick={resetForm}
-              className="bg-black hover:bg-neutral-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+              className="bg-berlin-navy hover:bg-berlin-navy-dark text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
             >
               Buat Orderan Lagi
             </button>
@@ -169,11 +183,11 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
               return (
                 <div key={st.s} className="flex items-center gap-2">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs transition-all ${
-                    isActive ? 'bg-black text-white' :
+                    isActive ? 'bg-berlin-navy text-white' :
                     isDone ? 'bg-gray-200 text-black border border-gray-300' :
                     'bg-white text-gray-400 border border-gray-200'
                   }`}>
-                    {isDone ? '✓' : st.s}
+                    {isDone ? '' : st.s}
                   </div>
                   <span className={`text-[10px] font-bold uppercase tracking-wider hidden md:block ${isActive ? 'text-black' : 'text-gray-400'}`}>
                     {st.label}
@@ -202,7 +216,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                     placeholder="Contoh: 085156010707"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black font-mono transition-colors"
+                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
                   />
                 </div>
 
@@ -279,7 +293,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                     placeholder="Contoh: B 1234 AE"
                     value={plate}
                     onChange={(e) => setPlate(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black uppercase font-mono transition-colors"
+                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black uppercase font-sans transition-colors"
                   />
                 </div>
 
@@ -303,7 +317,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                     placeholder="Contoh: 2018"
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black font-mono transition-colors"
+                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
                   />
                 </div>
 
@@ -314,7 +328,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                     placeholder="Contoh: M271, N20, EA888"
                     value={engineCode}
                     onChange={(e) => setEngineCode(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black uppercase font-mono transition-colors"
+                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black uppercase font-sans transition-colors"
                   />
                 </div>
               </div>
@@ -326,7 +340,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                   placeholder="Contoh: WDD2040491F123456"
                   value={vin}
                   onChange={(e) => setVin(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black uppercase font-mono transition-colors"
+                  className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black uppercase font-sans transition-colors"
                 />
               </div>
             </div>
@@ -352,7 +366,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                       onClick={() => setServiceType(type)}
                       className={`py-2 px-3.5 text-center text-xs rounded-lg font-bold border transition-colors cursor-pointer ${
                         serviceType === type 
-                          ? 'bg-black text-white border-black' 
+                          ? 'bg-berlin-navy text-white border-berlin-navy' 
                           : 'bg-white border-gray-200 hover:border-gray-300 text-gray-500'
                       }`}
                     >
@@ -386,17 +400,24 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">NAMA MEKANIK BERTUGAS</label>
-                <p className="text-[10px] text-gray-400">Mekanik tidak memakai aplikasi — tulis nama mekanik yang akan menerima SPK fisik.</p>
-                <input
-                  type="text"
-                  placeholder="Contoh: Joko, Rudi, Andi..."
-                  value={mechanicNama}
-                  onChange={e => setMechanikNama(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400"
-                />
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">MEKANIK BERTUGAS</label>
+                <p className="text-[10px] text-gray-400">Pilih mekanik yang sedang stand-by untuk mulai diagnosis kendaraan ini.</p>
+                {mechanics.length > 0 ? (
+                  <select
+                    value={mechanicId}
+                    onChange={e => setMechanicId(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400 bg-white cursor-pointer"
+                  >
+                    <option value="">— Pilih Mekanik —</option>
+                    {mechanics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                ) : (
+                  <div className="bg-warning-50 border border-warning-100 rounded-xl p-3 text-xs text-warning-700">
+                    Daftar mekanik belum termuat. Coba refresh halaman.
+                  </div>
+                )}
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
-                  💡 Setelah WO dibuat, cetak SPK dan serahkan ke mekanik secara langsung.
+                  Mekanik yang dipilih bisa diganti nanti saat SPK dikirim dari Papan Kerja Advisor.
                 </div>
               </div>
             </div>
@@ -417,14 +438,14 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                   <div className="space-y-1">
                     <span className="text-gray-400 block leading-tight font-semibold">PELANGGAN</span>
                     <span className="font-bold text-gray-850 block">{name}</span>
-                    <span className="text-gray-500 block font-mono">{phone}</span>
+                    <span className="text-gray-500 block font-sans">{phone}</span>
                     <span className="text-gray-400 block mt-1 font-semibold">ALAMAT:</span>
                     <span className="text-gray-600 block bg-white p-1.5 rounded border border-gray-100 italic">{address || '-'}</span>
                   </div>
                   <div className="space-y-1">
                     <span className="text-gray-400 block leading-tight font-semibold">KENDARAAN</span>
                     <span className="font-bold text-gray-850 block">{brand} {model}</span>
-                    <span className="text-gray-500 block font-mono uppercase">{plate}</span>
+                    <span className="text-gray-500 block font-sans uppercase">{plate}</span>
                     <div className="grid grid-cols-2 gap-1.5 pt-1.5 text-[10px] bg-white p-2 rounded border border-gray-100 mt-1">
                       <div>
                         <span className="text-gray-400 block">TYPE:</span>
@@ -440,7 +461,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                       </div>
                       <div>
                         <span className="text-gray-400 block">VIN:</span>
-                        <span className="font-semibold text-gray-700 uppercase font-mono">{vin || '-'}</span>
+                        <span className="font-semibold text-gray-700 uppercase font-sans">{vin || '-'}</span>
                       </div>
                     </div>
                   </div>
@@ -453,7 +474,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                   </div>
                   <div>
                     <span className="text-gray-400 block leading-tight font-semibold">MEKANIK BERTUGAS</span>
-                    <span className="font-bold text-gray-850 mt-1 block">{mechanicNama || 'Belum ditentukan'}</span>
+                    <span className="font-bold text-gray-850 mt-1 block">{mechanics.find(m => m.id === mechanicId)?.name || 'Belum ditentukan'}</span>
                   </div>
                 </div>
 
@@ -487,7 +508,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
                 disabled={!canProceed()}
                 className={`px-5 py-2 rounded-lg text-xs font-bold tracking-wider flex items-center gap-1 transition-all ${
                   canProceed()
-                    ? 'bg-black hover:bg-neutral-800 text-white cursor-pointer shadow-sm'
+                    ? 'bg-berlin-navy hover:bg-berlin-navy-dark text-white cursor-pointer shadow-sm'
                     : 'bg-gray-50 border border-gray-200 text-gray-300 cursor-not-allowed'
                 }`}
               >
@@ -497,7 +518,7 @@ export default function AdvisorPanel({ onAddOrder, staffUsers, activeUser }: Adv
             ) : (
               <button
                 onClick={handleSubmit}
-                className="bg-black hover:bg-neutral-850 text-white px-6 py-2 rounded-lg text-xs font-bold tracking-wider transition-all cursor-pointer shadow-sm"
+                className="bg-berlin-navy hover:bg-berlin-navy-dark text-white px-6 py-2 rounded-lg text-xs font-bold tracking-wider transition-all cursor-pointer shadow-sm"
               >
                 SIMPAN & TERBITKAN WORK ORDER
               </button>

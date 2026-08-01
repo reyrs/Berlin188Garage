@@ -5,6 +5,7 @@ import {
   ShoppingCart, Zap, Users, MoreHorizontal, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { CashTransaction, CashClosing, Order, Expense, User } from '../types';
+import { KPI_TONE, KpiTone } from '../lib/design';
 import InvoicePrint from './InvoicePrint';
 
 interface AccountingPanelProps {
@@ -140,19 +141,19 @@ export default function AccountingPanel({
           {/* KPI cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: 'Pendapatan Hari Ini', value: formatRp(todayIncome), icon: TrendingUp, color: 'emerald', sub: `${todayTx.filter(t=>t.type==='masuk').length} transaksi` },
-              { label: 'Pengeluaran Hari Ini', value: formatRp(todayExpenses), icon: TrendingDown, color: 'red', sub: 'Biaya operasional' },
-              { label: 'Total Pendapatan', value: formatRp(totalIncome), icon: DollarSign, color: 'blue', sub: 'Sejak awal' },
-              { label: 'Net Profit', value: formatRp(netProfit), icon: CheckCircle2, color: netProfit >= 0 ? 'emerald' : 'red', sub: 'Pendapatan - Pengeluaran' },
+              { label: 'Pendapatan Hari Ini', value: formatRp(todayIncome), icon: TrendingUp, tone: 'success' as KpiTone, sub: `${todayTx.filter(t=>t.type==='masuk').length} transaksi` },
+              { label: 'Pengeluaran Hari Ini', value: formatRp(todayExpenses), icon: TrendingDown, tone: 'danger' as KpiTone, sub: 'Biaya operasional' },
+              { label: 'Total Pendapatan', value: formatRp(totalIncome), icon: DollarSign, tone: 'info' as KpiTone, sub: 'Sejak awal' },
+              { label: 'Net Profit', value: formatRp(netProfit), icon: CheckCircle2, tone: (netProfit >= 0 ? 'success' : 'danger') as KpiTone, sub: 'Pendapatan - Pengeluaran' },
             ].map((kpi, i) => (
               <div key={i} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{kpi.label}</span>
-                  <div className={`w-8 h-8 rounded-lg bg-${kpi.color}-50 text-${kpi.color}-700 flex items-center justify-center`}>
+                  <div className={`w-8 h-8 rounded-lg ${KPI_TONE[kpi.tone].bg} ${KPI_TONE[kpi.tone].text} flex items-center justify-center`}>
                     <kpi.icon className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-lg font-bold text-gray-900 font-mono">{kpi.value}</div>
+                <div className="text-lg font-bold text-gray-900 font-sans">{kpi.value}</div>
                 <div className="text-[10px] text-gray-400 mt-0.5">{kpi.sub}</div>
               </div>
             ))}
@@ -174,7 +175,7 @@ export default function AccountingPanel({
               a.click();
               URL.revokeObjectURL(url);
             }}
-              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
+              className="flex items-center gap-2 bg-berlin-navy text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-berlin-navy-dark transition-colors">
               <FileText className="w-4 h-4" />
               Download Backup
             </button>
@@ -198,7 +199,7 @@ export default function AccountingPanel({
                       <div className="text-xs text-gray-400">{formatDate(tx.timestamp)} · {METHOD_LABEL[tx.method] || tx.method}</div>
                     </div>
                   </div>
-                  <span className={`text-sm font-bold font-mono ${tx.type === 'masuk' ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <span className={`text-sm font-bold font-sans ${tx.type === 'masuk' ? 'text-emerald-600' : 'text-red-500'}`}>
                     {tx.type === 'masuk' ? '+' : '-'}{formatRp(tx.amount)}
                   </span>
                 </div>
@@ -247,9 +248,9 @@ export default function AccountingPanel({
                       <p className="text-sm text-gray-400">{order.plateNumber}</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-xl font-bold text-gray-900 font-mono">{formatRp(total)}</div>
+                      <div className="text-xl font-bold text-gray-900 font-sans tabular-nums">{formatRp(total)}</div>
                       <button onClick={() => setShowPaymentModal(order)}
-                        className="mt-2 bg-black text-white text-sm px-4 py-1.5 rounded-lg hover:bg-gray-800 transition-colors">
+                        className="mt-2 bg-berlin-navy text-white text-sm px-4 py-1.5 rounded-lg hover:bg-berlin-navy-dark transition-colors">
                         Proses Bayar
                       </button>
                     </div>
@@ -259,7 +260,7 @@ export default function AccountingPanel({
                     {order.serviceItems.filter(i => i.status !== 'rejected').map(item => (
                       <div key={item.id} className="flex justify-between text-xs text-gray-500">
                         <span>{item.name} {item.qty > 1 ? `(×${item.qty})` : ''}</span>
-                        <span className="font-mono">{formatRp(item.price * item.qty)}</span>
+                        <span className="font-sans tabular-nums">{formatRp(item.price * item.qty)}</span>
                       </div>
                     ))}
                   </div>
@@ -284,11 +285,11 @@ export default function AccountingPanel({
                       <button
                         onClick={() => setInvoiceOrder(orders.find(o => o.id === tx.orderId) || null)}
                         className="text-xs text-blue-500 hover:text-blue-700 underline"
-                      >🖨️ Cetak Invoice</button>
+                       >Cetak Invoice</button>
                     )}
                   </div>
                   </div>
-                  <span className="text-sm font-bold text-emerald-600 font-mono">+{formatRp(tx.amount)}</span>
+                  <span className="text-sm font-bold text-emerald-600 font-sans tabular-nums">+{formatRp(tx.amount)}</span>
                 </div>
               ))}
             </div>
@@ -305,7 +306,7 @@ export default function AccountingPanel({
               <p className="text-sm text-gray-400">Total bulan ini: <span className="font-bold text-red-600">{formatRp(totalExpenses)}</span></p>
             </div>
             <button onClick={() => setShowExpenseForm(true)}
-              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
+              className="flex items-center gap-2 bg-berlin-navy text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-berlin-navy-dark transition-colors">
               <PlusCircle className="w-4 h-4" />
               Tambah Pengeluaran
             </button>
@@ -357,7 +358,7 @@ export default function AccountingPanel({
                 <button onClick={() => setShowExpenseForm(false)}
                   className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-xl text-sm font-medium hover:bg-gray-50">Batal</button>
                 <button onClick={handleAddExpense}
-                  className="flex-1 bg-black text-white py-2 rounded-xl text-sm font-medium hover:bg-gray-800">Simpan</button>
+                  className="flex-1 bg-berlin-navy text-white py-2 rounded-xl text-sm font-medium hover:bg-berlin-navy-dark">Simpan</button>
               </div>
             </div>
           )}
@@ -382,7 +383,7 @@ export default function AccountingPanel({
                         </div>
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-red-500 font-mono">-{formatRp(exp.amount)}</span>
+                    <span className="text-sm font-bold text-red-500 font-sans tabular-nums">-{formatRp(exp.amount)}</span>
                   </div>
                 );
               })}
@@ -402,18 +403,18 @@ export default function AccountingPanel({
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">Kas Tunai Sistem</p>
-                <p className="text-xl font-bold text-gray-900 font-mono">{formatRp(systemCash)}</p>
+                <p className="text-xl font-bold text-gray-900 font-sans tabular-nums">{formatRp(systemCash)}</p>
                 <p className="text-xs text-gray-400 mt-1">Berdasarkan transaksi hari ini</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-500 block mb-1">Kas Fisik (hitung manual)</label>
                 <input type="number" placeholder="0" value={physicalCash}
                   onChange={e => setPhysicalCash(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-mono focus:outline-none focus:border-gray-400" />
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-sans focus:outline-none focus:border-gray-400" />
                 {physicalCash && (
                   <p className={`text-sm font-medium mt-1 ${parseInt(physicalCash) - systemCash === 0 ? 'text-emerald-600' : parseInt(physicalCash) - systemCash > 0 ? 'text-blue-600' : 'text-red-500'}`}>
                     Selisih: {formatRp(Math.abs(parseInt(physicalCash) - systemCash))}
-                    {parseInt(physicalCash) - systemCash > 0 ? ' (lebih)' : parseInt(physicalCash) - systemCash < 0 ? ' (kurang)' : ' ✓ Sesuai'}
+                    {parseInt(physicalCash) - systemCash > 0 ? ' (lebih)' : parseInt(physicalCash) - systemCash < 0 ? ' (kurang)' : ''}
                   </p>
                 )}
               </div>
@@ -425,7 +426,7 @@ export default function AccountingPanel({
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-gray-400 resize-none" />
             </div>
             <button onClick={handleClosing} disabled={!physicalCash}
-              className="w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              className="w-full bg-berlin-navy text-white py-3 rounded-xl font-medium hover:bg-berlin-navy-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
               Tutup Kas Hari Ini
             </button>
           </div>
@@ -442,12 +443,12 @@ export default function AccountingPanel({
                     <div>
                       <p className="text-sm font-medium text-gray-800">{formatDate(c.timestamp)} — oleh {c.closedBy}</p>
                       <div className="flex gap-4 mt-1">
-                        <span className="text-xs text-gray-400">Sistem: <span className="font-mono font-medium">{formatRp(c.systemCash)}</span></span>
-                        <span className="text-xs text-gray-400">Fisik: <span className="font-mono font-medium">{formatRp(c.physicalCash)}</span></span>
+                        <span className="text-xs text-gray-400">Sistem: <span className="font-sans font-medium tabular-nums">{formatRp(c.systemCash)}</span></span>
+                        <span className="text-xs text-gray-400">Fisik: <span className="font-sans font-medium tabular-nums">{formatRp(c.physicalCash)}</span></span>
                       </div>
                       {c.notes && <p className="text-xs text-gray-400 mt-1 italic">{c.notes}</p>}
                     </div>
-                    <span className={`text-sm font-bold font-mono ${c.discrepancy === 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    <span className={`text-sm font-bold font-sans ${c.discrepancy === 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                       {c.discrepancy === 0 ? '✓ Sesuai' : (c.discrepancy > 0 ? '+' : '') + formatRp(c.discrepancy)}
                     </span>
                   </div>
@@ -484,7 +485,7 @@ export default function AccountingPanel({
             <div className="bg-gray-50 rounded-xl p-4 mb-4">
               <p className="text-sm font-medium text-gray-900">{showPaymentModal.id} — {showPaymentModal.customerName}</p>
               <p className="text-sm text-gray-500">{showPaymentModal.carBrand} {showPaymentModal.carModel} · {showPaymentModal.plateNumber}</p>
-              <p className="text-xl font-bold text-gray-900 font-mono mt-2">
+              <p className="text-xl font-bold text-gray-900 font-sans mt-2">
                 {formatRp(showPaymentModal.serviceItems.filter(i=>i.status!=='rejected').reduce((s,i)=>s+i.price*i.qty,0))}
               </p>
             </div>
@@ -493,13 +494,13 @@ export default function AccountingPanel({
                 <label className="text-xs font-medium text-gray-500 block mb-1">Metode Pembayaran</label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { id: 'tunai' as const, label: '💵 Tunai' },
-                    { id: 'transfer' as const, label: '🏦 Transfer' },
-                    { id: 'qris' as const, label: '📱 QRIS' },
-                    { id: 'edc' as const, label: '💳 EDC' },
+                     { id: 'tunai' as const, label: 'Tunai' },
+                     { id: 'transfer' as const, label: 'Transfer' },
+                     { id: 'qris' as const, label: 'QRIS' },
+                     { id: 'edc' as const, label: 'EDC' },
                   ].map(m => (
                     <button key={m.id} onClick={() => setPayMethod(m.id)}
-                      className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${payMethod === m.id ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
+                      className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${payMethod === m.id ? 'bg-berlin-navy text-white border-berlin-navy' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
                       {m.label}
                     </button>
                   ))}
@@ -539,7 +540,7 @@ export default function AccountingPanel({
                   <label className="text-xs font-medium text-gray-500 block mb-1">Jumlah DP (Rp)</label>
                   <input type="number" value={dpAmount} onChange={e => setDpAmount(e.target.value)}
                     placeholder="Masukkan nominal DP..."
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-gray-400" />
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-sans focus:outline-none focus:border-gray-400" />
                 </div>
               )}
             </div>
@@ -556,7 +557,7 @@ export default function AccountingPanel({
                   handlePayment();
                 }
               }}
-                className="flex-1 bg-black text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-800">
+                className="flex-1 bg-berlin-navy text-white py-2.5 rounded-xl text-sm font-medium hover:bg-berlin-navy-dark">
                 {isDP ? 'Konfirmasi DP' : 'Konfirmasi Lunas'}
               </button>
             </div>

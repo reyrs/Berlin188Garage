@@ -3,6 +3,7 @@ import {
   Package, Search, Plus, MapPin, Trash2, ClipboardList, AlertCircle, CheckCircle2, ChevronRight, CornerDownRight, PackagePlus, Compass, Sliders, Hash, Check, X, RotateCcw
 } from 'lucide-react';
 import { Order, ServiceItem, User as StaffUser, WarehouseStockItem } from '../types';
+import { STATUS_CONFIG } from '../lib/design';
 
 interface StockItemCardProps {
   stockItem: WarehouseStockItem;
@@ -24,13 +25,13 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
     >
       <div className="space-y-1.5">
         <div className="flex justify-between items-start gap-1">
-          <span className="font-mono text-[9px] font-bold text-gray-400 tracking-wider">
+          <span className="font-sans text-[9px] font-bold text-gray-400 tracking-wider">
             {stockItem.code}
           </span>
           
           {/* Map Locator / Rack Location Badge - HIGH VISIBILITY */}
           <div className="bg-berlin-navy text-white text-[9px] px-2 py-0.5 rounded font-bold flex items-center gap-1.5 shadow-sm border border-berlin-gold/25">
-            <MapPin className="w-3 h-3 text-[#E6C687] shrink-0 animate-bounce" />
+            <MapPin className="w-3 h-3 text-[#E6C687] shrink-0" />
             <span>{stockItem.rackLocation}</span>
           </div>
         </div>
@@ -40,7 +41,7 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
         </div>
 
         <div className="flex items-baseline justify-between pt-1">
-          <span className="text-xs font-extrabold text-berlin-navy font-mono">
+          <span className="text-xs font-extrabold text-berlin-navy font-sans">
             {formatRupiah(stockItem.price)}
           </span>
           <span className={`text-[10px] font-bold ${
@@ -62,7 +63,7 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
           >
             -
           </button>
-          <span className="px-2.5 text-xs font-mono font-bold text-gray-800 select-none">
+          <span className="px-2.5 text-xs font-sans font-bold text-gray-800 select-none">
             {qtyToAssign}
           </span>
           <button
@@ -85,7 +86,7 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
           className={`flex-1 h-8 text-[11px] font-black tracking-wider uppercase rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             isOutOfStock 
               ? 'bg-gray-200 border border-gray-200 text-gray-400 cursor-not-allowed' 
-              : 'bg-black text-white hover:bg-neutral-800'
+              : 'bg-berlin-navy text-white hover:bg-berlin-navy-dark'
           }`}
         >
           <Plus className="w-3.5 h-3.5 text-white shrink-0" />
@@ -106,16 +107,15 @@ interface WarehousePanelProps {
   activeUser: StaffUser;
 }
 
-export default function WarehousePanel({ 
+export default function WarehousePanel({
   orders,
-  warehouseStock: _warehouseStock,
-  onUpdateServiceItems, 
+  warehouseStock,
+  onUpdateServiceItems,
   onUpdateOrderStatus,
   onUpdateOrder,
   onUpdateStock,
-  activeUser 
+  activeUser
 }: WarehousePanelProps) {
-  const [warehouseStock, setWarehouseStock] = useState<WarehouseStockItem[]>(_warehouseStock);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [searchStockQuery, setSearchStockQuery] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
@@ -165,15 +165,9 @@ export default function WarehousePanel({
       return;
     }
 
-    // Deduct stock locally & sync to database
+    // Sync deduction straight to the parent (source of truth) — this panel no
+    // longer keeps its own copy of stock, so nothing here can go stale.
     const newStock = stockItem.stock - qtyToAdd;
-    setWarehouseStock(prev => 
-      prev.map(item => 
-        item.id === stockItem.id 
-          ? { ...item, stock: newStock } 
-          : item
-      )
-    );
     onUpdateStock?.(stockItem.id, newStock);
 
     // Create ServiceItem
@@ -229,16 +223,8 @@ export default function WarehousePanel({
     const codeMatch = itemCodeAndName.match(/\((SP-[\w-]+)\)/);
     if (codeMatch) {
       const code = codeMatch[1];
-      setWarehouseStock(prev => {
-        const updated = prev.map(item => 
-          item.code === code 
-            ? { ...item, stock: item.stock + qty } 
-            : item
-        );
-        const restocked = prev.find(item => item.code === code);
-        if (restocked) onUpdateStock?.(restocked.id, restocked.stock + qty);
-        return updated;
-      });
+      const restocked = warehouseStock.find(item => item.code === code);
+      if (restocked) onUpdateStock?.(restocked.id, restocked.stock + qty);
     }
   };
 
@@ -260,15 +246,8 @@ export default function WarehousePanel({
       return;
     }
 
-    // Deduct stock locally & sync
+    // Deduct stock — sync straight to the parent (source of truth)
     const newStockAmt = stockItem.stock - 1;
-    setWarehouseStock(prev => 
-      prev.map(item => 
-        item.id === stockItem.id 
-          ? { ...item, stock: newStockAmt } 
-          : item
-      )
-    );
     onUpdateStock?.(stockItem.id, newStockAmt);
 
     const itemId = `part-${Date.now()}-${stockItem.code}`;
@@ -485,16 +464,8 @@ export default function WarehousePanel({
     if (source === 'gudang_stock') {
       const codeMatch = itemName.match(/\((SP-[\w-]+)\)/);
       const code = codeMatch ? codeMatch[1] : null;
-      setWarehouseStock(prev => {
-        const updated = prev.map(item => 
-          (code && item.code === code) || item.name === itemName
-            ? { ...item, stock: item.stock + 1 } 
-            : item
-        );
-        const restocked = prev.find(item => code ? item.code === code : item.name === itemName);
-        if (restocked) onUpdateStock?.(restocked.id, restocked.stock + 1);
-        return updated;
-      });
+      const restocked = warehouseStock.find(item => code ? item.code === code : item.name === itemName);
+      if (restocked) onUpdateStock?.(restocked.id, restocked.stock + 1);
     }
 
     onUpdateOrder(selectedOrder.id, {
@@ -517,22 +488,21 @@ export default function WarehousePanel({
     // Filter out those items from serviceItems
     const updatedItems = selectedOrder.serviceItems.filter(item => !partIdsToRemove.includes(item.id));
 
-    // Restock any parts that were from warehouse stock
+    // Restock any parts that were from warehouse stock. Accumulate per item
+    // first — if the same stock item appears twice in one finding, reading
+    // the (unchanging) warehouseStock prop separately for each would let the
+    // second call clobber the first instead of adding up.
+    const restockDeltas = new Map<string, number>();
     parts.forEach(p => {
-      if (p.source === 'gudang_stock') {
-        const codeMatch = p.name.match(/\((SP-[\w-]+)\)/);
-        const code = codeMatch ? codeMatch[1] : null;
-        setWarehouseStock(prev => {
-          const updated = prev.map(item => 
-            (code && item.code === code) || item.name === p.name
-              ? { ...item, stock: item.stock + p.qty } 
-              : item
-          );
-          const restocked = prev.find(item => code ? item.code === code : item.name === p.name);
-          if (restocked) onUpdateStock?.(restocked.id, restocked.stock + p.qty);
-          return updated;
-        });
-      }
+      if (p.source !== 'gudang_stock') return;
+      const codeMatch = p.name.match(/\((SP-[\w-]+)\)/);
+      const code = codeMatch ? codeMatch[1] : null;
+      const item = warehouseStock.find(i => (code && i.code === code) || i.name === p.name);
+      if (item) restockDeltas.set(item.id, (restockDeltas.get(item.id) || 0) + p.qty);
+    });
+    restockDeltas.forEach((qty, itemId) => {
+      const item = warehouseStock.find(i => i.id === itemId);
+      if (item) onUpdateStock?.(itemId, item.stock + qty);
     });
 
     // Update finding
@@ -591,13 +561,13 @@ export default function WarehousePanel({
                 onClick={() => setSelectedOrderId(o.id)}
                 className={`w-full text-left p-3.5 rounded-xl border transition-all cursor-pointer block relative overflow-hidden ${
                   isCurrent 
-                    ? 'bg-black text-white border-black shadow-md scale-[1.01]' 
+                    ? 'bg-berlin-navy text-white border-berlin-navy shadow-md scale-[1.01]' 
                     : 'bg-gray-50/50 hover:bg-gray-50 border-gray-150 text-gray-800'
                 }`}
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    <span className={`font-sans text-[10px] font-bold px-1.5 py-0.5 rounded ${
                       isCurrent ? 'bg-zinc-800 text-zinc-100' : 'bg-gray-100 text-gray-700'
                     }`}>
                       {o.id}
@@ -606,12 +576,8 @@ export default function WarehousePanel({
                       {o.plateNumber}
                     </span>
                   </div>
-                  <span className={`text-[9px] px-2 py-0.5 rounded font-extrabold tracking-wide uppercase ${
-                    o.status === 'dikerjakan' 
-                      ? 'bg-blue-100 text-blue-800' 
-                      : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {o.status}
+                  <span className={`text-[9px] px-2 py-0.5 rounded font-extrabold tracking-wide uppercase ${STATUS_CONFIG[o.status].bg} ${STATUS_CONFIG[o.status].text}`}>
+                    {STATUS_CONFIG[o.status].label}
                   </span>
                 </div>
 
@@ -652,14 +618,14 @@ export default function WarehousePanel({
             <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150 pb-3">
                 <div>
-                  <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded font-mono font-bold">{selectedOrder.id}</span>
+                  <span className="text-[10px] bg-berlin-navy text-white px-2 py-0.5 rounded font-sans font-bold">{selectedOrder.id}</span>
                   <h3 className="text-base font-black text-berlin-navy mt-1.5">{selectedOrder.carBrand} {selectedOrder.carModel}</h3>
-                  <p className="text-[11px] text-gray-400 font-mono mt-0.5">No. Polisi: {selectedOrder.plateNumber} • Keluhan: "{selectedOrder.complaint}"</p>
+                  <p className="text-[11px] text-gray-400 font-sans mt-0.5">No. Polisi: {selectedOrder.plateNumber} • Keluhan: "{selectedOrder.complaint}"</p>
                 </div>
                 <div className="text-right">
                   <span className="text-[9px] text-gray-400 uppercase font-black tracking-wider block">Pelanggan</span>
                   <span className="text-xs font-bold text-gray-800 block">{selectedOrder.customerName}</span>
-                  <span className="text-[10px] text-gray-500 font-mono">{selectedOrder.customerPhone}</span>
+                  <span className="text-[10px] text-gray-500 font-sans">{selectedOrder.customerPhone}</span>
                 </div>
               </div>
 
@@ -692,7 +658,7 @@ export default function WarehousePanel({
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <div className="text-right font-mono text-gray-800 font-bold">{formatRupiah(item.price * item.qty)}</div>
+                        <div className="text-right font-sans text-gray-800 font-bold tabular-nums">{formatRupiah(item.price * item.qty)}</div>
                         <button
                           type="button"
                           onClick={() => handleRemovePart(item.id, item.name, item.qty)}
@@ -719,14 +685,14 @@ export default function WarehousePanel({
                           onUpdateOrderStatus(
                             selectedOrder.id,
                             'temuan_dilaporkan',
-                            `Unit Gudang (${activeUser.name}) mengajukan persetujuan pengiriman barang/sparepart baru ke Sales Advisor untuk disetujui (ACC).`
+                            `Unit Gudang (${activeUser.name}) mengajukan persetujuan pengiriman barang/sparepart baru ke Service Advisor untuk disetujui (ACC).`
                           );
-                          alert("Pengajuan sparepart berhasil dikirim ke Sales Advisor!");
+                          alert("Pengajuan sparepart berhasil dikirim ke Service Advisor!");
                         }}
-                        className="bg-black hover:bg-neutral-850 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                        className="bg-berlin-navy hover:bg-berlin-navy-dark text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-berlin-gold animate-bounce" />
-                        Kirim Pengajuan Barang ke Sales Advisor
+                        <CheckCircle2 className="w-4 h-4 text-berlin-gold" />
+                        Kirim Pengajuan Barang ke Service Advisor
                       </button>
                     </div>
                   )}
@@ -750,7 +716,7 @@ export default function WarehousePanel({
                   const resolved = finding.warehouseResolved || finding.resolvedPartName;
                   return (
                     <div key={finding.id} className="bg-gray-50 border border-gray-150 p-4 rounded-xl space-y-3">
-                      <div className="flex justify-between items-center text-[10px] text-gray-400 font-mono">
+                      <div className="flex justify-between items-center text-[10px] text-gray-400 font-sans">
                         <span>TEMUAN MEKANIK</span>
                         <span>{new Date(finding.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
@@ -810,7 +776,7 @@ export default function WarehousePanel({
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2.5">
-                                      <span className="font-mono text-gray-800 font-bold">
+                                      <span className="font-sans text-gray-800 font-bold">
                                         {part.price > 0 ? formatRupiah(part.price) : 'Rp 0'}
                                       </span>
                                       <button
@@ -849,7 +815,7 @@ export default function WarehousePanel({
                               <button
                                 type="button"
                                 onClick={() => handleResolveWithStock(finding.id, finding.description)}
-                                className="w-full bg-black hover:bg-neutral-850 text-white font-bold text-[10px] py-1.5 px-3 rounded-lg transition-colors cursor-pointer mt-2"
+                                className="w-full bg-berlin-navy hover:bg-berlin-navy-dark text-white font-bold text-[10px] py-1.5 px-3 rounded-lg transition-colors cursor-pointer mt-2"
                               >
                                 Tambah dari Stok
                               </button>
@@ -965,7 +931,7 @@ export default function WarehousePanel({
                         placeholder="Contoh: PART-OUT-BMW-02"
                         value={customCode}
                         onChange={(e) => setCustomCode(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-mono transition-colors"
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
                       />
                     </div>
                   </div>
@@ -979,7 +945,7 @@ export default function WarehousePanel({
                         value={customPrice === 0 ? '' : customPrice}
                         onChange={(e) => setCustomPrice(Number(e.target.value))}
                         required
-                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-mono transition-colors"
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
                       />
                     </div>
 
@@ -991,14 +957,14 @@ export default function WarehousePanel({
                         value={customQty}
                         onChange={(e) => setCustomQty(Number(e.target.value))}
                         required
-                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-mono transition-colors"
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
                       />
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-black hover:bg-neutral-800 text-white py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                    className="w-full bg-berlin-navy hover:bg-berlin-navy-dark text-white py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
                   >
                     <Plus className="w-4 h-4 text-white" />
                     Tambahkan Barang Non-Stock ke WO

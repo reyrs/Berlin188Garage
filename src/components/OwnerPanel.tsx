@@ -1,9 +1,9 @@
 import React from 'react';
-import { 
+import {
   DollarSign, Car, Users, TrendingUp, ShieldAlert, Clock, Calendar, CheckSquare, Sparkles, Award
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip 
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 import { Order, CashTransaction, CashClosing, User as StaffUser } from '../types';
 
@@ -54,7 +54,7 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
             </div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-lg sm:text-xl font-bold text-black font-mono">{formatRupiah(totalRevenue)}</div>
+            <div className="text-lg sm:text-xl font-bold text-black font-sans tabular-nums">{formatRupiah(totalRevenue)}</div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Lunas Diterima</p>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
             </div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-lg sm:text-xl font-bold text-black font-mono">{formatRupiah(pendingRevenue)}</div>
+            <div className="text-lg sm:text-xl font-bold text-black font-sans tabular-nums">{formatRupiah(pendingRevenue)}</div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Tagihan Tertunda (Outstanding)</p>
           </div>
         </div>
@@ -80,7 +80,7 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
             </div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-lg sm:text-xl font-bold text-black font-mono">
+            <div className="text-lg sm:text-xl font-bold text-black font-sans">
               {orders.filter(o => o.status !== 'selesai').length} WO
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Sedang Dikerjakan</p>
@@ -95,7 +95,7 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
             </div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-lg sm:text-xl font-bold text-black font-mono">
+            <div className="text-lg sm:text-xl font-bold text-black font-sans">
               {staffUsers.length} Orang
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Teknisi & Administrasi</p>
@@ -152,7 +152,7 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
           <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
             {closings.map((cls) => (
               <div key={cls.id} className="bg-gray-50 border border-gray-150 p-3.5 rounded-xl space-y-2.5 hover:border-gray-250 transition-colors">
-                <div className="flex justify-between items-center text-[10px] text-gray-400 font-mono">
+                <div className="flex justify-between items-center text-[10px] text-gray-400 font-sans">
                   <span>{new Date(cls.timestamp).toLocaleDateString()} {new Date(cls.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   <span className="font-bold text-black">{cls.id}</span>
                 </div>
@@ -170,7 +170,7 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
 
                 <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-2.5">
                   <span className="text-gray-400">Selisih:</span>
-                  <span className={`font-bold font-mono ${cls.discrepancy === 0 ? 'text-emerald-700' : cls.discrepancy > 0 ? 'text-blue-700' : 'text-red-700'}`}>
+                  <span className={`font-bold font-sans ${cls.discrepancy === 0 ? 'text-emerald-700' : cls.discrepancy > 0 ? 'text-blue-700' : 'text-red-700'}`}>
                     {cls.discrepancy === 0 ? 'Cocok (Rp 0)' : formatRupiah(cls.discrepancy)}
                   </span>
                 </div>

@@ -1,7 +1,8 @@
 -- Berlin188 Garage - Supabase Schema
 -- Execute this in Supabase SQL Editor
 
--- 1. PROFILES (linked to auth.users)
+-- 1. PROFILES (staff directory — 1:1 with a real Supabase Auth user; created
+-- via scripts/provision-staff.mjs using the service role key, not public signup)
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -41,6 +42,7 @@ CREATE TABLE orders (
   payment_method TEXT,
   payment_destination TEXT,
   paid_at TIMESTAMPTZ,
+  dp_amount NUMERIC,
   notes TEXT,
   spk_sent BOOLEAN DEFAULT false,
   assigned_mechanic_id UUID REFERENCES profiles(id),
@@ -133,33 +135,36 @@ CREATE INDEX idx_expenses_date ON expenses(date);
 CREATE INDEX idx_closings_date ON closings(timestamp);
 CREATE INDEX idx_stock_mutations_item ON stock_mutations(stock_item_id);
 
--- RLS POLICIES (basic - allow authenticated users full access)
--- In production, refine per role
-CREATE POLICY "Allow authenticated full access on profiles"
+-- RLS POLICIES
+-- Staff login uses real Supabase Auth (see src/lib/auth.ts) — staff-only
+-- tables are locked to `authenticated`. `orders` stays open to `anon` too
+-- because customers approve/reject findings in TrackingPortal without ever
+-- logging in.
+CREATE POLICY "Staff access on profiles"
   ON profiles FOR ALL TO authenticated
   USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated full access on orders"
-  ON orders FOR ALL TO authenticated
+CREATE POLICY "Allow app access on orders"
+  ON orders FOR ALL TO anon, authenticated
   USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated full access on transactions"
+CREATE POLICY "Staff access on transactions"
   ON transactions FOR ALL TO authenticated
   USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated full access on expenses"
+CREATE POLICY "Staff access on expenses"
   ON expenses FOR ALL TO authenticated
   USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated full access on closings"
+CREATE POLICY "Staff access on closings"
   ON closings FOR ALL TO authenticated
   USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated full access on warehouse_stock"
+CREATE POLICY "Staff access on warehouse_stock"
   ON warehouse_stock FOR ALL TO authenticated
   USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated full access on stock_mutations"
+CREATE POLICY "Staff access on stock_mutations"
   ON stock_mutations FOR ALL TO authenticated
   USING (true) WITH CHECK (true);
 

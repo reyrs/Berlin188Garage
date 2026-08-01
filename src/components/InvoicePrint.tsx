@@ -17,7 +17,7 @@ const formatDate = (s: string) => {
     .replace(/ /g, '-');
 };
 
-export default function InvoicePrint({ order, invoiceNumber, kasirName = 'DHITA', onClose }: InvoiceProps) {
+export default function InvoicePrint({ order, invoiceNumber, kasirName = '-', onClose }: InvoiceProps) {
   const parts = order.serviceItems.filter(i => i.type === 'part' && i.status !== 'rejected');
   const jasa = order.serviceItems.filter(i => i.type === 'jasa' && i.status !== 'rejected');
 
@@ -26,7 +26,7 @@ export default function InvoicePrint({ order, invoiceNumber, kasirName = 'DHITA'
   const grandTotal = totalPart + totalJasa;
 
   return (
-    <div className="bg-white" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#000', minHeight: '100vh' }}>
+    <div className="bg-white print-area" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', color: '#000', minHeight: '100vh' }}>
       
       {/* Print / Close controls - hidden on print */}
       {onClose && (
@@ -35,13 +35,13 @@ export default function InvoicePrint({ order, invoiceNumber, kasirName = 'DHITA'
             onClick={() => window.print()}
             className="bg-black text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800"
           >
-            🖨️ Cetak Invoice
+            Cetak Invoice
           </button>
           <button
             onClick={onClose}
             className="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
           >
-            ✕ Tutup
+            Tutup
           </button>
         </div>
       )}
@@ -112,7 +112,8 @@ export default function InvoicePrint({ order, invoiceNumber, kasirName = 'DHITA'
             <div><span style={{ color: '#444' }}>KM</span> : <strong>-</strong></div>
           </div>
           <div style={{ display: 'flex', gap: '16px', fontSize: '10px' }}>
-            <div><span style={{ color: '#444' }}>Mekanik</span> : <strong>{order.advisorName || '-'}</strong></div>
+            <div><span style={{ color: '#444' }}>SA</span> : <strong>{order.advisorName || '-'}</strong></div>
+            <div><span style={{ color: '#444' }}>Mekanik</span> : <strong>{order.assignedMechanicName || '-'}</strong></div>
             <div><span style={{ color: '#444' }}>Kasir</span> : <strong>{kasirName}</strong></div>
           </div>
         </div>
@@ -217,13 +218,13 @@ export default function InvoicePrint({ order, invoiceNumber, kasirName = 'DHITA'
               <tr>
                 <td style={{ padding: '4px 8px', fontWeight: 'bold' }}>SUB TOTAL</td>
                 <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>
-                  {formatRp(grandTotal)}
+                  Rp {formatRp(grandTotal)}
                 </td>
               </tr>
               <tr style={{ borderTop: '2px solid #000', background: '#f8f8f8' }}>
                 <td style={{ padding: '6px 8px', fontWeight: 'bold', fontSize: '13px' }}>GRAND TOTAL</td>
                 <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '13px' }}>
-                  {formatRp(grandTotal)}
+                  Rp {formatRp(grandTotal)}
                 </td>
               </tr>
             </tbody>
@@ -282,7 +283,7 @@ export default function InvoicePrint({ order, invoiceNumber, kasirName = 'DHITA'
 
         {/* Footer kecil */}
         <div style={{ borderTop: '1px solid #ddd', marginTop: '16px', paddingTop: '6px', fontSize: '9px', color: '#888', textAlign: 'center' }}>
-          Berlin188 Garage · Alam Sutera Jl. Rawa Kutuk No.31, Pondok Jagung Timur, Tangerang Selatan · 0818 188 188 01
+          Berlin188 Garage · Alam Sutera Jl. Rawa Kutuk No.31, Pondok Jagung Timur, Tangerang Selatan 15324 · 0818 188 188 01
         </div>
       </div>
 

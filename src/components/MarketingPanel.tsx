@@ -122,14 +122,14 @@ export default function MarketingPanel({ orders }: MarketingPanelProps) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] font-bold text-gray-500">{o.id}</span>
+                      <span className="font-sans text-[10px] font-bold text-gray-500">{o.id}</span>
                       <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-bold uppercase">SELESAI</span>
                     </div>
                     <h5 className="font-bold text-gray-900 text-sm">{o.carBrand} {o.carModel}</h5>
                     <p className="text-[10px] text-gray-500">{o.serviceType} · {o.plateNumber}</p>
                     <p className="text-[11px] text-gray-600 italic">"{o.complaint}"</p>
                   </div>
-                  <span className="text-[9px] text-gray-400 font-mono shrink-0">{new Date(o.createdAt).toLocaleDateString('id-ID')}</span>
+                  <span className="text-[9px] text-gray-400 font-sans shrink-0">{new Date(o.createdAt).toLocaleDateString('id-ID')}</span>
                 </div>
 
                 {/* Temuan */}

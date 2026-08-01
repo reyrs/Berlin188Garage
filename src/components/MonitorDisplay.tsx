@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { CheckCircle, Wrench } from 'lucide-react';
 import { Order } from '../types';
+import { STATUS_CONFIG, STATUS_BORDER, BADGE_CLASS } from '../lib/design';
 
 interface MonitorDisplayProps {
   orders: Order[];
 }
-
-const STATUS_CONFIG = {
-  antre: { label: 'Antrian', color: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' },
-  dikerjakan: { label: 'Dikerjakan', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
-  temuan_dilaporkan: { label: 'Menunggu Konfirmasi', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
-  menunggu_pembayaran: { label: 'Menunggu Pembayaran', color: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
-  selesai: { label: 'Selesai', color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
-};
 
 const ALL_MECHANICS = [
   { id: 'mekanik-1', name: 'Mekanik Joko' },
@@ -35,15 +29,17 @@ export default function MonitorDisplay({ orders }: MonitorDisplayProps) {
     : activeOrders.filter(o => o.assignedMechanicId === mechanicFilter);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">BERLIN188 GARAGE</h1>
-          <p className="text-gray-400 text-sm mt-0.5">Monitor Pengerjaan — per Mekanik</p>
+    <div className="min-h-screen bg-gray-900 text-white p-6 flex flex-col">
+      <div className="flex items-center justify-between mb-5 pb-5 border-b-2 border-berlin-gold/30">
+        <div className="flex items-center gap-3">
+          <img src="/logo-icon.png" alt="" className="h-12 w-auto object-contain" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">BERLIN188 GARAGE</h1>
+            <p className="text-gray-400 text-sm mt-0.5">Monitor Pengerjaan</p>
+          </div>
         </div>
         <div className="text-right">
-          <div className="text-4xl font-mono font-bold text-white">
+          <div className="text-4xl font-sans font-bold text-berlin-gold">
             {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </div>
           <div className="text-gray-400 text-sm">
@@ -52,25 +48,23 @@ export default function MonitorDisplay({ orders }: MonitorDisplayProps) {
         </div>
       </div>
 
-      {/* Summary bar */}
       <div className="grid grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Total Antrian', value: activeOrders.length, color: 'text-white' },
-          { label: 'Sedang Dikerjakan', value: orders.filter(o=>o.status==='dikerjakan').length, color: 'text-blue-400' },
-          { label: 'Menunggu Konfirmasi', value: orders.filter(o=>o.status==='temuan_dilaporkan').length, color: 'text-amber-400' },
-          { label: 'Selesai Hari Ini', value: doneToday, color: 'text-emerald-400' },
+          { label: 'Total Antrian', value: activeOrders.length, color: 'text-white', border: 'border-t-gray-500', tint: 'bg-white/5' },
+          { label: 'Dikerjakan', value: orders.filter(o=>o.status==='dikerjakan').length, color: 'text-info-500', border: 'border-t-info-500', tint: 'bg-info-500/10' },
+          { label: 'Menunggu Konfirmasi', value: orders.filter(o=>o.status==='temuan_dilaporkan').length, color: 'text-warning-500', border: 'border-t-warning-500', tint: 'bg-warning-500/10' },
+          { label: 'Selesai Hari Ini', value: doneToday, color: 'text-success-500', border: 'border-t-success-500', tint: 'bg-success-500/10' },
         ].map((s, i) => (
-          <div key={i} className="bg-gray-900 rounded-2xl p-4 text-center border border-gray-800">
-            <div className={`text-4xl font-bold font-mono ${s.color}`}>{s.value}</div>
+          <div key={i} className={`${s.tint} rounded-2xl p-4 text-center border border-gray-800 border-t-2 ${s.border}`}>
+            <div className={`text-4xl font-bold font-sans ${s.color}`}>{s.value}</div>
             <div className="text-gray-400 text-xs mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Mechanic filter */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setMechanicFilter('all')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
             mechanicFilter === 'all' ? 'bg-white text-gray-900' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
           }`}>
           Semua Mekanik
@@ -79,21 +73,21 @@ export default function MonitorDisplay({ orders }: MonitorDisplayProps) {
           const count = activeOrders.filter(o => o.assignedMechanicId === m.id).length;
           return (
             <button key={m.id} onClick={() => setMechanicFilter(m.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                mechanicFilter === m.id ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                mechanicFilter === m.id ? 'bg-berlin-navy text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
               }`}>
-              🔧 {m.name.split(' ').slice(1).join(' ') || m.name}
-              {count > 0 && <span className="bg-gray-700 text-white text-[9px] px-1.5 py-0.5 rounded-full">{count}</span>}
+              <Wrench className="w-3 h-3" />
+              {m.name.split(' ').slice(1).join(' ') || m.name}
+              {count > 0 && <span className="bg-gray-700 text-white text-xs px-1.5 py-0.5 rounded-full">{count}</span>}
             </button>
           );
         })}
       </div>
 
-      {/* Order grid */}
       {filteredOrders.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-gray-600">
-            <div className="text-6xl mb-4">✓</div>
+            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-gray-700" />
             <p className="text-xl font-medium">
               {mechanicFilter === 'all' ? 'Tidak ada antrian aktif' : 'Tidak ada pekerjaan untuk mekanik ini'}
             </p>
@@ -102,31 +96,33 @@ export default function MonitorDisplay({ orders }: MonitorDisplayProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 flex-1">
           {filteredOrders.map(order => {
-            const cfg = STATUS_CONFIG[order.status];
+            const badge = STATUS_CONFIG[order.status];
             return (
-              <div key={order.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+              <div key={order.id} className={`bg-gray-850 border border-gray-800 border-l-4 ${STATUS_BORDER[order.status]} rounded-2xl p-5`}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-bold text-white">{order.id}</span>
                       {order.assignedMechanicName && (
-                        <span className="text-[9px] bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded-full font-medium">
-                          🔧 {order.assignedMechanicName.split(' ').slice(1).join(' ')}
+                        <span className="text-xs bg-berlin-navy-light/30 text-info-500 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                          <Wrench className="w-3 h-3" />
+                          {order.assignedMechanicName.split(' ').slice(1).join(' ')}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <div className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.color}`}>{cfg.label}</span>
+                    <div className="mt-1">
+                      <span className={`${BADGE_CLASS} ${badge.bg} ${badge.text} ${badge.border}`}>
+                        {badge.label}
+                      </span>
                     </div>
                   </div>
-                  <span className="text-2xl">
-                    {order.carBrand === 'Mercedes-Benz' ? '⭐' : order.carBrand === 'BMW' ? '🔵' : order.carBrand === 'Audi' ? '⚪' : order.carBrand === 'MINI' ? '🟢' : order.carBrand === 'Land Rover' ? '🟫' : '🔧'}
+                  <span className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-300 font-semibold">
+                    {order.carBrand}
                   </span>
                 </div>
                 <div className="space-y-1.5">
                   <p className="text-white font-semibold">{order.carBrand} {order.carModel}</p>
-                  <p className="text-gray-400 text-sm font-mono">{order.plateNumber}</p>
+                  <p className="text-gray-400 text-sm font-sans">{order.plateNumber}</p>
                   <p className="text-gray-400 text-sm">{order.customerName}</p>
                   <div className="pt-2 mt-2 border-t border-gray-800">
                     <p className="text-gray-500 text-xs">{order.serviceType}</p>
@@ -139,9 +135,8 @@ export default function MonitorDisplay({ orders }: MonitorDisplayProps) {
         </div>
       )}
 
-      {/* Footer */}
       <div className="mt-6 text-center text-gray-600 text-xs">
-        Berlin188 Garage · Spesialis European Car · Auto-refresh setiap 30 detik
+        Berlin188 Garage · Spesialis European Car
       </div>
     </div>
   );

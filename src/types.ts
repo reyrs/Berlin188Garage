@@ -1,4 +1,4 @@
-export type UserRole = 'owner' | 'manager' | 'kasir' | 'advisor' | 'gudang' | 'mekanik' | 'marketing' | 'customer';
+export type UserRole = 'owner' | 'manager' | 'kasir' | 'advisor' | 'gudang' | 'mekanik' | 'marketing' | 'customer' | 'vendor';
 
 export interface User {
   id: string;
@@ -84,6 +84,7 @@ export interface Order {
   paymentMethod?: 'tunai' | 'transfer' | 'qris' | 'edc';
   paymentDestination?: string;
   paidAt?: string;
+  dpAmountPaid?: number;
   notes?: string;
   spkSent?: boolean;
   assignedMechanicId?: string;
@@ -132,3 +133,4 @@ export interface Expense {
   createdBy: string;
   receiptUrl?: string;
 }
+

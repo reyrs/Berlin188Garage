@@ -5,6 +5,7 @@ import {
   Camera, Upload, Trash2, AlertCircle, Plus, Send, Package, Settings
 } from 'lucide-react';
 import { Order, User as StaffUser, ServiceItem, DiagnosticFinding } from '../types';
+import { STATUS_CONFIG } from '../lib/design';
 import TrackingPortal from './TrackingPortal';
 import InvoicePrint from './InvoicePrint';
 
@@ -161,7 +162,7 @@ export default function AdvisorDashboard({
     // Send invoice to customer
     const order = orders.find(o => o.id === orderId);
     if (order) {
-      showToast(`📄 Invoice untuk ${order.customerName} telah dikirim ke WhatsApp. Silakan cek Tracking Portal.`);
+      showToast(`Invoice untuk ${order.customerName} telah dikirim ke WhatsApp. Silakan cek Tracking Portal.`);
       setInvoiceOrder(order);
     }
   };
@@ -237,7 +238,7 @@ export default function AdvisorDashboard({
     const item = order.serviceItems.find(i => i.id === itemId);
     if (!item) return;
     if (!item.completed && !item.photoUrl) {
-      alert("⚠️ Wajib lampirkan foto bukti sebelum menandai item selesai!");
+      alert("Wajib lampirkan foto bukti sebelum menandai item selesai!");
       return;
     }
     onUpdateOrder(orderId, {
@@ -249,7 +250,7 @@ export default function AdvisorDashboard({
     const approved = order.serviceItems.filter(i => i.status === 'approved');
     const undone = approved.filter(i => !i.completed);
     if (undone.length > 0) {
-      alert(`⚠️ Masih ada ${undone.length} item yang belum selesai/berfoto.`);
+      alert(`Masih ada ${undone.length} item yang belum selesai/berfoto.`);
       return;
     }
     const report = saReport.trim() || "Seluruh pekerjaan selesai dikerjakan dan didokumentasikan.";
@@ -265,7 +266,7 @@ export default function AdvisorDashboard({
       }]
     });
     setSaReport('');
-    alert("🎉 Konfirmasi selesai! Kendaraan siap ke billing.");
+    alert("Konfirmasi selesai! Kendaraan siap ke billing.");
   };
 
   // Find if selected order still exists
@@ -320,19 +321,14 @@ export default function AdvisorDashboard({
       case 'antre': return 'ANTRE';
       case 'dikerjakan': return 'DIKERJAKAN';
       case 'temuan_dilaporkan': return 'TEMUAN DIAGNOSIS';
-      case 'menunggu_pembayaran': return 'MENUNGGU BILLING';
+      case 'menunggu_pembayaran': return 'MENUNGGU PEMBAYARAN';
       case 'selesai': return 'SELESAI';
     }
   };
 
   const getStatusColor = (status: Order['status']) => {
-    switch (status) {
-      case 'antre': return 'bg-amber-50 text-amber-800 border-amber-200/80';
-      case 'dikerjakan': return 'bg-blue-50 text-blue-800 border-blue-200/80';
-      case 'temuan_dilaporkan': return 'bg-purple-50 text-purple-800 border-purple-200/80';
-      case 'menunggu_pembayaran': return 'bg-pink-50 text-pink-800 border-pink-200/80';
-      case 'selesai': return 'bg-emerald-50 text-emerald-800 border-emerald-200/80';
-    }
+    const c = STATUS_CONFIG[status];
+    return `${c.bg} ${c.text} ${c.border}`;
   };
 
   const formatRupiah = (num: number) => {
@@ -367,7 +363,7 @@ export default function AdvisorDashboard({
             <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] text-gray-400 font-mono font-bold tracking-wider">
+                  <div className="text-[10px] text-gray-400 font-sans font-bold tracking-wider">
                     {selectedOrder.id} / PLAT: {selectedOrder.plateNumber}
                   </div>
                   <h3 className="text-xl font-black text-berlin-navy mt-0.5">
@@ -389,7 +385,7 @@ export default function AdvisorDashboard({
                 <div className="flex flex-col gap-2 shrink-0">
                   <button
                     onClick={() => { setShowTemuanForm(v => !v); setWsTemuanPhoto(null); setWsDesc(''); setWsCost(''); }}
-                    className="bg-black text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer hover:bg-neutral-800 transition-colors">
+                    className="bg-berlin-navy text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer hover:bg-berlin-navy-dark transition-colors">
                     <Camera className="w-3.5 h-3.5" /> MELAPORKAN TEMUAN
                   </button>
                 </div>
@@ -476,7 +472,7 @@ export default function AdvisorDashboard({
               </div>
               <div className="p-5 space-y-4">
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Berikut adalah daftar temuan tambahan yang telah disetujui (ACC) oleh Sales Advisor / Pelanggan. Masukkan rincian{' '}
+                  Berikut adalah daftar temuan tambahan yang telah disetujui (ACC) oleh Service Advisor / Pelanggan. Masukkan rincian{' '}
                   <strong className="text-gray-800">Jasa Pengerjaan beserta Biayanya</strong> (bisa lebih dari satu) untuk setiap temuan di bawah ini.
                 </p>
 
@@ -518,7 +514,7 @@ export default function AdvisorDashboard({
                               <div key={item.id} className="flex items-center justify-between py-2 px-3 bg-blue-50 border border-blue-100 rounded-xl text-xs">
                                 <span className="font-semibold text-blue-900">{item.name}</span>
                                 <div className="flex items-center gap-3 shrink-0">
-                                  <span className="text-blue-600 font-mono">{formatRupiah(item.price)} × {item.qty}</span>
+                                  <span className="text-blue-600 font-sans tabular-nums">{formatRupiah(item.price)} × {item.qty}</span>
                                   <button onClick={() => handleRemoveItem(selectedOrder.id, item.id)}
                                     className="text-gray-300 hover:text-red-500 transition-colors cursor-pointer">
                                     <X className="w-3.5 h-3.5" />
@@ -555,7 +551,7 @@ export default function AdvisorDashboard({
                           </div>
                           <div className="flex gap-2">
                             <button onClick={() => handleAddJasaToFinding(selectedOrder.id, finding.id)}
-                              className="bg-black text-white px-5 py-2 rounded-lg text-xs font-bold cursor-pointer hover:bg-neutral-800 transition-colors">
+                              className="bg-berlin-navy text-white px-5 py-2 rounded-lg text-xs font-bold cursor-pointer hover:bg-berlin-navy-dark transition-colors">
                               Tambah
                             </button>
                             <button onClick={() => setActiveFindingJasaId(null)}
@@ -608,8 +604,8 @@ export default function AdvisorDashboard({
                     <div className={`border rounded-2xl p-4 space-y-3 ${readyToSend ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50'}`}>
                       <p className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${readyToSend ? 'text-emerald-700' : 'text-gray-400'}`}>
                         {!hasJasa ? '⚠ Tambah minimal 1 jasa pengerjaan dari temuan di atas'
-                          : hasPendingParts ? '⏳ ACC dulu sparepart dari gudang di atas...'
-                          : '✅ Semua siap — kirim SPK ke mekanik'}
+                          : hasPendingParts ? 'ACC dulu sparepart dari gudang di atas...'
+                          : 'Semua siap — kirim SPK ke mekanik'}
                       </p>
                       {readyToSend && (
                         <>
@@ -691,7 +687,7 @@ export default function AdvisorDashboard({
                             item.type === 'part' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-blue-50 text-blue-800 border-blue-200'
                           }`}>{item.type === 'part' ? 'Sparepart' : 'Jasa'}</span>
                         </div>
-                        <p className="text-[10px] text-gray-400 font-mono">Jumlah: {item.qty} unit</p>
+                        <p className="text-[10px] text-gray-400 font-sans">Jumlah: {item.qty} unit</p>
                       </div>
                       <button
                         type="button"
@@ -827,6 +823,7 @@ export default function AdvisorDashboard({
           <InvoicePrint
             order={invoiceOrder}
             invoiceNumber={`INV-${invoiceOrder.id}-${new Date().getFullYear()}`}
+            kasirName={activeUser?.name}
             onClose={() => setInvoiceOrder(null)}
           />
         </div>
@@ -895,7 +892,7 @@ export default function AdvisorDashboard({
           <div className="flex flex-wrap gap-1.5 text-xs">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'all' ? 'bg-black text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'all' ? 'bg-berlin-navy text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
             >
               Semua Progres
             </button>
@@ -912,25 +909,25 @@ export default function AdvisorDashboard({
             </button>
             <button
               onClick={() => setStatusFilter('antre')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'antre' ? 'bg-black text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'antre' ? 'bg-berlin-navy text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
             >
               Antre
             </button>
             <button
               onClick={() => setStatusFilter('dikerjakan')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'dikerjakan' ? 'bg-black text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'dikerjakan' ? 'bg-berlin-navy text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
             >
               Dikerjakan
             </button>
             <button
               onClick={() => setStatusFilter('menunggu_pembayaran')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'menunggu_pembayaran' ? 'bg-black text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'menunggu_pembayaran' ? 'bg-berlin-navy text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
             >
-              Menunggu Billing
+              Menunggu Pembayaran
             </button>
             <button
               onClick={() => setStatusFilter('selesai')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'selesai' ? 'bg-black text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${statusFilter === 'selesai' ? 'bg-berlin-navy text-white' : 'bg-gray-50 border border-gray-200 text-gray-500 hover:text-black hover:bg-gray-100'}`}
             >
               Selesai
             </button>
@@ -956,7 +953,7 @@ export default function AdvisorDashboard({
           <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400">
             MENAMPILKAN {filteredOrders.length} MOBIL AKTIF
           </span>
-          <span className="text-[10px] text-gray-400 font-mono">Real-time Sync</span>
+          <span className="text-[10px] text-gray-400 font-sans">Real-time Sync</span>
         </div>
 
         {filteredOrders.length === 0 ? (
@@ -979,11 +976,11 @@ export default function AdvisorDashboard({
                   <div className="space-y-2 flex-1">
                     {/* Top line metadata */}
                     <div className="flex items-center gap-2 flex-wrap text-xs">
-                      <span className="font-mono font-bold text-gray-700 bg-gray-100 border border-gray-200/80 px-2 py-0.5 rounded">
+                      <span className="font-sans font-bold text-gray-700 bg-gray-100 border border-gray-200/80 px-2 py-0.5 rounded">
                         {order.id}
                       </span>
                       <span className="text-gray-400">•</span>
-                      <span className="text-gray-500 font-mono">{order.plateNumber}</span>
+                      <span className="text-gray-500 font-sans">{order.plateNumber}</span>
                       <span className="text-gray-400">•</span>
                       <span className="text-gray-400 font-semibold">{new Date(order.createdAt).toLocaleDateString('id-ID')}</span>
                       
@@ -1004,14 +1001,14 @@ export default function AdvisorDashboard({
                       <div>
                         <span className="text-[9px] uppercase tracking-wider text-gray-400 font-bold block leading-none">CUSTOMER</span>
                         <span className="text-sm font-bold text-gray-800 mt-1 block">{order.customerName}</span>
-                        <span className="text-[10px] text-gray-500 font-mono mt-0.5 block flex items-center gap-1">
+                        <span className="text-[10px] text-gray-500 font-sans mt-0.5 block flex items-center gap-1">
                           <Smartphone className="w-3 h-3 text-gray-400" />
                           {order.customerPhone}
                         </span>
                       </div>
                       <div>
                         <span className="text-[9px] uppercase tracking-wider text-gray-400 font-bold block leading-none">MEKANIK</span>
-                        <span className="text-xs font-semibold text-gray-600 mt-1 block">{order.advisorName || 'Belum Ditugaskan'}</span>
+                        <span className="text-xs font-semibold text-gray-600 mt-1 block">{order.assignedMechanicName || 'Belum Ditugaskan'}</span>
                       </div>
                     </div>
                   </div>
@@ -1030,7 +1027,7 @@ export default function AdvisorDashboard({
                           onClick={() => setInvoiceOrder(order)}
                           className="px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-1"
                         >
-                          🖨️ Invoice
+                          Invoice
                         </button>
                       )}
                       <button

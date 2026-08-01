@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Wrench, LogOut, Bell, Sliders, ShieldAlert,
+  Wrench, LogOut, Bell, ShieldAlert,
   LayoutDashboard, FilePlus, ClipboardList, Package, Monitor, BookOpen
 } from 'lucide-react';
 
@@ -17,12 +17,13 @@ import MonitorDisplay from './components/MonitorDisplay';
 import TechnicianPanel from './components/TechnicianPanel';
 import ManagerPanel from './components/ManagerPanel';
 import MarketingPanel from './components/MarketingPanel';
+import ProductMarketplace from './components/ProductMarketplace';
 
 // Types & Data
 import { Order, User, CashTransaction, CashClosing, Expense, WarehouseStockItem } from './types';
 import {
-  INITIAL_USERS, INITIAL_ORDERS, INITIAL_TRANSACTIONS,
-  INITIAL_CLOSINGS, INITIAL_EXPENSES, MOCK_WAREHOUSE_STOCK
+  INITIAL_ORDERS, INITIAL_TRANSACTIONS,
+  INITIAL_CLOSINGS, INITIAL_EXPENSES, MOCK_WAREHOUSE_STOCK,
 } from './data/mockData';
 
 // Supabase
@@ -32,8 +33,9 @@ import {
   fetchExpenses, createExpense,
   fetchClosings, createClosing,
   fetchWarehouseStock, updateStockQuantity,
-  seedProfiles, seedWarehouseStock,
+  fetchProfiles, seedWarehouseStock,
 } from './lib/db';
+import { getSession, onAuthStateChange, signOutStaff } from './lib/auth';
 
 type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor' | 'spk' | 'manager_dashboard' | 'marketing';
 
@@ -43,8 +45,9 @@ export default function App() {
   const [closings, setClosings] = useState<CashClosing[]>(INITIAL_CLOSINGS);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [warehouseStock, setWarehouseStock] = useState<WarehouseStockItem[]>(MOCK_WAREHOUSE_STOCK);
+  const [staffDirectory, setStaffDirectory] = useState<User[]>([]);
   const [activeStaffUser, setActiveStaffUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor' | 'marketplace'>('landing');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [trackingQuery, setTrackingQuery] = useState('');
@@ -58,46 +61,90 @@ export default function App() {
   };
 
   // ---- LOAD DATA FROM SUPABASE ----
-  useEffect(() => {
-    async function load() {
-      try {
-        setIsLoading(true);
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
 
-        await seedProfiles(INITIAL_USERS);
-        await seedWarehouseStock(MOCK_WAREHOUSE_STOCK);
+    await seedWarehouseStock(MOCK_WAREHOUSE_STOCK);
 
-        const [loadedOrders, loadedTransactions, loadedExpenses, loadedClosings, loadedStock] = await Promise.all([
-          fetchOrders(),
-          fetchTransactions(),
-          fetchExpenses(),
-          fetchClosings(),
-          fetchWarehouseStock(),
-        ]);
+    const results = await Promise.allSettled([
+      fetchOrders(),
+      fetchTransactions(),
+      fetchExpenses(),
+      fetchClosings(),
+      fetchWarehouseStock(),
+      fetchProfiles(),
+    ]);
+    const [ordersResult, transactionsResult, expensesResult, closingsResult, stockResult, profilesResult] = results;
 
-        setOrders(loadedOrders);
-        setTransactions(loadedTransactions);
-        setExpenses(loadedExpenses);
-        setClosings(loadedClosings);
-        setWarehouseStock(loadedStock.length > 0 ? loadedStock : MOCK_WAREHOUSE_STOCK);
-        setDbError(null);
-      } catch (err: any) {
-        console.error('Supabase load error:', err);
-        setDbError(err.message || 'Gagal memuat data dari database');
-      } finally {
-        setIsLoading(false);
-      }
+    if (ordersResult.status === 'fulfilled') setOrders(ordersResult.value);
+    if (transactionsResult.status === 'fulfilled') setTransactions(transactionsResult.value);
+    if (expensesResult.status === 'fulfilled') setExpenses(expensesResult.value);
+    if (closingsResult.status === 'fulfilled') setClosings(closingsResult.value);
+    if (stockResult.status === 'fulfilled') {
+      setWarehouseStock(stockResult.value.length > 0 ? stockResult.value : MOCK_WAREHOUSE_STOCK);
     }
-    load();
+    if (profilesResult.status === 'fulfilled') setStaffDirectory(profilesResult.value);
+
+    const failedLabels: Record<number, string> = { 0: 'WO', 1: 'transaksi', 2: 'pengeluaran', 3: 'closing', 4: 'stok gudang', 5: 'direktori staf' };
+    const failures = results
+      .map((r, i) => (r.status === 'rejected' ? failedLabels[i] : null))
+      .filter((label): label is string => label !== null);
+
+    if (failures.length > 0) {
+      console.error('Supabase load errors for:', failures, results);
+      setDbError(`Gagal memuat data ${failures.join(', ')} dari database. Data yang berhasil dimuat tetap ditampilkan.`);
+    } else {
+      setDbError(null);
+    }
+
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // ---- RESTORE STAFF SESSION ----
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const session = await getSession();
+        if (!session || cancelled) return;
+        const profiles = await fetchProfiles();
+        const profile = profiles.find((p) => p.id === session.user.id);
+        if (profile && !cancelled) {
+          setActiveStaffUser(profile);
+          setCurrentView((v) => (v === 'landing' ? 'staff_portal' : v));
+        }
+      } catch (err) {
+        console.error('Failed to restore staff session:', err);
+      }
+    })();
+
+    const subscription = onAuthStateChange((session) => {
+      if (!session) setActiveStaffUser(null);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // ---- ORDER HANDLERS ----
   const handleAddOrder = useCallback((newOrder: Order) => {
     setOrders(prev => [newOrder, ...prev]);
-    createOrder(newOrder).catch(err => {
-      console.error('Failed to save order:', err);
-      showNotification('❌ Gagal menyimpan WO ke database');
-    });
-    showNotification(`✅ WO baru ${newOrder.id} berhasil dibuat — SPK siap dicetak.`);
+    createOrder(newOrder)
+      .then(() => {
+        showNotification(`✅ WO baru ${newOrder.id} berhasil dibuat — SPK siap dicetak.`);
+      })
+      .catch(err => {
+        console.error('Failed to save order:', err);
+        setOrders(prev => prev.filter(o => o.id !== newOrder.id));
+        showNotification(`❌ WO ${newOrder.id} gagal disimpan ke database. Coba buat ulang.`);
+      });
   }, []);
 
   const handleUpdateOrderStatus = useCallback((orderId: string, status: Order['status'], description: string) => {
@@ -216,12 +263,22 @@ export default function App() {
   }, [orders]);
 
   const handleApproveServiceItem = useCallback((orderId: string, itemId: string) => {
-    setOrders(prev => prev.map(o =>
-      o.id !== orderId ? o : {
+    setOrders(prev => prev.map(o => {
+      if (o.id !== orderId) return o;
+      const item = o.serviceItems.find(i => i.id === itemId);
+      return {
         ...o,
-        serviceItems: o.serviceItems.map(i => i.id === itemId ? { ...i, status: 'approved' as const } : i)
-      }
-    ));
+        serviceItems: o.serviceItems.map(i => i.id === itemId ? { ...i, status: 'approved' as const } : i),
+        timeline: [...o.timeline, {
+          id: `t-approve-item-${Date.now()}`,
+          status: o.status,
+          timestamp: new Date().toISOString(),
+          title: 'Estimasi Disetujui Pemilik',
+          description: `Pemilik menyetujui ${item?.type === 'jasa' ? 'jasa' : 'sparepart'}: "${item?.name}".`,
+          actor: 'Pemilik Kendaraan'
+        }]
+      };
+    }));
 
     const order = orders.find(o => o.id === orderId);
     if (order) {
@@ -235,12 +292,22 @@ export default function App() {
   }, [orders]);
 
   const handleRejectServiceItem = useCallback((orderId: string, itemId: string) => {
-    setOrders(prev => prev.map(o =>
-      o.id !== orderId ? o : {
+    setOrders(prev => prev.map(o => {
+      if (o.id !== orderId) return o;
+      const item = o.serviceItems.find(i => i.id === itemId);
+      return {
         ...o,
-        serviceItems: o.serviceItems.map(i => i.id === itemId ? { ...i, status: 'rejected' as const } : i)
-      }
-    ));
+        serviceItems: o.serviceItems.map(i => i.id === itemId ? { ...i, status: 'rejected' as const } : i),
+        timeline: [...o.timeline, {
+          id: `t-reject-item-${Date.now()}`,
+          status: o.status,
+          timestamp: new Date().toISOString(),
+          title: 'Estimasi Ditolak Pemilik',
+          description: `Pemilik menolak ${item?.type === 'jasa' ? 'jasa' : 'sparepart'}: "${item?.name}".`,
+          actor: 'Pemilik Kendaraan'
+        }]
+      };
+    }));
 
     const order = orders.find(o => o.id === orderId);
     if (order) {
@@ -347,9 +414,11 @@ export default function App() {
 
   const handleConfirmPayment = useCallback((orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dest: string) => {
     const order = orders.find(o => o.id === orderId);
-    const amount = order?.serviceItems
+    const total = order?.serviceItems
       .filter(i => i.status !== 'rejected' && i.status !== 'pending')
       .reduce((s, i) => s + i.price * i.qty, 0) || 0;
+    const dpAlreadyPaid = order?.dpAmountPaid || 0;
+    const remaining = total - dpAlreadyPaid;
     const now = new Date().toISOString();
 
     setOrders(prev => prev.map(o =>
@@ -365,7 +434,9 @@ export default function App() {
           status: 'selesai' as const,
           timestamp: now,
           title: 'Pembayaran Lunas',
-          description: `Lunas Rp ${amount.toLocaleString('id-ID')} via ${PAYMENT_LABEL[method] || method.toUpperCase()} (${dest}).`,
+          description: dpAlreadyPaid > 0
+            ? `Pelunasan Rp ${remaining.toLocaleString('id-ID')} via ${PAYMENT_LABEL[method] || method.toUpperCase()} (${dest}) — dari total Rp ${total.toLocaleString('id-ID')}, DP sudah Rp ${dpAlreadyPaid.toLocaleString('id-ID')}.`
+            : `Lunas Rp ${remaining.toLocaleString('id-ID')} via ${PAYMENT_LABEL[method] || method.toUpperCase()} (${dest}).`,
           actor: activeStaffUser?.name || 'Kasir'
         }]
       }
@@ -376,14 +447,14 @@ export default function App() {
         status: 'selesai', paymentStatus: 'lunas',
         paymentMethod: method, paymentDestination: dest, paidAt: now,
       }),
-      createTransactionRecord(orderId, amount, method, 'masuk', 'pendapatan_jasa',
+      createTransactionRecord(orderId, remaining, method, 'masuk', 'pendapatan_jasa',
         `Pembayaran ${orderId} — ${order?.carBrand} ${order?.carModel}`, order?.customerName)
     ]).catch(err => {
       console.error('Failed to process payment:', err);
       showNotification('❌ Gagal memproses pembayaran');
     });
 
-    showNotification(`💰 Pembayaran ${orderId} lunas — Rp ${amount.toLocaleString('id-ID')}`);
+    showNotification(`💰 Pembayaran ${orderId} lunas — Rp ${remaining.toLocaleString('id-ID')}`);
   }, [orders, activeStaffUser, createTransactionRecord]);
 
   const handleConfirmDPPayment = useCallback((orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dpAmount: number, dest: string) => {
@@ -399,6 +470,7 @@ export default function App() {
         paymentStatus: 'dp' as const,
         paymentMethod: method,
         paymentDestination: dest,
+        dpAmountPaid: dpAmount,
         timeline: [...o.timeline, {
           id: `t-dp-${Date.now()}`,
           status: o.status,
@@ -411,7 +483,7 @@ export default function App() {
     ));
 
     Promise.all([
-      updateOrder(orderId, { paymentStatus: 'dp', paymentMethod: method, paymentDestination: dest }),
+      updateOrder(orderId, { paymentStatus: 'dp', paymentMethod: method, paymentDestination: dest, dpAmountPaid: dpAmount }),
       createTransactionRecord(orderId, dpAmount, method, 'masuk', 'pendapatan_jasa',
         `DP ${orderId} — Rp ${dpAmount.toLocaleString('id-ID')} (${order?.carBrand} ${order?.carModel})`, order?.customerName)
     ]).catch(err => {
@@ -484,7 +556,12 @@ export default function App() {
     showNotification(`👋 Selamat bekerja, ${user.name}!`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOutStaff();
+    } catch (err) {
+      console.error('Failed to sign out:', err);
+    }
     setActiveStaffUser(null);
     setCurrentView('landing');
   };
@@ -539,36 +616,17 @@ export default function App() {
         </div>
       )}
 
-      {/* Dev simulation bar */}
-      <div className="bg-neutral-900 border-b border-neutral-800 text-xs text-neutral-300 py-3 px-4 z-50">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-          <div className="flex items-center gap-2">
-            <Sliders className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span className="font-bold text-neutral-300 text-[11px]">DEV MODE — Login Cepat:</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button onClick={() => { setCurrentView('landing'); setActiveStaffUser(null); }}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${currentView === 'landing' && !activeStaffUser ? 'bg-amber-500 text-black' : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-400'}`}>
-              🌐 Landing
-            </button>
-            <button onClick={() => { setTrackingQuery('085156010707'); setCurrentView('tracking'); }}
-              className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${currentView === 'tracking' ? 'bg-amber-500 text-black' : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-400'}`}>
-              🔍 Tracking Customer
-            </button>
-            <button onClick={() => setCurrentView('monitor')}
-              className="px-2.5 py-1 rounded text-[10px] font-bold bg-neutral-800 hover:bg-neutral-700 text-neutral-400">
-              📺 Monitor Bengkel
-            </button>
-            <span className="text-neutral-700 mx-1">|</span>
-            {INITIAL_USERS.filter(u => u.role !== 'customer').map(u => (
-              <button key={u.id} onClick={() => handleLoginSuccess(u)}
-                className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${activeStaffUser?.id === u.id ? 'bg-amber-500/20 border border-amber-500/50 text-amber-400' : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-400'}`}>
-                {u.role === 'owner' ? '👑' : u.role === 'manager' ? '📊' : u.role === 'advisor' ? '🎯' : u.role === 'kasir' ? '💰' : u.role === 'mekanik' ? '🔧' : u.role === 'marketing' ? '📸' : '📦'} {u.name.split(' ').slice(1).join(' ') || u.name}
-              </button>
-            ))}
-          </div>
+      {dbError && !isLoading && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-berlin-red text-white text-xs font-semibold py-2 px-4 flex items-center justify-center gap-3 flex-wrap">
+          <span>⚠️ {dbError}</span>
+          <button
+            onClick={() => loadData()}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
+          >
+            Coba Lagi
+          </button>
         </div>
-      </div>
+      )}
 
       {/* Notification toast */}
       {sandboxNotification && (
@@ -584,8 +642,13 @@ export default function App() {
             onCheckOrder={() => setCurrentView('tracking')}
             onOpenLogin={() => setIsLoginModalOpen(true)}
             onSelectSampleOrder={() => { setTrackingQuery('085156010707'); setCurrentView('tracking'); }}
+            onOpenMarketplace={() => setCurrentView('marketplace')}
             orders={orders}
           />
+        )}
+
+        {currentView === 'marketplace' && (
+          <ProductMarketplace />
         )}
 
         {currentView === 'tracking' && (
@@ -603,14 +666,14 @@ export default function App() {
         )}
 
         {currentView === 'staff_portal' && activeStaffUser && (
-          <div className="min-h-screen bg-[#F8F9FA]">
+          <div className="min-h-screen bg-gray-50">
             <div className="border-b border-gray-200 bg-white py-3 px-6 shadow-sm sticky top-0 z-40">
               <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <img 
-                    src="/logo-small.png" 
-                    alt="Berlin 188 Garage" 
-                    className="h-8 w-8 object-contain rounded-lg"
+                  <img
+                    src="/logo-on-white.png"
+                    alt="Berlin 188 Garage"
+                    className="h-8 object-contain rounded-lg"
                   />
                   <div>
                     <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest leading-none">Berlin188 Garage</p>
@@ -624,7 +687,7 @@ export default function App() {
                   {getTabsForRole(activeStaffUser.role).map(tab => (
                     <button key={tab.id}
                       onClick={() => tab.id === 'monitor' ? setCurrentView('monitor') : setActiveTab(tab.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                       <tab.icon className="w-3.5 h-3.5" />
                       {tab.label}
                     </button>
@@ -645,15 +708,15 @@ export default function App() {
                   orders={orders}
                   transactions={transactions}
                   closings={closings}
-                  staffUsers={INITIAL_USERS}
+                  staffUsers={staffDirectory}
                 />
               )}
 
               {activeTab === 'create_order' && (
                 <AdvisorPanel
                   onAddOrder={handleAddOrder}
-                  staffUsers={INITIAL_USERS}
                   activeUser={activeStaffUser}
+                  staffUsers={staffDirectory}
                 />
               )}
 
@@ -661,7 +724,7 @@ export default function App() {
                 <AdvisorDashboard
                   orders={orders}
                   activeUser={activeStaffUser}
-                  users={INITIAL_USERS}
+                  users={staffDirectory}
                   onApproveFinding={handleApproveFinding}
                   onRejectFinding={handleRejectFinding}
                   onApproveServiceItem={handleApproveServiceItem}
@@ -741,7 +804,6 @@ export default function App() {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
-        users={INITIAL_USERS}
       />
     </div>
   );

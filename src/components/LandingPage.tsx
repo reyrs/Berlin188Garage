@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { MapPin, Phone, Clock, ArrowRight, X } from 'lucide-react';
 import { Order } from '../types';
 import ThemeToggle from './ThemeToggle';
@@ -99,6 +100,12 @@ export default function LandingPage({ onCheckOrder, onOpenLogin, onSelectSampleO
                 Marketplace
               </button>
             )}
+            <Link to="/blog"
+              className={`spec-label transition-colors hidden sm:block cursor-pointer ${
+                scrolled ? 'text-gray-500 hover:text-berlin-navy' : 'text-white/70 hover:text-white'
+              }`}>
+              Blog
+            </Link>
             <button onClick={onCheckOrder}
               className={`spec-label transition-colors hidden sm:block cursor-pointer ${
                 scrolled ? 'text-gray-500 hover:text-berlin-navy' : 'text-white/70 hover:text-white'

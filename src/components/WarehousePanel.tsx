@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Order, ServiceItem, User as StaffUser, WarehouseStockItem } from '../types';
 import { STATUS_CONFIG } from '../lib/design';
+import ImageLightbox from './ImageLightbox';
 
 interface StockItemCardProps {
   stockItem: WarehouseStockItem;
@@ -117,6 +118,7 @@ export default function WarehousePanel({
   activeUser
 }: WarehousePanelProps) {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [searchStockQuery, setSearchStockQuery] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
 
@@ -726,9 +728,13 @@ export default function WarehousePanel({
                       </div>
 
                       {finding.imageUrl && (
-                        <div className="rounded-lg overflow-hidden border border-gray-200 max-h-32 bg-gray-100 max-w-xs">
+                        <button
+                          type="button"
+                          onClick={() => setZoomedImage(finding.imageUrl!)}
+                          className="block rounded-lg overflow-hidden border border-gray-200 max-h-32 bg-gray-100 max-w-xs cursor-zoom-in hover:opacity-90 transition-opacity"
+                        >
                           <img src={finding.imageUrl} alt="Bukti Kerusakan" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        </div>
+                        </button>
                       )}
 
                       {resolved ? (
@@ -1017,6 +1023,7 @@ export default function WarehousePanel({
         )}
       </div>
 
+      {zoomedImage && <ImageLightbox src={zoomedImage} alt="Bukti Kerusakan" onClose={() => setZoomedImage(null)} />}
     </div>
   );
 }

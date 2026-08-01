@@ -3,6 +3,7 @@ import { Search, MapPin, Phone, Calendar, Clock, AlertTriangle, FileText, CheckC
 import { Order, DiagnosticFinding, ServiceItem } from '../types';
 import { CAR_BRAND_LOGOS } from '../data/mockData';
 import CurveAccent from './CurveAccent';
+import ImageLightbox from './ImageLightbox';
 
 interface TrackingPortalProps {
   orders: Order[];
@@ -37,6 +38,7 @@ export default function TrackingPortal({
   isStaffView = false
 }: TrackingPortalProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [searched, setSearched] = useState(initialSearchQuery !== '');
   const [findingCostInputs, setFindingCostInputs] = useState<Record<string, number>>({});
   const [activeOrder, setActiveOrder] = useState<Order | null>(() => {
@@ -563,18 +565,22 @@ export default function TrackingPortal({
                               )}
                               
                               {finding.imageUrl && (
-                                <div className="rounded-lg overflow-hidden border border-gray-200 max-h-52 bg-gray-100 relative group">
-                                  <img 
-                                    src={finding.imageUrl} 
-                                    alt="Temuan Mekanik" 
-                                    className="w-full h-full object-cover opacity-90 group-hover:scale-102 transition-transform duration-300" 
+                                <button
+                                  type="button"
+                                  onClick={() => setZoomedImage(finding.imageUrl!)}
+                                  className="block w-full rounded-lg overflow-hidden border border-gray-200 max-h-52 bg-gray-100 relative group cursor-zoom-in"
+                                >
+                                  <img
+                                    src={finding.imageUrl}
+                                    alt="Temuan Mekanik"
+                                    className="w-full h-full object-cover opacity-90 group-hover:scale-102 transition-transform duration-300"
                                     referrerPolicy="no-referrer"
                                   />
-                                  <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[9px] px-2 py-0.5 rounded flex items-center gap-1">
+                                  <div className="print:hidden absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[9px] px-2 py-0.5 rounded flex items-center gap-1">
                                     <Camera className="w-3.5 h-3.5" />
-                                    <span>Foto Bukti Langsung</span>
+                                    <span>Foto Bukti Langsung — Klik untuk perbesar</span>
                                   </div>
-                                </div>
+                                </button>
                               )}
 
                               {finding.status === 'pending' ? (
@@ -1186,6 +1192,7 @@ export default function TrackingPortal({
         )}
 
       </div>
+      {zoomedImage && <ImageLightbox src={zoomedImage} alt="Temuan Mekanik" onClose={() => setZoomedImage(null)} />}
     </div>
   );
 }

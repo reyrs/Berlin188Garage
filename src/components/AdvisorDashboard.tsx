@@ -8,6 +8,7 @@ import { Order, User as StaffUser, ServiceItem, DiagnosticFinding } from '../typ
 import { STATUS_CONFIG } from '../lib/design';
 import TrackingPortal from './TrackingPortal';
 import InvoicePrint from './InvoicePrint';
+import ImageLightbox from './ImageLightbox';
 
 const MOCK_PROOFS = [
   { name: 'Sparepart Terpasang', url: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=400' },
@@ -54,6 +55,7 @@ export default function AdvisorDashboard({
   activeUser
 }: AdvisorDashboardProps) {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
@@ -499,7 +501,13 @@ export default function AdvisorDashboard({
                           </div>
                         </div>
                         {finding.imageUrl && (
-                          <img src={finding.imageUrl} alt="Bukti temuan" className="w-16 h-16 rounded-xl object-cover border border-gray-200 shrink-0" referrerPolicy="no-referrer" />
+                          <button
+                            type="button"
+                            onClick={() => setZoomedImage(finding.imageUrl!)}
+                            className="shrink-0 cursor-zoom-in hover:opacity-90 transition-opacity"
+                          >
+                            <img src={finding.imageUrl} alt="Bukti temuan" className="w-16 h-16 rounded-xl object-cover border border-gray-200" referrerPolicy="no-referrer" />
+                          </button>
                         )}
                       </div>
 
@@ -1061,6 +1069,8 @@ export default function AdvisorDashboard({
           <span className="text-sm text-gray-800">{toastMsg}</span>
         </div>
       )}
+
+      {zoomedImage && <ImageLightbox src={zoomedImage} alt="Bukti temuan" onClose={() => setZoomedImage(null)} />}
     </div>
     </div>
   );

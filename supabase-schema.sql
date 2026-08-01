@@ -136,37 +136,53 @@ CREATE INDEX idx_closings_date ON closings(timestamp);
 CREATE INDEX idx_stock_mutations_item ON stock_mutations(stock_item_id);
 
 -- RLS POLICIES
--- Staff login uses real Supabase Auth (see src/lib/auth.ts) — staff-only
--- tables are locked to `authenticated`. `orders` stays open to `anon` too
--- because customers approve/reject findings in TrackingPortal without ever
--- logging in.
-CREATE POLICY "Staff access on profiles"
-  ON profiles FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+-- Staff login uses real Supabase Auth (see src/lib/auth.ts). Access is
+-- scoped per role (not just "logged in or not") — see getTabsForRole() in
+-- src/App.tsx for the authoritative role→feature mapping this mirrors.
+-- `orders` stays open to `anon` too because customers approve/reject
+-- findings in TrackingPortal without ever logging in.
+CREATE OR REPLACE FUNCTION current_staff_role() RETURNS TEXT
+LANGUAGE sql STABLE
+AS $$
+  SELECT role FROM profiles WHERE id = auth.uid()
+$$;
 
-CREATE POLICY "Allow app access on orders"
+CREATE POLICY "profiles_select_staff"
+  ON profiles FOR SELECT TO authenticated
+  USING (true);
+
+CREATE POLICY "orders_select_anyone"
+  ON orders FOR SELECT TO anon, authenticated
+  USING (true);
+CREATE POLICY "orders_write_staff_or_customer"
   ON orders FOR ALL TO anon, authenticated
-  USING (true) WITH CHECK (true);
+  USING (auth.role() = 'anon' OR current_staff_role() IN ('advisor','owner','mekanik','gudang','kasir'))
+  WITH CHECK (auth.role() = 'anon' OR current_staff_role() IN ('advisor','owner','mekanik','gudang','kasir'));
 
-CREATE POLICY "Staff access on transactions"
+CREATE POLICY "transactions_role_based"
   ON transactions FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  USING (current_staff_role() IN ('owner','kasir','advisor','manager'))
+  WITH CHECK (current_staff_role() IN ('owner','kasir','advisor'));
 
-CREATE POLICY "Staff access on expenses"
+CREATE POLICY "expenses_role_based"
   ON expenses FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  USING (current_staff_role() IN ('owner','kasir'))
+  WITH CHECK (current_staff_role() IN ('owner','kasir'));
 
-CREATE POLICY "Staff access on closings"
+CREATE POLICY "closings_role_based"
   ON closings FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  USING (current_staff_role() IN ('owner','kasir'))
+  WITH CHECK (current_staff_role() IN ('owner','kasir'));
 
-CREATE POLICY "Staff access on warehouse_stock"
+CREATE POLICY "warehouse_stock_role_based"
   ON warehouse_stock FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  USING (current_staff_role() IN ('owner','gudang'))
+  WITH CHECK (current_staff_role() IN ('owner','gudang'));
 
-CREATE POLICY "Staff access on stock_mutations"
+CREATE POLICY "stock_mutations_role_based"
   ON stock_mutations FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  USING (current_staff_role() IN ('owner','gudang'))
+  WITH CHECK (current_staff_role() IN ('owner','gudang'));
 
 -- TRIGGER: update updated_at on orders
 CREATE OR REPLACE FUNCTION update_updated_at()

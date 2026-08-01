@@ -406,7 +406,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
                   <select
                     value={mechanicId}
                     onChange={e => setMechanicId(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400 bg-white cursor-pointer"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400 bg-white text-gray-800 cursor-pointer"
                   >
                     <option value="">— Pilih Mekanik —</option>
                     {mechanics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}

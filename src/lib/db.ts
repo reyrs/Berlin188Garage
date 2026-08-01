@@ -16,20 +16,6 @@ export async function fetchProfiles(): Promise<User[]> {
   return (data || []).map(mapProfileToUser)
 }
 
-export async function seedProfiles(users: User[]): Promise<void> {
-  for (const u of users) {
-    try {
-      const existing = await db().from('profiles').select('id').eq('id', u.id).single()
-      if (existing.error?.code === 'PGRST116') {
-        const { error } = await db().from('profiles').insert({ id: u.id, name: u.name, role: u.role, email: u.email, phone: u.phone, avatar_url: u.avatarUrl })
-        if (error) throw error
-      }
-    } catch (err) {
-      console.error(`Failed to seed profile ${u.id}:`, err)
-    }
-  }
-}
-
 function mapProfileToUser(data: any): User {
   return { id: data.id, name: data.name, role: data.role, email: data.email || '', phone: data.phone || '', avatarUrl: data.avatar_url }
 }

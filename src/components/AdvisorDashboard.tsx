@@ -535,18 +535,18 @@ export default function AdvisorDashboard({
                               <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">NAMA JASA SERVICE</label>
                               <input value={jasaName} onChange={e => setJasaName(e.target.value)}
                                 placeholder="Contoh: Bongkar Pasang & Kali..."
-                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-black bg-white" />
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-black bg-white text-gray-800" />
                             </div>
                             <div className="space-y-1">
                               <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">BIAYA JASA (RP)</label>
                               <input value={jasaPrice} onChange={e => setJasaPrice(e.target.value)} type="number"
                                 placeholder="Contoh: 150000"
-                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-black bg-white" />
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-black bg-white text-gray-800" />
                             </div>
                             <div className="space-y-1">
                               <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">QTY</label>
                               <input value={jasaQty} onChange={e => setJasaQty(e.target.value)} type="number" min="1"
-                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-black bg-white" />
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-black bg-white text-gray-800" />
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -610,7 +610,7 @@ export default function AdvisorDashboard({
                       {readyToSend && (
                         <>
                           <select value={selectedMechanicId} onChange={e => setSelectedMechanicId(e.target.value)}
-                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none bg-white cursor-pointer">
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none bg-white text-gray-800 cursor-pointer">
                             <option value="">— Pilih Mekanik —</option>
                             {mechanics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                           </select>
@@ -800,7 +800,7 @@ export default function AdvisorDashboard({
                   </div>
                   <textarea rows={2} placeholder="Catatan SA (opsional): kondisi kendaraan, hasil test drive, dll."
                     value={saReport} onChange={e => setSaReport(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-black" />
+                    className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-black text-gray-800" />
                   <button type="button" onClick={() => handleSubmitChecklist(selectedOrder)} disabled={!allDone}
                     className={`w-full py-2.5 rounded-xl text-xs font-black tracking-wider flex items-center justify-center gap-1.5 transition-all ${
                       allDone ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer' : 'bg-gray-200 text-gray-400 cursor-not-allowed'

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Camera, Star, Upload, Save, Loader2, Trash2, FileText, Eye, EyeOff, Pencil, Image } from 'lucide-react';
 import { Order, User, BlogPost } from '../types';
 import { BLOG_CATEGORIES } from './BlogListPage';
@@ -66,11 +66,13 @@ export default function MarketingPanel({ orders, activeUser }: MarketingPanelPro
       .finally(() => setIsLoadingBlog(false));
   }, []);
 
+  const hasLoadedBlog = useRef(false);
   useEffect(() => {
-    if (panelTab === 'blog' && blogPosts.length === 0 && !isLoadingBlog) {
+    if (panelTab === 'blog' && !hasLoadedBlog.current) {
+      hasLoadedBlog.current = true;
       loadBlogPosts();
     }
-  }, [panelTab, blogPosts.length, isLoadingBlog, loadBlogPosts]);
+  }, [panelTab, loadBlogPosts]);
 
   const resetBlogForm = () => {
     setEditingBlogId(null);
@@ -130,9 +132,17 @@ export default function MarketingPanel({ orders, activeUser }: MarketingPanelPro
           coverImageUrl,
           category: blogCategory,
         });
-        const wasPublished = blogPosts.find(p => p.id === editingBlogId)?.status === 'published';
-        if (publish && !wasPublished) await publishBlogPost(editingBlogId, false);
-        else if (!publish && wasPublished) await unpublishBlogPost(editingBlogId);
+        const existingPost = blogPosts.find(p => p.id === editingBlogId);
+        const wasPublished = existingPost?.status === 'published';
+        if (publish && !wasPublished) {
+          await publishBlogPost(editingBlogId, !!existingPost?.publishedAt);
+        } else if (!publish && wasPublished) {
+          if (!confirm('Artikel ini sedang tayang. Simpan sebagai draft akan menurunkannya dari halaman publik. Lanjutkan?')) {
+            setIsSavingBlog(false);
+            return;
+          }
+          await unpublishBlogPost(editingBlogId);
+        }
       } else {
         const slug = await generateUniqueBlogSlug(blogTitle.trim());
         await createBlogPost({

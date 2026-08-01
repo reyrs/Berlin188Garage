@@ -10,3 +10,4 @@ STAFF_CREDENTIALS*.md
 berlin/
 processed/
 supabase/.temp/
+.worktrees/

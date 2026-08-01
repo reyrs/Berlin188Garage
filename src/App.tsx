@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wrench, LogOut, Bell, ShieldAlert,
-  LayoutDashboard, FilePlus, ClipboardList, Package, Monitor, BookOpen
+  LayoutDashboard, FilePlus, ClipboardList, Package, Monitor, BookOpen, FileBarChart
 } from 'lucide-react';
 
 // Components
@@ -13,9 +13,10 @@ import AdvisorDashboard from './components/AdvisorDashboard';
 import AccountingPanel from './components/AccountingPanel';
 import OwnerPanel from './components/OwnerPanel';
 import WarehousePanel from './components/WarehousePanel';
-import MonitorDisplay from './components/MonitorDisplay';
+import SlotBoard from './components/SlotBoard';
 import TechnicianPanel from './components/TechnicianPanel';
 import ManagerPanel from './components/ManagerPanel';
+import FinanceReportPanel from './components/FinanceReportPanel';
 import MarketingPanel from './components/MarketingPanel';
 import ProductMarketplace from './components/ProductMarketplace';
 
@@ -37,7 +38,35 @@ import {
 } from './lib/db';
 import { getSession, onAuthStateChange, signOutStaff } from './lib/auth';
 
-type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor' | 'spk' | 'manager_dashboard' | 'marketing';
+type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report';
+
+// Kapan sebuah order mulai "ngantre nunggu bay" — dari jam SPK-nya
+// dikirim, bukan jam mobil check-in. Mobil yang lama didiagnosis (SPK
+// telat dikirim) nggak seharusnya nyerobot antrian slot dari mobil lain
+// yang SPK-nya udah lebih dulu terkirim meski check-in belakangan.
+function spkSentAt(order: Order): number {
+  const evt = order.timeline.find(t => t.title === 'SPK Dikirim ke Mekanik');
+  return evt ? new Date(evt.timestamp).getTime() : new Date(order.createdAt).getTime();
+}
+
+function findOldestWaitingForSlot(orders: Order[], excludeOrderId: string): Order | null {
+  const waiting = orders
+    .filter(o => o.id !== excludeOrderId && o.spkSent && o.status !== 'selesai' && !o.slotNumber)
+    .sort((a, b) => spkSentAt(a) - spkSentAt(b));
+  return waiting[0] || null;
+}
+
+// Dipanggil dari SETIAP titik yang bisa bikin order jadi 'selesai' —
+// bukan cuma handleUpdateOrderStatus, karena di pemakaian nyata jalur
+// yang beneran dipakai adalah handleConfirmPayment (pelunasan), bukan
+// handleUpdateOrderStatus dengan status 'selesai' (nggak ada tombol UI
+// yang manggil itu).
+function computeSlotBackfill(orders: Order[], finishingOrder: Order | undefined): { backfillOrderId: string; freedSlot: number } | null {
+  if (!finishingOrder?.slotNumber) return null;
+  const candidate = findOldestWaitingForSlot(orders, finishingOrder.id);
+  if (!candidate) return null;
+  return { backfillOrderId: candidate.id, freedSlot: finishingOrder.slotNumber };
+}
 
 export default function App() {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
@@ -47,7 +76,7 @@ export default function App() {
   const [warehouseStock, setWarehouseStock] = useState<WarehouseStockItem[]>(MOCK_WAREHOUSE_STOCK);
   const [staffDirectory, setStaffDirectory] = useState<User[]>([]);
   const [activeStaffUser, setActiveStaffUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor' | 'marketplace'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor_service' | 'monitor_tunggu' | 'marketplace'>('landing');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [trackingQuery, setTrackingQuery] = useState('');
@@ -157,27 +186,44 @@ export default function App() {
       selesai: 'Kendaraan Diserahkan'
     };
 
+    // Nggak ada tombol di UI manapun yang manggil fungsi ini dengan status
+    // 'selesai' — jalur nyata order jadi selesai itu handleConfirmPayment.
+    // Backfill di sini tetap dijaga buat jaga-jaga kalau suatu saat ada
+    // jalur lain yang manggil dengan 'selesai', tapi jangan andelin ini
+    // sebagai satu-satunya tempat backfill jalan (lihat handleConfirmPayment).
+    const target = orders.find(o => o.id === orderId);
+    const backfill = status === 'selesai' ? computeSlotBackfill(orders, target) : null;
+
     setOrders(prev => prev.map(o => {
-      if (o.id !== orderId) return o;
-      const updated = {
-        ...o,
-        status,
-        timeline: [...o.timeline, {
-          id: `t-${Date.now()}`,
+      if (o.id === orderId) {
+        return {
+          ...o,
           status,
-          timestamp: now,
-          title: statusTitles[status],
-          description,
-          actor: activeStaffUser?.name || 'Sistem'
-        }]
-      };
-      return updated;
+          timeline: [...o.timeline, {
+            id: `t-${Date.now()}`,
+            status,
+            timestamp: now,
+            title: statusTitles[status],
+            description,
+            actor: activeStaffUser?.name || 'Sistem'
+          }]
+        };
+      }
+      if (backfill && o.id === backfill.backfillOrderId) {
+        return { ...o, slotNumber: backfill.freedSlot };
+      }
+      return o;
     }));
 
     updateOrder(orderId, { status }).catch(err => {
       console.error('Failed to update status:', err);
     });
-  }, [activeStaffUser]);
+    if (backfill) {
+      updateOrder(backfill.backfillOrderId, { slotNumber: backfill.freedSlot }).catch(err => {
+        console.error('Failed to backfill slot:', err);
+      });
+    }
+  }, [activeStaffUser, orders]);
 
   const handleAddFinding = useCallback((orderId: string, finding: any) => {
     let newStatus: Order['status'] | null = null;
@@ -336,6 +382,24 @@ export default function App() {
 
   const handleSendSPK = useCallback((orderId: string, mechanicId: string, mechanicName: string) => {
     const now = new Date().toISOString();
+    const existingOrder = orders.find(o => o.id === orderId);
+
+    // Kalau order ini udah punya bay (SPK kekirim sebelumnya, dipanggil
+    // ulang entah dari mana), jangan pindahin ke slot baru — mobilnya
+    // masih fisik di bay yang sama. UI-nya sendiri udah nyembunyiin tombol
+    // ini setelah spkSent (AdvisorDashboard.tsx), ini lapisan jaga-jaga kedua.
+    let assignedSlot: number | undefined = existingOrder?.slotNumber;
+    if (!assignedSlot) {
+      // Papan kerja cuma punya 10 bay fisik — pakai nomor terkecil yang lagi
+      // nggak dipakai order aktif manapun. Kalau ke-10 slot penuh, SPK tetap
+      // terkirim (nggak ngeblok kerjaan), cuma slotNumber dibiarkan kosong
+      // dulu sampai ada slot yang kebebas (lihat handleConfirmPayment).
+      const occupiedSlots = new Set(orders.filter(o => o.status !== 'selesai' && o.slotNumber).map(o => o.slotNumber));
+      for (let s = 1; s <= 10; s++) {
+        if (!occupiedSlots.has(s)) { assignedSlot = s; break; }
+      }
+    }
+
     setOrders(prev => prev.map(o => {
       if (o.id !== orderId) return o;
       return {
@@ -344,6 +408,7 @@ export default function App() {
         spkSent: true,
         assignedMechanicId: mechanicId,
         assignedMechanicName: mechanicName,
+        slotNumber: assignedSlot,
         timeline: [...o.timeline, {
           id: `t-spk-${Date.now()}`,
           status: 'dikerjakan' as const,
@@ -360,11 +425,16 @@ export default function App() {
       spkSent: true,
       assignedMechanicId: mechanicId,
       assignedMechanicName: mechanicName,
+      slotNumber: assignedSlot,
     }).catch(err => {
       console.error('Failed to send SPK:', err);
     });
-    showNotification(`📋 SPK ${orderId} dikirim ke ${mechanicName}. Kendaraan mulai dikerjakan.`);
-  }, [activeStaffUser]);
+    showNotification(
+      assignedSlot
+        ? `📋 SPK ${orderId} dikirim ke ${mechanicName} — Slot ${assignedSlot}.`
+        : `📋 SPK ${orderId} dikirim ke ${mechanicName} — semua slot penuh, nunggu bay kosong.`
+    );
+  }, [activeStaffUser, orders]);
 
   const handleUpdateFindingCost = useCallback((orderId: string, findingId: string, cost: number) => {
     setOrders(prev => prev.map(o =>
@@ -421,26 +491,38 @@ export default function App() {
     const remaining = total - dpAlreadyPaid;
     const now = new Date().toISOString();
 
-    setOrders(prev => prev.map(o =>
-      o.id !== orderId ? o : {
-        ...o,
-        status: 'selesai' as const,
-        paymentStatus: 'lunas' as const,
-        paymentMethod: method,
-        paymentDestination: dest,
-        paidAt: now,
-        timeline: [...o.timeline, {
-          id: `t-pay-${Date.now()}`,
+    // Ini jalur NYATA order jadi 'selesai' di pemakaian sehari-hari (bukan
+    // handleUpdateOrderStatus — nggak ada tombol yang manggil itu dengan
+    // status 'selesai') — jadi backfill slot ke antrian berikutnya harus
+    // dipicu dari sini.
+    const backfill = computeSlotBackfill(orders, order);
+
+    setOrders(prev => prev.map(o => {
+      if (o.id === orderId) {
+        return {
+          ...o,
           status: 'selesai' as const,
-          timestamp: now,
-          title: 'Pembayaran Lunas',
-          description: dpAlreadyPaid > 0
-            ? `Pelunasan Rp ${remaining.toLocaleString('id-ID')} via ${PAYMENT_LABEL[method] || method.toUpperCase()} (${dest}) — dari total Rp ${total.toLocaleString('id-ID')}, DP sudah Rp ${dpAlreadyPaid.toLocaleString('id-ID')}.`
-            : `Lunas Rp ${remaining.toLocaleString('id-ID')} via ${PAYMENT_LABEL[method] || method.toUpperCase()} (${dest}).`,
-          actor: activeStaffUser?.name || 'Kasir'
-        }]
+          paymentStatus: 'lunas' as const,
+          paymentMethod: method,
+          paymentDestination: dest,
+          paidAt: now,
+          timeline: [...o.timeline, {
+            id: `t-pay-${Date.now()}`,
+            status: 'selesai' as const,
+            timestamp: now,
+            title: 'Pembayaran Lunas',
+            description: dpAlreadyPaid > 0
+              ? `Pelunasan Rp ${remaining.toLocaleString('id-ID')} via ${PAYMENT_LABEL[method] || method.toUpperCase()} (${dest}) — dari total Rp ${total.toLocaleString('id-ID')}, DP sudah Rp ${dpAlreadyPaid.toLocaleString('id-ID')}.`
+              : `Lunas Rp ${remaining.toLocaleString('id-ID')} via ${PAYMENT_LABEL[method] || method.toUpperCase()} (${dest}).`,
+            actor: activeStaffUser?.name || 'Kasir'
+          }]
+        };
       }
-    ));
+      if (backfill && o.id === backfill.backfillOrderId) {
+        return { ...o, slotNumber: backfill.freedSlot };
+      }
+      return o;
+    }));
 
     Promise.all([
       updateOrder(orderId, {
@@ -448,7 +530,8 @@ export default function App() {
         paymentMethod: method, paymentDestination: dest, paidAt: now,
       }),
       createTransactionRecord(orderId, remaining, method, 'masuk', 'pendapatan_jasa',
-        `Pembayaran ${orderId} — ${order?.carBrand} ${order?.carModel}`, order?.customerName)
+        `Pembayaran ${orderId} — ${order?.carBrand} ${order?.carModel}`, order?.customerName),
+      ...(backfill ? [updateOrder(backfill.backfillOrderId, { slotNumber: backfill.freedSlot })] : []),
     ]).catch(err => {
       console.error('Failed to process payment:', err);
       showNotification('❌ Gagal memproses pembayaran');
@@ -553,6 +636,7 @@ export default function App() {
     else if (user.role === 'mekanik') setActiveTab('spk');
     else if (user.role === 'manager') setActiveTab('manager_dashboard');
     else if (user.role === 'marketing') setActiveTab('marketing');
+    else if (user.role === 'accounting') setActiveTab('finance_report');
     showNotification(`👋 Selamat bekerja, ${user.name}!`);
   };
 
@@ -587,22 +671,26 @@ export default function App() {
       { id: 'spk', label: 'Kerja Saya', icon: Wrench, roles: ['mekanik'] },
       { id: 'manager_dashboard', label: 'Pantauan', icon: LayoutDashboard, roles: ['manager'] },
       { id: 'marketing', label: 'Konten & Portofolio', icon: Monitor, roles: ['marketing'] },
-      { id: 'monitor', label: 'Monitor', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager'] },
+      { id: 'monitor_service', label: 'Monitor Service', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager', 'mekanik'] },
+      { id: 'monitor_tunggu', label: 'Monitor Tunggu', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager'] },
+      { id: 'finance_report', label: 'Laporan Keuangan', icon: FileBarChart, roles: ['accounting', 'owner'] },
     ];
     return all.filter(t => t.roles.includes(role));
   };
 
-  // Monitor view standalone (dark screen untuk TV bengkel)
-  if (currentView === 'monitor') {
+  // Papan slot standalone (dark screen untuk TV bengkel) — Ruang Service
+  // interaktif (klik slot buka SPK), Ruang Tunggu pasif (papan status doang,
+  // supaya customer nggak bisa buka data pribadi customer lain).
+  if (currentView === 'monitor_service' || currentView === 'monitor_tunggu') {
     return (
       <div>
         <button
           onClick={() => setCurrentView('staff_portal')}
-          className="fixed top-4 left-4 z-50 bg-gray-800 text-gray-200 text-xs px-3 py-1.5 rounded-lg hover:bg-gray-700"
+          className="print:hidden fixed top-4 left-4 z-50 bg-gray-800 text-gray-200 text-xs px-3 py-1.5 rounded-lg hover:bg-gray-700"
         >
           ← Kembali
         </button>
-        <MonitorDisplay orders={orders} />
+        <SlotBoard orders={orders} interactive={currentView === 'monitor_service'} />
       </div>
     );
   }
@@ -686,7 +774,7 @@ export default function App() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {getTabsForRole(activeStaffUser.role).map(tab => (
                     <button key={tab.id}
-                      onClick={() => tab.id === 'monitor' ? setCurrentView('monitor') : setActiveTab(tab.id)}
+                      onClick={() => (tab.id === 'monitor_service' || tab.id === 'monitor_tunggu') ? setCurrentView(tab.id) : setActiveTab(tab.id)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                       <tab.icon className="w-3.5 h-3.5" />
                       {tab.label}
@@ -764,6 +852,10 @@ export default function App() {
 
               {activeTab === 'marketing' && (
                 <MarketingPanel orders={orders} />
+              )}
+
+              {activeTab === 'finance_report' && (
+                <FinanceReportPanel transactions={transactions} expenses={expenses} />
               )}
 
               {activeTab === 'spk' && (

@@ -6,7 +6,7 @@
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('owner','manager','kasir','advisor','gudang','mekanik','marketing','customer')),
+  role TEXT NOT NULL CHECK (role IN ('owner','manager','kasir','advisor','gudang','mekanik','marketing','accounting','customer')),
   email TEXT,
   phone TEXT,
   avatar_url TEXT,
@@ -47,6 +47,7 @@ CREATE TABLE orders (
   spk_sent BOOLEAN DEFAULT false,
   assigned_mechanic_id UUID REFERENCES profiles(id),
   assigned_mechanic_name TEXT,
+  slot_number INTEGER,
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -135,6 +136,11 @@ CREATE INDEX idx_expenses_date ON expenses(date);
 CREATE INDEX idx_closings_date ON closings(timestamp);
 CREATE INDEX idx_stock_mutations_item ON stock_mutations(stock_item_id);
 
+-- Papan slot kerja: cegah 2 order aktif kebagian bay fisik yang sama.
+CREATE UNIQUE INDEX idx_orders_active_slot_unique
+  ON orders (slot_number)
+  WHERE status != 'selesai' AND slot_number IS NOT NULL;
+
 -- RLS POLICIES
 -- Staff login uses real Supabase Auth (see src/lib/auth.ts). Access is
 -- scoped per role (not just "logged in or not") — see getTabsForRole() in
@@ -161,17 +167,17 @@ CREATE POLICY "orders_write_staff_or_customer"
 
 CREATE POLICY "transactions_role_based"
   ON transactions FOR ALL TO authenticated
-  USING (current_staff_role() IN ('owner','kasir','advisor','manager'))
+  USING (current_staff_role() IN ('owner','kasir','advisor','manager','accounting'))
   WITH CHECK (current_staff_role() IN ('owner','kasir','advisor'));
 
 CREATE POLICY "expenses_role_based"
   ON expenses FOR ALL TO authenticated
-  USING (current_staff_role() IN ('owner','kasir'))
+  USING (current_staff_role() IN ('owner','kasir','accounting'))
   WITH CHECK (current_staff_role() IN ('owner','kasir'));
 
 CREATE POLICY "closings_role_based"
   ON closings FOR ALL TO authenticated
-  USING (current_staff_role() IN ('owner','kasir'))
+  USING (current_staff_role() IN ('owner','kasir','accounting'))
   WITH CHECK (current_staff_role() IN ('owner','kasir'));
 
 CREATE POLICY "warehouse_stock_role_based"

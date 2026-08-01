@@ -599,6 +599,11 @@ export default function AdvisorDashboard({
                   const hasJasa = selectedOrder.serviceItems.some(i => i.type === 'jasa' && i.status === 'approved');
                   const hasPendingParts = selectedOrder.serviceItems.some(i => i.type === 'part' && i.status === 'pending');
                   const allPartsResolved = selectedOrder.serviceItems.filter(i => i.type === 'part').every(i => i.status === 'approved' || i.status === 'rejected');
+                  // Sudah kekirim — jangan tampilin lagi dropdown+tombol kirim,
+                  // banner "SPK sudah dikirim" di bawah sudah cukup. Tanpa ini,
+                  // klik ulang bisa nge-assign order ke slot baru padahal
+                  // mobilnya masih di bay yang sama (lihat handleSendSPK).
+                  if (selectedOrder.spkSent) return null;
                   const readyToSend = hasJasa && allPartsResolved && !hasPendingParts;
                   return (
                     <div className={`border rounded-2xl p-4 space-y-3 ${readyToSend ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50'}`}>

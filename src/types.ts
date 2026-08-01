@@ -1,4 +1,4 @@
-export type UserRole = 'owner' | 'manager' | 'kasir' | 'advisor' | 'gudang' | 'mekanik' | 'marketing' | 'customer' | 'vendor';
+export type UserRole = 'owner' | 'manager' | 'kasir' | 'advisor' | 'gudang' | 'mekanik' | 'marketing' | 'accounting' | 'customer' | 'vendor';
 
 export interface User {
   id: string;
@@ -89,6 +89,7 @@ export interface Order {
   spkSent?: boolean;
   assignedMechanicId?: string;
   assignedMechanicName?: string;
+  slotNumber?: number;
 }
 
 export interface CashTransaction {

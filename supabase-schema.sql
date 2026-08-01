@@ -126,6 +126,25 @@ CREATE TABLE stock_mutations (
 
 ALTER TABLE stock_mutations ENABLE ROW LEVEL SECURITY;
 
+-- 8. BLOG POSTS (landing page — artikel dikelola manual marketing, tiap
+-- post punya URL sendiri buat SEO & share, lihat src/main.tsx routing)
+CREATE TABLE blog_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  excerpt TEXT NOT NULL,
+  content TEXT NOT NULL,
+  cover_image_url TEXT NOT NULL,
+  category TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published')),
+  published_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  created_by TEXT
+);
+
+ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
+
 -- INDEXES
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_phone ON orders(customer_phone);
@@ -140,6 +159,9 @@ CREATE INDEX idx_stock_mutations_item ON stock_mutations(stock_item_id);
 CREATE UNIQUE INDEX idx_orders_active_slot_unique
   ON orders (slot_number)
   WHERE status != 'selesai' AND slot_number IS NOT NULL;
+
+CREATE INDEX idx_blog_posts_published_at ON blog_posts(published_at DESC);
+CREATE INDEX idx_blog_posts_slug ON blog_posts(slug);
 
 -- RLS POLICIES
 -- Staff login uses real Supabase Auth (see src/lib/auth.ts). Access is
@@ -190,6 +212,21 @@ CREATE POLICY "stock_mutations_role_based"
   USING (current_staff_role() IN ('owner','gudang'))
   WITH CHECK (current_staff_role() IN ('owner','gudang'));
 
+-- blog_posts: publik cuma liat yang published, staff marketing/owner liat
+-- semua (termasuk draft) + tulis penuh
+CREATE POLICY "blog_posts_select_published"
+  ON blog_posts FOR SELECT TO anon, authenticated
+  USING (status = 'published');
+
+CREATE POLICY "blog_posts_select_staff_all"
+  ON blog_posts FOR SELECT TO authenticated
+  USING (current_staff_role() IN ('marketing', 'owner'));
+
+CREATE POLICY "blog_posts_write_marketing"
+  ON blog_posts FOR ALL TO authenticated
+  USING (current_staff_role() IN ('marketing', 'owner'))
+  WITH CHECK (current_staff_role() IN ('marketing', 'owner'));
+
 -- TRIGGER: update updated_at on orders
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
@@ -205,4 +242,8 @@ CREATE TRIGGER orders_updated_at
 
 CREATE TRIGGER warehouse_stock_updated_at
   BEFORE UPDATE ON warehouse_stock
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER blog_posts_updated_at
+  BEFORE UPDATE ON blog_posts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();

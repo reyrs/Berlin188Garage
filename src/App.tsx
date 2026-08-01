@@ -851,7 +851,7 @@ export default function App() {
               )}
 
               {activeTab === 'marketing' && (
-                <MarketingPanel orders={orders} />
+                <MarketingPanel orders={orders} activeUser={activeStaffUser} />
               )}
 
               {activeTab === 'finance_report' && (

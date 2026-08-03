@@ -35,7 +35,7 @@ import {
   fetchClosings, createClosing,
   fetchWarehouseStock, updateStockQuantity,
   fetchProfiles, seedWarehouseStock,
-  fetchHeroContent, updateHeroContent, uploadLandingAsset,
+  fetchHeroContent, uploadLandingAsset,
   fetchPortfolioItems, createPortfolioItem, deletePortfolioItem,
 } from './lib/db';
 import { getSession, onAuthStateChange, signOutStaff } from './lib/auth';
@@ -612,22 +612,6 @@ export default function App() {
     showNotification(`📝 Pengeluaran dicatat: ${exp.description}`);
   }, []);
 
-  const handleUpdateHeroContent = useCallback((fields: Partial<HeroContent>) => {
-    const previous = heroContent;
-    setHeroContent(prev => (prev ? { ...prev, ...fields } : prev));
-    updateHeroContent(fields, activeStaffUser?.name || 'Marketing')
-      .then(() => showNotification('✅ Banner beranda berhasil disimpan.'))
-      .catch(err => {
-        console.error('Failed to update hero content:', err);
-        setHeroContent(previous);
-        showNotification('❌ Gagal menyimpan banner beranda. Coba lagi.');
-      });
-  }, [heroContent, activeStaffUser]);
-
-  const handleUploadHeroImage = useCallback(async (file: File): Promise<string> => {
-    return uploadLandingAsset(file, 'hero');
-  }, []);
-
   const handleAddPortfolioItem = useCallback((item: Omit<PortfolioItem, 'id' | 'createdAt'>) => {
     const tempId = `temp-${Date.now()}`;
     const optimisticItem: PortfolioItem = { ...item, id: tempId, createdAt: new Date().toISOString() };
@@ -910,9 +894,6 @@ export default function App() {
               {activeTab === 'marketing' && (
                 <MarketingPanel
                   orders={orders}
-                  heroContent={heroContent}
-                  onUpdateHeroContent={handleUpdateHeroContent}
-                  onUploadHeroImage={handleUploadHeroImage}
                   portfolioItems={portfolioItems}
                   onAddPortfolioItem={handleAddPortfolioItem}
                   onDeletePortfolioItem={handleDeletePortfolioItem}

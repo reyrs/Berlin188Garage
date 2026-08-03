@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Camera, Image, Star, Layout, Upload, Save, Loader2, Trash2, Plus, FileText, Eye, EyeOff, Pencil } from 'lucide-react';
-import { Order, HeroContent, PortfolioItem, User, BlogPost } from '../types';
+import { Camera, Image, Star, Upload, Save, Loader2, Trash2, Plus, FileText, Eye, EyeOff, Pencil } from 'lucide-react';
+import { Order, PortfolioItem, User, BlogPost } from '../types';
 import { BRANDS } from './LandingPage';
 import { BLOG_CATEGORIES } from './BlogListPage';
 import BlogEditor from './BlogEditor';
@@ -13,9 +13,6 @@ const SERVICE_TYPES: PortfolioItem['serviceType'][] = ['Servis Rutin', 'Perbaika
 
 interface MarketingPanelProps {
   orders: Order[];
-  heroContent?: HeroContent | null;
-  onUpdateHeroContent?: (fields: Partial<HeroContent>) => void;
-  onUploadHeroImage?: (file: File) => Promise<string>;
   portfolioItems?: PortfolioItem[];
   onAddPortfolioItem?: (item: Omit<PortfolioItem, 'id' | 'createdAt'>) => void;
   onDeletePortfolioItem?: (id: string) => void;
@@ -23,9 +20,9 @@ interface MarketingPanelProps {
   activeUser?: User | null;
 }
 
-type PanelTab = 'galeri' | 'banner' | 'portofolio' | 'blog';
+type PanelTab = 'galeri' | 'portofolio' | 'blog';
 
-export default function MarketingPanel({ orders, heroContent, onUpdateHeroContent, onUploadHeroImage, portfolioItems = [], onAddPortfolioItem, onDeletePortfolioItem, onUploadPortfolioImage, activeUser }: MarketingPanelProps) {
+export default function MarketingPanel({ orders, portfolioItems = [], onAddPortfolioItem, onDeletePortfolioItem, onUploadPortfolioImage, activeUser }: MarketingPanelProps) {
   const [panelTab, setPanelTab] = useState<PanelTab>('galeri');
   const [selectedBrand, setSelectedBrand] = useState('Semua');
 
@@ -53,51 +50,6 @@ export default function MarketingPanel({ orders, heroContent, onUpdateHeroConten
       type: 'Bukti Pengerjaan' as const
     }))
   ]);
-
-  // --- Banner Beranda (hero landing page) ---
-  const [heroHeadline, setHeroHeadline] = useState(heroContent?.headline || '');
-  const [heroSubtitle, setHeroSubtitle] = useState(heroContent?.subtitle || '');
-  const [heroCta, setHeroCta] = useState(heroContent?.ctaText || '');
-  const [heroImageFile, setHeroImageFile] = useState<File | null>(null);
-  const [heroImagePreview, setHeroImagePreview] = useState<string | null>(null);
-  const [isSavingHero, setIsSavingHero] = useState(false);
-  const [heroInitialized, setHeroInitialized] = useState(false);
-
-  // Sinkron form sekali begitu heroContent asli kefetch dari server (nggak
-  // nimpa terus tiap render biar nggak ilangin ketikan yang lagi diedit).
-  useEffect(() => {
-    if (!heroInitialized && heroContent) {
-      setHeroInitialized(true);
-      setHeroHeadline(heroContent.headline);
-      setHeroSubtitle(heroContent.subtitle);
-      setHeroCta(heroContent.ctaText);
-    }
-  }, [heroContent, heroInitialized]);
-
-  const handleHeroImagePick = (file: File) => {
-    setHeroImageFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => setHeroImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const handleSaveHero = async () => {
-    if (!onUpdateHeroContent) return;
-    setIsSavingHero(true);
-    try {
-      let backgroundImageUrl = heroContent?.backgroundImageUrl;
-      if (heroImageFile && onUploadHeroImage) {
-        backgroundImageUrl = await onUploadHeroImage(heroImageFile);
-      }
-      onUpdateHeroContent({ headline: heroHeadline, subtitle: heroSubtitle, ctaText: heroCta, backgroundImageUrl });
-      setHeroImageFile(null);
-    } catch (err) {
-      console.error('Gagal upload gambar banner:', err);
-      alert('Gagal upload gambar banner. Coba lagi.');
-    } finally {
-      setIsSavingHero(false);
-    }
-  };
 
   // --- Portofolio Beranda (galeri publik manual) ---
   const [pfBrand, setPfBrand] = useState(BRANDS[0]);
@@ -329,7 +281,6 @@ export default function MarketingPanel({ orders, heroContent, onUpdateHeroConten
       <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl w-fit">
         {([
           { id: 'galeri' as const, label: 'Galeri & Portofolio', icon: Image },
-          { id: 'banner' as const, label: 'Banner Beranda', icon: Layout },
           { id: 'portofolio' as const, label: 'Portofolio Beranda', icon: Star },
           { id: 'blog' as const, label: 'Blog', icon: FileText },
         ]).map(t => (
@@ -341,80 +292,6 @@ export default function MarketingPanel({ orders, heroContent, onUpdateHeroConten
           </button>
         ))}
       </div>
-
-      {panelTab === 'banner' && (
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Edit Banner Beranda</h4>
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Judul (Headline)</label>
-                <textarea
-                  value={heroHeadline}
-                  onChange={e => setHeroHeadline(e.target.value)}
-                  rows={2}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors resize-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Subjudul</label>
-                <textarea
-                  value={heroSubtitle}
-                  onChange={e => setHeroSubtitle(e.target.value)}
-                  rows={2}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors resize-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Teks Tombol</label>
-                <input
-                  type="text"
-                  value={heroCta}
-                  onChange={e => setHeroCta(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Gambar Latar (opsional)</label>
-                <p className="text-[10px] text-gray-400">Kalau diisi, gantiin video mobil di beranda jadi gambar ini. Kosongkan buat pakai video default.</p>
-                <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-lg py-4 cursor-pointer hover:bg-gray-50 transition-colors text-xs text-gray-500 font-semibold">
-                  <Upload className="w-4 h-4" /> Pilih Gambar
-                  <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
-                    onChange={e => { const f = e.target.files?.[0]; if (f) handleHeroImagePick(f); }} />
-                </label>
-              </div>
-              <button
-                onClick={handleSaveHero}
-                disabled={isSavingHero}
-                className="w-full flex items-center justify-center gap-1.5 bg-berlin-navy hover:bg-berlin-navy/90 disabled:opacity-60 text-white py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all"
-              >
-                {isSavingHero ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                {isSavingHero ? 'Menyimpan...' : 'Simpan Banner'}
-              </button>
-            </div>
-          </div>
-
-          {/* Preview */}
-          <div className="bg-gray-900 rounded-2xl overflow-hidden shadow-sm relative min-h-[360px] flex flex-col justify-end p-6">
-            {(heroImagePreview || heroContent?.backgroundImageUrl) && (
-              <img
-                src={heroImagePreview || heroContent?.backgroundImageUrl}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover opacity-60"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-berlin-navy via-berlin-navy/40 to-transparent" />
-            <div className="relative z-10 space-y-3">
-              <span className="text-[9px] uppercase tracking-widest text-white/50 font-bold">Preview Beranda</span>
-              <h2 className="text-2xl font-extrabold text-white leading-tight">{heroHeadline || 'Judul banner...'}</h2>
-              <p className="text-gray-300 text-xs">{heroSubtitle || 'Subjudul banner...'}</p>
-              <span className="inline-block bg-berlin-red text-white font-semibold px-3 py-1.5 rounded-lg text-[10px]">
-                {heroCta || 'Tombol'}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {panelTab === 'portofolio' && (
         <div className="grid lg:grid-cols-2 gap-6">

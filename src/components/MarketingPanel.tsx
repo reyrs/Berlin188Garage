@@ -120,6 +120,17 @@ export default function MarketingPanel({ orders, activeUser }: MarketingPanelPro
       alert('Cover image wajib diupload.');
       return;
     }
+
+    const existingPost = editingBlogId ? blogPosts.find(p => p.id === editingBlogId) : undefined;
+    const wasPublished = existingPost?.status === 'published';
+    if (editingBlogId && !publish && wasPublished) {
+      // Confirm BEFORE any write happens — declining here must cancel the
+      // entire save (content edits included), not just the unpublish step.
+      if (!confirm('Artikel ini sedang tayang. Simpan sebagai draft akan menurunkannya dari halaman publik. Lanjutkan?')) {
+        return;
+      }
+    }
+
     setIsSavingBlog(true);
     try {
       const coverImageUrl = blogCoverFile ? await uploadLandingAsset(blogCoverFile, 'blog-cover') : existingCoverUrl!;
@@ -132,15 +143,9 @@ export default function MarketingPanel({ orders, activeUser }: MarketingPanelPro
           coverImageUrl,
           category: blogCategory,
         });
-        const existingPost = blogPosts.find(p => p.id === editingBlogId);
-        const wasPublished = existingPost?.status === 'published';
         if (publish && !wasPublished) {
           await publishBlogPost(editingBlogId, !!existingPost?.publishedAt);
         } else if (!publish && wasPublished) {
-          if (!confirm('Artikel ini sedang tayang. Simpan sebagai draft akan menurunkannya dari halaman publik. Lanjutkan?')) {
-            setIsSavingBlog(false);
-            return;
-          }
           await unpublishBlogPost(editingBlogId);
         }
       } else {

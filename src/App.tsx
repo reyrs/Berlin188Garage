@@ -4,21 +4,25 @@ import {
   LayoutDashboard, FilePlus, ClipboardList, Package, Monitor, BookOpen, FileBarChart
 } from 'lucide-react';
 
-// Components
+// Components — dipakai pengunjung publik (`/`), tetap static import
 import LandingPage from './components/LandingPage';
 import TrackingPortal from './components/TrackingPortal';
-import LoginModal from './components/LoginModal';
-import AdvisorPanel from './components/AdvisorPanel';
-import AdvisorDashboard from './components/AdvisorDashboard';
-import AccountingPanel from './components/AccountingPanel';
-import OwnerPanel from './components/OwnerPanel';
-import WarehousePanel from './components/WarehousePanel';
-import SlotBoard from './components/SlotBoard';
-import TechnicianPanel from './components/TechnicianPanel';
-import ManagerPanel from './components/ManagerPanel';
-import FinanceReportPanel from './components/FinanceReportPanel';
-import MarketingPanel from './components/MarketingPanel';
 import ProductMarketplace from './components/ProductMarketplace';
+
+// Components — cuma dipakai lewat /staff. Lazy-load supaya kode ini tidak
+// pernah ikut ke-download pengunjung publik (lihat docs/superpowers/specs/
+// 2026-08-03-staff-entry-separation-design.md).
+const LoginModal = React.lazy(() => import('./components/LoginModal'));
+const AdvisorPanel = React.lazy(() => import('./components/AdvisorPanel'));
+const AdvisorDashboard = React.lazy(() => import('./components/AdvisorDashboard'));
+const AccountingPanel = React.lazy(() => import('./components/AccountingPanel'));
+const OwnerPanel = React.lazy(() => import('./components/OwnerPanel'));
+const WarehousePanel = React.lazy(() => import('./components/WarehousePanel'));
+const SlotBoard = React.lazy(() => import('./components/SlotBoard'));
+const TechnicianPanel = React.lazy(() => import('./components/TechnicianPanel'));
+const ManagerPanel = React.lazy(() => import('./components/ManagerPanel'));
+const FinanceReportPanel = React.lazy(() => import('./components/FinanceReportPanel'));
+const MarketingPanel = React.lazy(() => import('./components/MarketingPanel'));
 
 // Types & Data
 import { Order, User, CashTransaction, CashClosing, Expense, WarehouseStockItem, HeroContent, PortfolioItem } from './types';
@@ -68,6 +72,14 @@ function computeSlotBackfill(orders: Order[], finishingOrder: Order | undefined)
   const candidate = findOldestWaitingForSlot(orders, finishingOrder.id);
   if (!candidate) return null;
   return { backfillOrderId: candidate.id, freedSlot: finishingOrder.slotNumber };
+}
+
+function StaffLoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-400 text-sm">
+      Memuat...
+    </div>
+  );
 }
 
 export default function App({ entryMode = 'public' }: { entryMode?: 'public' | 'staff' }) {
@@ -777,7 +789,9 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         >
           ← Kembali
         </button>
-        <SlotBoard orders={orders} interactive={currentView === 'monitor_service'} />
+        <React.Suspense fallback={<StaffLoadingFallback />}>
+          <SlotBoard orders={orders} interactive={currentView === 'monitor_service'} />
+        </React.Suspense>
       </div>
     );
   }
@@ -824,12 +838,14 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         )}
 
         {currentView === 'staff_login' && (
-          <LoginModal
-            isOpen={true}
-            variant="page"
-            onClose={() => {}}
-            onLoginSuccess={handleLoginSuccess}
-          />
+          <React.Suspense fallback={<StaffLoadingFallback />}>
+            <LoginModal
+              isOpen={true}
+              variant="page"
+              onClose={() => {}}
+              onLoginSuccess={handleLoginSuccess}
+            />
+          </React.Suspense>
         )}
 
         {currentView === 'marketplace' && (
@@ -888,6 +904,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
             </div>
 
             <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24">
+              <React.Suspense fallback={<StaffLoadingFallback />}>
 
               {activeTab === 'dashboard' && (
                 <OwnerPanel
@@ -995,6 +1012,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                   <p className="text-gray-500 text-sm">Pilih menu di atas untuk memulai.</p>
                 </div>
               )}
+              </React.Suspense>
             </div>
           </div>
         )}

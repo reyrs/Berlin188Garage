@@ -70,7 +70,7 @@ function computeSlotBackfill(orders: Order[], finishingOrder: Order | undefined)
   return { backfillOrderId: candidate.id, freedSlot: finishingOrder.slotNumber };
 }
 
-export default function App() {
+export default function App({ entryMode = 'public' }: { entryMode?: 'public' | 'staff' }) {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [transactions, setTransactions] = useState<CashTransaction[]>(INITIAL_TRANSACTIONS);
   const [closings, setClosings] = useState<CashClosing[]>(INITIAL_CLOSINGS);
@@ -80,7 +80,7 @@ export default function App() {
   const [heroContent, setHeroContent] = useState<HeroContent | null>(null);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [activeStaffUser, setActiveStaffUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor_service' | 'monitor_tunggu' | 'marketplace'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor_service' | 'monitor_tunggu' | 'marketplace' | 'staff_login'>(entryMode === 'staff' ? 'staff_login' : 'landing');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [trackingQuery, setTrackingQuery] = useState('');
@@ -153,7 +153,7 @@ export default function App() {
         const profile = profiles.find((p) => p.id === session.user.id);
         if (profile && !cancelled) {
           setActiveStaffUser(profile);
-          setCurrentView((v) => (v === 'landing' ? 'staff_portal' : v));
+          setCurrentView((v) => (v === 'landing' || v === 'staff_login' ? 'staff_portal' : v));
         }
       } catch (err) {
         console.error('Failed to restore staff session:', err);
@@ -823,6 +823,14 @@ export default function App() {
             orders={orders}
             heroContent={heroContent}
             portfolioItems={portfolioItems}
+          />
+        )}
+
+        {currentView === 'staff_login' && (
+          <LoginModal
+            isOpen={true}
+            onClose={() => {}}
+            onLoginSuccess={handleLoginSuccess}
           />
         )}
 

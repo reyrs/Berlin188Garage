@@ -8,6 +8,7 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (user: User) => void;
+  variant?: 'modal' | 'page';
 }
 
 function translateAuthError(message: string): string {
@@ -16,7 +17,7 @@ function translateAuthError(message: string): string {
   return 'Gagal masuk. Coba lagi beberapa saat.';
 }
 
-export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, onLoginSuccess, variant = 'modal' }: LoginModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -72,7 +73,10 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className={variant === 'page'
+      ? 'min-h-screen flex items-center justify-center p-4 bg-gray-50'
+      : 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm'
+    }>
       <div className="relative w-full max-w-md bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex flex-col">
         {/* Banner decorator */}
         <div className="absolute top-0 inset-x-0 h-1.5 bg-berlin-navy" />
@@ -86,12 +90,14 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 className="h-10 object-contain"
               />
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg bg-gray-50 text-gray-400 hover:text-black border border-gray-150 hover:border-gray-250 transition-all cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          {variant === 'modal' && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg bg-gray-50 text-gray-400 hover:text-black border border-gray-150 hover:border-gray-250 transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Form area */}

@@ -829,6 +829,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         {currentView === 'staff_login' && (
           <LoginModal
             isOpen={true}
+            variant="page"
             onClose={() => {}}
             onLoginSuccess={handleLoginSuccess}
           />

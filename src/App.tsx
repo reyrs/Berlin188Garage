@@ -419,7 +419,7 @@ export default function App() {
     });
   }, [orders]);
 
-  const handleSendSPK = useCallback((orderId: string, mechanicId: string, mechanicName: string) => {
+  const handleSendSPK = useCallback((orderId: string, mechanicId: string | undefined, mechanicName: string) => {
     const now = new Date().toISOString();
     const existingOrder = orders.find(o => o.id === orderId);
 

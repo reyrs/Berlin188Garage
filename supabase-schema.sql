@@ -207,13 +207,86 @@ CREATE POLICY "profiles_select_staff"
   ON profiles FOR SELECT TO authenticated
   USING (true);
 
-CREATE POLICY "orders_select_anyone"
-  ON orders FOR SELECT TO anon, authenticated
+-- Anon never gets a direct table policy on orders — that would mean anyone
+-- with the public anon key can dump/edit every customer's data with a raw
+-- REST call, no login needed (confirmed exploitable when this was
+-- `USING (true)` / `auth.role() = 'anon'`). Public "Cek Servis" self-service
+-- goes through the narrow SECURITY DEFINER functions below instead, which
+-- check customer_phone server-side before touching anything.
+CREATE POLICY "orders_select_staff"
+  ON orders FOR SELECT TO authenticated
   USING (true);
-CREATE POLICY "orders_write_staff_or_customer"
-  ON orders FOR ALL TO anon, authenticated
-  USING (auth.role() = 'anon' OR current_staff_role() IN ('advisor','owner','mekanik','gudang','kasir'))
-  WITH CHECK (auth.role() = 'anon' OR current_staff_role() IN ('advisor','owner','mekanik','gudang','kasir'));
+CREATE POLICY "orders_write_staff"
+  ON orders FOR ALL TO authenticated
+  USING (current_staff_role() IN ('advisor','owner','mekanik','gudang','kasir'))
+  WITH CHECK (current_staff_role() IN ('advisor','owner','mekanik','gudang','kasir'));
+
+-- Public order tracking + customer self-service ACC (approve/reject their
+-- own findings & service items), scoped by phone number server-side.
+CREATE OR REPLACE FUNCTION track_orders_by_phone(p_phone TEXT)
+RETURNS SETOF orders
+LANGUAGE sql SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT * FROM orders WHERE customer_phone = p_phone;
+$$;
+
+CREATE OR REPLACE FUNCTION customer_set_finding_status(
+  p_order_id TEXT, p_phone TEXT, p_finding_id TEXT, p_status TEXT
+)
+RETURNS SETOF orders
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF p_status NOT IN ('approved', 'rejected') THEN
+    RAISE EXCEPTION 'invalid status: %', p_status;
+  END IF;
+
+  RETURN QUERY
+  UPDATE orders
+  SET findings = (
+    SELECT jsonb_agg(
+      CASE WHEN elem->>'id' = p_finding_id
+           THEN elem || jsonb_build_object('status', p_status)
+           ELSE elem
+      END
+    )
+    FROM jsonb_array_elements(findings) AS elem
+  )
+  WHERE id = p_order_id AND customer_phone = p_phone
+  RETURNING *;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION customer_set_service_item_status(
+  p_order_id TEXT, p_phone TEXT, p_item_id TEXT, p_status TEXT
+)
+RETURNS SETOF orders
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF p_status NOT IN ('approved', 'rejected') THEN
+    RAISE EXCEPTION 'invalid status: %', p_status;
+  END IF;
+
+  RETURN QUERY
+  UPDATE orders
+  SET service_items = (
+    SELECT jsonb_agg(
+      CASE WHEN elem->>'id' = p_item_id
+           THEN elem || jsonb_build_object('status', p_status)
+           ELSE elem
+      END
+    )
+    FROM jsonb_array_elements(service_items) AS elem
+  )
+  WHERE id = p_order_id AND customer_phone = p_phone
+  RETURNING *;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION track_orders_by_phone(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION customer_set_finding_status(TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION customer_set_service_item_status(TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;
 
 CREATE POLICY "transactions_role_based"
   ON transactions FOR ALL TO authenticated

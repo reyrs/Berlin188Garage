@@ -4,6 +4,7 @@ import { Order, DiagnosticFinding, ServiceItem } from '../types';
 import { CAR_BRAND_LOGOS } from '../data/mockData';
 import CurveAccent from './CurveAccent';
 import ImageLightbox from './ImageLightbox';
+import { trackOrdersByPhone, customerSetFindingStatus, customerSetServiceItemStatus } from '../lib/db';
 
 interface TrackingPortalProps {
   orders: Order[];
@@ -45,15 +46,15 @@ export default function TrackingPortal({
   const [searched, setSearched] = useState(initialSearchQuery !== '');
   const [findingCostInputs, setFindingCostInputs] = useState<Record<string, number>>({});
   const [activeOrder, setActiveOrder] = useState<Order | null>(() => {
-    if (!initialSearchQuery) return null;
-    if (isStaffView) {
-      return orders.find(o => o.id === initialSearchQuery || o.customerPhone === initialSearchQuery) || null;
-    } else {
-      // Customer can only find by their phone number
-      return orders.find(o => o.customerPhone === initialSearchQuery) || null;
-    }
+    if (!initialSearchQuery || !isStaffView) return null; // customer lookup resolves async below
+    return orders.find(o => o.id === initialSearchQuery || o.customerPhone === initialSearchQuery) || null;
   });
   const [tab, setTab] = useState<'status' | 'invoice'>('status');
+  const [searchLoading, setSearchLoading] = useState(false);
+  // Phone the customer actually searched with — kept separate from
+  // searchQuery (which stays bound to the input) so later ACC actions still
+  // use the phone that unlocked this order even if the input gets edited.
+  const [customerPhone, setCustomerPhone] = useState(isStaffView ? '' : initialSearchQuery);
 
   // Payment form states
   const [payMethod, setPayMethod] = useState<'tunai' | 'transfer' | 'qris' | 'edc'>('transfer');
@@ -63,6 +64,20 @@ export default function TrackingPortal({
 
   // Sync activeOrder with orders prop
   const currentOrder = activeOrder ? (orders.find(o => o.id === activeOrder.id) || activeOrder) : null;
+
+  // Customer deep-link (e.g. "lihat contoh pesanan" on the landing page)
+  // resolves the initial phone-number lookup async, same RPC as a manual search.
+  React.useEffect(() => {
+    if (isStaffView || !initialSearchQuery) return;
+    let cancelled = false;
+    setSearchLoading(true);
+    trackOrdersByPhone(initialSearchQuery)
+      .then(matches => { if (!cancelled) setActiveOrder(matches[0] || null); })
+      .catch(err => { console.error('Failed to track initial order by phone:', err); if (!cancelled) notify('❌ Gagal mencari pesanan.'); })
+      .finally(() => { if (!cancelled) { setSearchLoading(false); setSearched(true); } });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleApproveFindingService = (findingId: string, srvId: string) => {
     if (!currentOrder || !onUpdateOrder) return;
@@ -148,32 +163,73 @@ export default function TrackingPortal({
     });
   };
 
+  // Customer ACC on their own findings/service items — goes through the
+  // phone-scoped RPCs (see lib/db.ts), not the staff onApprove*/onReject*
+  // props, since anon has no direct write access to `orders` anymore.
+  const handleCustomerFindingDecision = async (findingId: string, status: 'approved' | 'rejected') => {
+    if (!currentOrder) return;
+    try {
+      const updated = await customerSetFindingStatus(currentOrder.id, customerPhone, findingId, status);
+      if (updated) setActiveOrder(updated);
+      else notify('❌ Gagal menyimpan keputusan Anda. Coba cari ulang pesanan Anda.');
+    } catch (err) {
+      console.error('Failed to set finding status as customer:', err);
+      notify('❌ Gagal menyimpan keputusan Anda. Coba lagi.');
+    }
+  };
+
+  const handleCustomerServiceItemDecision = async (itemId: string, status: 'approved' | 'rejected') => {
+    if (!currentOrder) return;
+    try {
+      const updated = await customerSetServiceItemStatus(currentOrder.id, customerPhone, itemId, status);
+      if (updated) setActiveOrder(updated);
+      else notify('❌ Gagal menyimpan keputusan Anda. Coba cari ulang pesanan Anda.');
+    } catch (err) {
+      console.error('Failed to set service item status as customer:', err);
+      notify('❌ Gagal menyimpan keputusan Anda. Coba lagi.');
+    }
+  };
+
   React.useEffect(() => {
     if (currentOrder) {
       setCashAmountInput(calculateTotal(currentOrder) - (currentOrder.dpAmountPaid || 0));
     }
   }, [currentOrder?.id]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const query = searchQuery.trim().toLowerCase();
+    const query = searchQuery.trim();
     if (!query) return;
 
-    let matched;
     if (isStaffView) {
-      matched = orders.find(
-        (o) => 
-          o.id.toLowerCase() === query || 
-          o.customerPhone === query || 
-          o.plateNumber.toLowerCase().replace(/\s+/g, '') === query.replace(/\s+/g, '')
+      const lower = query.toLowerCase();
+      const matched = orders.find(
+        (o) =>
+          o.id.toLowerCase() === lower ||
+          o.customerPhone === lower ||
+          o.plateNumber.toLowerCase().replace(/\s+/g, '') === lower.replace(/\s+/g, '')
       );
-    } else {
-      // Customer can ONLY search by phone number
-      matched = orders.find((o) => o.customerPhone === query);
+      setActiveOrder(matched || null);
+      setSearched(true);
+      return;
     }
 
-    setActiveOrder(matched || null);
-    setSearched(true);
+    // Customer can ONLY look up by their own phone number — resolved
+    // server-side (see track_orders_by_phone), never from the full orders
+    // table, which anon has no access to at all anymore.
+    setSearchLoading(true);
+    try {
+      const matches = await trackOrdersByPhone(query);
+      setActiveOrder(matches[0] || null);
+      setCustomerPhone(query);
+    } catch (err) {
+      console.error('Failed to track order by phone:', err);
+      notify('❌ Gagal mencari pesanan. Coba lagi.');
+      setActiveOrder(null);
+    } finally {
+      setSearchLoading(false);
+      setSearched(true);
+    }
   };
 
   const getStatusLabel = (status: Order['status']) => {
@@ -291,9 +347,10 @@ export default function TrackingPortal({
               </div>
               <button
                 type="submit"
-                className="bg-berlin-navy hover:bg-berlin-navy/90 text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all border border-berlin-gold/30 shrink-0 cursor-pointer shadow-md"
+                disabled={searchLoading}
+                className="bg-berlin-navy hover:bg-berlin-navy/90 disabled:opacity-60 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all border border-berlin-gold/30 shrink-0 cursor-pointer shadow-md"
               >
-                CARI PROGRES
+                {searchLoading ? 'MENCARI...' : 'CARI PROGRES'}
               </button>
             </div>
           </form>
@@ -594,14 +651,14 @@ export default function TrackingPortal({
                                   </span>
                                   <div className="flex gap-2">
                                     <button
-                                      onClick={() => onRejectFinding(currentOrder.id, finding.id)}
+                                      onClick={() => isStaffView ? onRejectFinding(currentOrder.id, finding.id) : handleCustomerFindingDecision(finding.id, 'rejected')}
                                       className="bg-white hover:bg-red-50 border border-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-xs"
                                     >
                                       <X className="w-3.5 h-3.5" />
                                       Tolak Temuan
                                     </button>
                                     <button
-                                      onClick={() => onApproveFinding(currentOrder.id, finding.id)}
+                                      onClick={() => isStaffView ? onApproveFinding(currentOrder.id, finding.id) : handleCustomerFindingDecision(finding.id, 'approved')}
                                       className="bg-berlin-navy hover:bg-berlin-navy/90 text-white border border-berlin-gold/30 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
                                     >
                                       <Check className="w-3.5 h-3.5" />
@@ -671,14 +728,14 @@ export default function TrackingPortal({
 
                                 <div className="flex justify-end gap-2 border-t border-amber-200/40 pt-2.5">
                                   <button
-                                    onClick={() => onRejectServiceItem(currentOrder.id, item.id)}
+                                    onClick={() => isStaffView ? onRejectServiceItem(currentOrder.id, item.id) : handleCustomerServiceItemDecision(item.id, 'rejected')}
                                     className="bg-white hover:bg-red-50 border border-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                                   >
                                     <X className="w-3.5 h-3.5" />
                                     Tolak
                                   </button>
                                   <button
-                                    onClick={() => onApproveServiceItem(currentOrder.id, item.id)}
+                                    onClick={() => isStaffView ? onApproveServiceItem(currentOrder.id, item.id) : handleCustomerServiceItemDecision(item.id, 'approved')}
                                     className="bg-berlin-navy hover:bg-berlin-navy/90 text-white border border-berlin-gold/30 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
                                   >
                                     <Check className="w-3.5 h-3.5" />

@@ -67,6 +67,28 @@ export async function updateOrderJsonb(id: string, column: 'findings' | 'service
   if (error) throw error
 }
 
+// Public "Cek Servis" tracking + customer self-service ACC. These call
+// SECURITY DEFINER Postgres functions (not the `orders` table directly) —
+// anon has no table-level access to orders anymore, only these narrow,
+// phone-scoped RPCs. See supabase/migrations/20260803120000_fix_orders_anon_exposure.sql.
+export async function trackOrdersByPhone(phone: string): Promise<Order[]> {
+  const { data, error } = await db().rpc('track_orders_by_phone', { p_phone: phone })
+  if (error) throw error
+  return (data || []).map(mapOrder)
+}
+
+export async function customerSetFindingStatus(orderId: string, phone: string, findingId: string, status: 'approved' | 'rejected'): Promise<Order | null> {
+  const { data, error } = await db().rpc('customer_set_finding_status', { p_order_id: orderId, p_phone: phone, p_finding_id: findingId, p_status: status })
+  if (error) throw error
+  return data && data[0] ? mapOrder(data[0]) : null
+}
+
+export async function customerSetServiceItemStatus(orderId: string, phone: string, itemId: string, status: 'approved' | 'rejected'): Promise<Order | null> {
+  const { data, error } = await db().rpc('customer_set_service_item_status', { p_order_id: orderId, p_phone: phone, p_item_id: itemId, p_status: status })
+  if (error) throw error
+  return data && data[0] ? mapOrder(data[0]) : null
+}
+
 function mapOrder(data: any): Order {
   return { id: data.id, customerName: data.customer_name, customerPhone: data.customer_phone, customerAddress: data.customer_address || undefined, carBrand: data.car_brand, carModel: data.car_model, plateNumber: data.plate_number, carVin: data.car_vin || undefined, carType: data.car_type || undefined, carYear: data.car_year || undefined, carEngineCode: data.car_engine_code || undefined, complaint: data.complaint, serviceType: data.service_type, status: data.status, createdAt: data.created_at, advisorId: data.advisor_id || undefined, advisorName: data.advisor_name || undefined, spkNumber: data.spk_number || undefined, findings: typeof data.findings === 'string' ? JSON.parse(data.findings) : (data.findings || []), serviceItems: typeof data.service_items === 'string' ? JSON.parse(data.service_items) : (data.service_items || []), timeline: typeof data.timeline === 'string' ? JSON.parse(data.timeline) : (data.timeline || []), paymentStatus: data.payment_status, paymentMethod: data.payment_method || undefined, paymentDestination: data.payment_destination || undefined, paidAt: data.paid_at || undefined, dpAmountPaid: data.dp_amount !== null && data.dp_amount !== undefined ? Number(data.dp_amount) : undefined, notes: data.notes || undefined, spkSent: data.spk_sent || undefined, assignedMechanicId: data.assigned_mechanic_id || undefined, assignedMechanicName: data.assigned_mechanic_name || undefined, slotNumber: data.slot_number ?? undefined }
 }

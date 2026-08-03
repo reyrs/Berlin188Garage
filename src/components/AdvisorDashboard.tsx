@@ -31,7 +31,7 @@ interface AdvisorDashboardProps {
   onUpdateOrder?: (orderId: string, fields: Partial<Order>) => void;
   onAddFinding?: (orderId: string, finding: DiagnosticFinding) => void;
   onUpdateServiceItems?: (orderId: string, items: ServiceItem[]) => void;
-  onSendSPK?: (orderId: string, mechanicId: string, mechanicName: string) => void;
+  onSendSPK?: (orderId: string, mechanicId: string | undefined, mechanicName: string) => void;
   onNotify?: (message: string) => void;
   activeUser?: StaffUser;
 }
@@ -163,7 +163,7 @@ export default function AdvisorDashboard({
     // Kalau nama yang ditulis cocok sama mekanik yang punya akun staf asli,
     // tetap link ke id-nya (biar dia bisa lihat WO ini di "Kerja Saya").
     const mec = mechanics.find(m => m.name.trim().toLowerCase() === trimmedName.toLowerCase());
-    onSendSPK?.(orderId, mec?.id || '', trimmedName);
+    onSendSPK?.(orderId, mec?.id, trimmedName);
     setSelectedMechanicName('');
 
     // Send invoice to customer

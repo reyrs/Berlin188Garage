@@ -135,3 +135,23 @@ export interface Expense {
   receiptUrl?: string;
 }
 
+export interface HeroContent {
+  headline: string;
+  subtitle: string;
+  ctaText: string;
+  backgroundImageUrl?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface PortfolioItem {
+  id: string;
+  carBrand: string;
+  carModel: string;
+  serviceType: 'Servis Rutin' | 'Perbaikan Mesin' | 'Kelistrikan' | 'Kaki-Kaki' | 'Restorasi';
+  workDescription: string;
+  imageUrl: string;
+  createdAt?: string;
+  createdBy?: string;
+}
+

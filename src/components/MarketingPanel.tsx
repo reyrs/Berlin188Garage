@@ -1,12 +1,26 @@
-import React, { useState } from 'react';
-import { Camera, Download, Share2, Image, Star, Filter } from 'lucide-react';
-import { Order } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Camera, Download, Share2, Image, Star, Filter, Layout, Upload, Save, Loader2, Trash2, Plus } from 'lucide-react';
+import { Order, HeroContent, PortfolioItem, User } from '../types';
+import { BRANDS } from './LandingPage';
+
+const SERVICE_TYPES: PortfolioItem['serviceType'][] = ['Servis Rutin', 'Perbaikan Mesin', 'Kelistrikan', 'Kaki-Kaki', 'Restorasi'];
 
 interface MarketingPanelProps {
   orders: Order[];
+  heroContent?: HeroContent | null;
+  onUpdateHeroContent?: (fields: Partial<HeroContent>) => void;
+  onUploadHeroImage?: (file: File) => Promise<string>;
+  portfolioItems?: PortfolioItem[];
+  onAddPortfolioItem?: (item: Omit<PortfolioItem, 'id' | 'createdAt'>) => void;
+  onDeletePortfolioItem?: (id: string) => void;
+  onUploadPortfolioImage?: (file: File) => Promise<string>;
+  activeUser?: User | null;
 }
 
-export default function MarketingPanel({ orders }: MarketingPanelProps) {
+type PanelTab = 'galeri' | 'banner' | 'portofolio';
+
+export default function MarketingPanel({ orders, heroContent, onUpdateHeroContent, onUploadHeroImage, portfolioItems = [], onAddPortfolioItem, onDeletePortfolioItem, onUploadPortfolioImage, activeUser }: MarketingPanelProps) {
+  const [panelTab, setPanelTab] = useState<PanelTab>('galeri');
   const [selectedBrand, setSelectedBrand] = useState('Semua');
 
   // Orders yang sudah selesai dan punya foto (temuan/serviceItems dengan foto)
@@ -34,6 +48,108 @@ export default function MarketingPanel({ orders }: MarketingPanelProps) {
     }))
   ]);
 
+  // --- Banner Beranda (hero landing page) ---
+  const [heroHeadline, setHeroHeadline] = useState(heroContent?.headline || '');
+  const [heroSubtitle, setHeroSubtitle] = useState(heroContent?.subtitle || '');
+  const [heroCta, setHeroCta] = useState(heroContent?.ctaText || '');
+  const [heroImageFile, setHeroImageFile] = useState<File | null>(null);
+  const [heroImagePreview, setHeroImagePreview] = useState<string | null>(null);
+  const [isSavingHero, setIsSavingHero] = useState(false);
+  const [heroInitialized, setHeroInitialized] = useState(false);
+
+  // Sinkron form sekali begitu heroContent asli kefetch dari server (nggak
+  // nimpa terus tiap render biar nggak ilangin ketikan yang lagi diedit).
+  useEffect(() => {
+    if (!heroInitialized && heroContent) {
+      setHeroInitialized(true);
+      setHeroHeadline(heroContent.headline);
+      setHeroSubtitle(heroContent.subtitle);
+      setHeroCta(heroContent.ctaText);
+    }
+  }, [heroContent, heroInitialized]);
+
+  const handleHeroImagePick = (file: File) => {
+    setHeroImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setHeroImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveHero = async () => {
+    if (!onUpdateHeroContent) return;
+    setIsSavingHero(true);
+    try {
+      let backgroundImageUrl = heroContent?.backgroundImageUrl;
+      if (heroImageFile && onUploadHeroImage) {
+        backgroundImageUrl = await onUploadHeroImage(heroImageFile);
+      }
+      onUpdateHeroContent({ headline: heroHeadline, subtitle: heroSubtitle, ctaText: heroCta, backgroundImageUrl });
+      setHeroImageFile(null);
+    } catch (err) {
+      console.error('Gagal upload gambar banner:', err);
+      alert('Gagal upload gambar banner. Coba lagi.');
+    } finally {
+      setIsSavingHero(false);
+    }
+  };
+
+  // --- Portofolio Beranda (galeri publik manual) ---
+  const [pfBrand, setPfBrand] = useState(BRANDS[0]);
+  const [pfModel, setPfModel] = useState('');
+  const [pfServiceType, setPfServiceType] = useState<PortfolioItem['serviceType']>(SERVICE_TYPES[0]);
+  const [pfDescription, setPfDescription] = useState('');
+  const [pfImageFile, setPfImageFile] = useState<File | null>(null);
+  const [pfImagePreview, setPfImagePreview] = useState<string | null>(null);
+  const [isSavingPortfolio, setIsSavingPortfolio] = useState(false);
+
+  const handlePortfolioImagePick = (file: File) => {
+    setPfImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setPfImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const resetPortfolioForm = () => {
+    setPfBrand(BRANDS[0]);
+    setPfModel('');
+    setPfServiceType(SERVICE_TYPES[0]);
+    setPfDescription('');
+    setPfImageFile(null);
+    setPfImagePreview(null);
+  };
+
+  const handleAddPortfolio = async () => {
+    if (!onAddPortfolioItem || !onUploadPortfolioImage) return;
+    if (!pfModel.trim() || !pfDescription.trim() || !pfImageFile) {
+      alert('Model mobil, deskripsi kerjaan, dan foto wajib diisi.');
+      return;
+    }
+    setIsSavingPortfolio(true);
+    try {
+      const imageUrl = await onUploadPortfolioImage(pfImageFile);
+      onAddPortfolioItem({
+        carBrand: pfBrand,
+        carModel: pfModel.trim(),
+        serviceType: pfServiceType,
+        workDescription: pfDescription.trim(),
+        imageUrl,
+        createdBy: activeUser?.name,
+      });
+      resetPortfolioForm();
+    } catch (err) {
+      console.error('Gagal upload gambar portofolio:', err);
+      alert('Gagal upload gambar portofolio. Coba lagi.');
+    } finally {
+      setIsSavingPortfolio(false);
+    }
+  };
+
+  const handleDeletePortfolio = (id: string) => {
+    if (!onDeletePortfolioItem) return;
+    if (!confirm('Hapus item portofolio ini dari beranda?')) return;
+    onDeletePortfolioItem(id);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -51,6 +167,191 @@ export default function MarketingPanel({ orders }: MarketingPanelProps) {
         </div>
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl w-fit">
+        {([
+          { id: 'galeri' as const, label: 'Galeri & Portofolio', icon: Image },
+          { id: 'banner' as const, label: 'Banner Beranda', icon: Layout },
+          { id: 'portofolio' as const, label: 'Portofolio Beranda', icon: Star },
+        ]).map(t => (
+          <button key={t.id} onClick={() => setPanelTab(t.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              panelTab === t.id ? 'bg-white text-berlin-navy shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            <t.icon className="w-3.5 h-3.5" /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      {panelTab === 'banner' && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Edit Banner Beranda</h4>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Judul (Headline)</label>
+                <textarea
+                  value={heroHeadline}
+                  onChange={e => setHeroHeadline(e.target.value)}
+                  rows={2}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors resize-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Subjudul</label>
+                <textarea
+                  value={heroSubtitle}
+                  onChange={e => setHeroSubtitle(e.target.value)}
+                  rows={2}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors resize-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Teks Tombol</label>
+                <input
+                  type="text"
+                  value={heroCta}
+                  onChange={e => setHeroCta(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Gambar Latar (opsional)</label>
+                <p className="text-[10px] text-gray-400">Kalau diisi, gantiin video mobil di beranda jadi gambar ini. Kosongkan buat pakai video default.</p>
+                <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-lg py-4 cursor-pointer hover:bg-gray-50 transition-colors text-xs text-gray-500 font-semibold">
+                  <Upload className="w-4 h-4" /> Pilih Gambar
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleHeroImagePick(f); }} />
+                </label>
+              </div>
+              <button
+                onClick={handleSaveHero}
+                disabled={isSavingHero}
+                className="w-full flex items-center justify-center gap-1.5 bg-berlin-navy hover:bg-berlin-navy/90 disabled:opacity-60 text-white py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all"
+              >
+                {isSavingHero ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                {isSavingHero ? 'Menyimpan...' : 'Simpan Banner'}
+              </button>
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="bg-gray-900 rounded-2xl overflow-hidden shadow-sm relative min-h-[360px] flex flex-col justify-end p-6">
+            {(heroImagePreview || heroContent?.backgroundImageUrl) && (
+              <img
+                src={heroImagePreview || heroContent?.backgroundImageUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover opacity-60"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-berlin-navy via-berlin-navy/40 to-transparent" />
+            <div className="relative z-10 space-y-3">
+              <span className="text-[9px] uppercase tracking-widest text-white/50 font-bold">Preview Beranda</span>
+              <h2 className="text-2xl font-extrabold text-white leading-tight">{heroHeadline || 'Judul banner...'}</h2>
+              <p className="text-gray-300 text-xs">{heroSubtitle || 'Subjudul banner...'}</p>
+              <span className="inline-block bg-berlin-red text-white font-semibold px-3 py-1.5 rounded-lg text-[10px]">
+                {heroCta || 'Tombol'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {panelTab === 'portofolio' && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Tambah Portofolio</h4>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Merek</label>
+                <select
+                  value={pfBrand}
+                  onChange={e => setPfBrand(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors"
+                >
+                  {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Model</label>
+                <input
+                  type="text"
+                  value={pfModel}
+                  onChange={e => setPfModel(e.target.value)}
+                  placeholder="Cth: C-Class W205"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Tipe Servis</label>
+                <select
+                  value={pfServiceType}
+                  onChange={e => setPfServiceType(e.target.value as PortfolioItem['serviceType'])}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors"
+                >
+                  {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Deskripsi Kerjaan</label>
+                <textarea
+                  value={pfDescription}
+                  onChange={e => setPfDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Cth: Overhaul mesin + ganti timing chain"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors resize-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Foto Hasil Kerja</label>
+                <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-lg py-4 cursor-pointer hover:bg-gray-50 transition-colors text-xs text-gray-500 font-semibold">
+                  <Upload className="w-4 h-4" /> {pfImageFile ? pfImageFile.name : 'Pilih Foto (wajib)'}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handlePortfolioImagePick(f); }} />
+                </label>
+              </div>
+              <button
+                onClick={handleAddPortfolio}
+                disabled={isSavingPortfolio}
+                className="w-full flex items-center justify-center gap-1.5 bg-berlin-navy hover:bg-berlin-navy/90 disabled:opacity-60 text-white py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all"
+              >
+                {isSavingPortfolio ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                {isSavingPortfolio ? 'Menyimpan...' : 'Tambah ke Beranda'}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Portofolio Aktif ({portfolioItems.length})</h4>
+            {portfolioItems.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-8">Belum ada portofolio yang ditambahkan.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 max-h-[520px] overflow-y-auto pr-1">
+                {portfolioItems.map(item => (
+                  <div key={item.id} className="group relative rounded-xl overflow-hidden border border-gray-200 aspect-[4/3] bg-gray-100">
+                    <img src={item.imageUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-2.5">
+                      <p className="text-white text-[10px] font-bold leading-tight">{item.carBrand} {item.carModel}</p>
+                      <p className="text-white/70 text-[9px] mt-0.5 truncate">{item.workDescription}</p>
+                    </div>
+                    <button
+                      onClick={() => handleDeletePortfolio(item.id)}
+                      className="absolute top-2 right-2 bg-white/90 hover:bg-white text-berlin-red p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      title="Hapus"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {panelTab === 'galeri' && (
+      <>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
@@ -172,6 +473,8 @@ export default function MarketingPanel({ orders }: MarketingPanelProps) {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

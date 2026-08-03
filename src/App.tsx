@@ -21,7 +21,7 @@ import MarketingPanel from './components/MarketingPanel';
 import ProductMarketplace from './components/ProductMarketplace';
 
 // Types & Data
-import { Order, User, CashTransaction, CashClosing, Expense, WarehouseStockItem } from './types';
+import { Order, User, CashTransaction, CashClosing, Expense, WarehouseStockItem, HeroContent, PortfolioItem } from './types';
 import {
   INITIAL_ORDERS, INITIAL_TRANSACTIONS,
   INITIAL_CLOSINGS, INITIAL_EXPENSES, MOCK_WAREHOUSE_STOCK,
@@ -35,6 +35,8 @@ import {
   fetchClosings, createClosing,
   fetchWarehouseStock, updateStockQuantity,
   fetchProfiles, seedWarehouseStock,
+  fetchHeroContent, updateHeroContent, uploadLandingAsset,
+  fetchPortfolioItems, createPortfolioItem, deletePortfolioItem,
 } from './lib/db';
 import { getSession, onAuthStateChange, signOutStaff } from './lib/auth';
 
@@ -75,6 +77,8 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [warehouseStock, setWarehouseStock] = useState<WarehouseStockItem[]>(MOCK_WAREHOUSE_STOCK);
   const [staffDirectory, setStaffDirectory] = useState<User[]>([]);
+  const [heroContent, setHeroContent] = useState<HeroContent | null>(null);
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [activeStaffUser, setActiveStaffUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor_service' | 'monitor_tunggu' | 'marketplace'>('landing');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -102,8 +106,10 @@ export default function App() {
       fetchClosings(),
       fetchWarehouseStock(),
       fetchProfiles(),
+      fetchHeroContent(),
+      fetchPortfolioItems(),
     ]);
-    const [ordersResult, transactionsResult, expensesResult, closingsResult, stockResult, profilesResult] = results;
+    const [ordersResult, transactionsResult, expensesResult, closingsResult, stockResult, profilesResult, heroResult, portfolioResult] = results;
 
     if (ordersResult.status === 'fulfilled') setOrders(ordersResult.value);
     if (transactionsResult.status === 'fulfilled') setTransactions(transactionsResult.value);
@@ -113,8 +119,10 @@ export default function App() {
       setWarehouseStock(stockResult.value.length > 0 ? stockResult.value : MOCK_WAREHOUSE_STOCK);
     }
     if (profilesResult.status === 'fulfilled') setStaffDirectory(profilesResult.value);
+    if (heroResult.status === 'fulfilled') setHeroContent(heroResult.value);
+    if (portfolioResult.status === 'fulfilled') setPortfolioItems(portfolioResult.value);
 
-    const failedLabels: Record<number, string> = { 0: 'WO', 1: 'transaksi', 2: 'pengeluaran', 3: 'closing', 4: 'stok gudang', 5: 'direktori staf' };
+    const failedLabels: Record<number, string> = { 0: 'WO', 1: 'transaksi', 2: 'pengeluaran', 3: 'closing', 4: 'stok gudang', 5: 'direktori staf', 6: 'konten hero', 7: 'portofolio' };
     const failures = results
       .map((r, i) => (r.status === 'rejected' ? failedLabels[i] : null))
       .filter((label): label is string => label !== null);
@@ -604,6 +612,53 @@ export default function App() {
     showNotification(`📝 Pengeluaran dicatat: ${exp.description}`);
   }, []);
 
+  const handleUpdateHeroContent = useCallback((fields: Partial<HeroContent>) => {
+    const previous = heroContent;
+    setHeroContent(prev => (prev ? { ...prev, ...fields } : prev));
+    updateHeroContent(fields, activeStaffUser?.name || 'Marketing')
+      .then(() => showNotification('✅ Banner beranda berhasil disimpan.'))
+      .catch(err => {
+        console.error('Failed to update hero content:', err);
+        setHeroContent(previous);
+        showNotification('❌ Gagal menyimpan banner beranda. Coba lagi.');
+      });
+  }, [heroContent, activeStaffUser]);
+
+  const handleUploadHeroImage = useCallback(async (file: File): Promise<string> => {
+    return uploadLandingAsset(file, 'hero');
+  }, []);
+
+  const handleAddPortfolioItem = useCallback((item: Omit<PortfolioItem, 'id' | 'createdAt'>) => {
+    const tempId = `temp-${Date.now()}`;
+    const optimisticItem: PortfolioItem = { ...item, id: tempId, createdAt: new Date().toISOString() };
+    setPortfolioItems(prev => [optimisticItem, ...prev]);
+    createPortfolioItem(item)
+      .then(() => {
+        showNotification('✅ Portofolio berhasil ditambahkan.');
+        return fetchPortfolioItems();
+      })
+      .then(items => setPortfolioItems(items))
+      .catch(err => {
+        console.error('Failed to add portfolio item:', err);
+        setPortfolioItems(prev => prev.filter(p => p.id !== tempId));
+        showNotification('❌ Gagal menambah portofolio. Coba lagi.');
+      });
+  }, []);
+
+  const handleDeletePortfolioItem = useCallback((id: string) => {
+    const previous = portfolioItems;
+    setPortfolioItems(prev => prev.filter(p => p.id !== id));
+    deletePortfolioItem(id).catch(err => {
+      console.error('Failed to delete portfolio item:', err);
+      setPortfolioItems(previous);
+      showNotification('❌ Gagal menghapus portofolio. Coba lagi.');
+    });
+  }, [portfolioItems]);
+
+  const handleUploadPortfolioImage = useCallback(async (file: File): Promise<string> => {
+    return uploadLandingAsset(file, 'portfolio');
+  }, []);
+
   const handleCashClosing = useCallback((closing: Omit<CashClosing, 'id'>) => {
     const newClosing: CashClosing = { ...closing, id: `CLO-${Date.now()}` };
     setClosings(prev => [newClosing, ...prev]);
@@ -673,7 +728,7 @@ export default function App() {
       { id: 'monitor_service', label: 'Monitor Service', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager', 'mekanik'] },
       { id: 'monitor_tunggu', label: 'Monitor Tunggu', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager'] },
       { id: 'accounting', label: 'Akunting', icon: BookOpen, roles: ['kasir', 'owner'] },
-      { id: 'finance_report', label: 'Laporan Keuangan', icon: FileBarChart, roles: ['accounting', 'owner'] },
+      { id: 'finance_report', label: 'Laporan Keuangan', icon: FileBarChart, roles: ['accounting', 'owner', 'kasir'] },
     ];
     return all.filter(t => t.roles.includes(role));
   };
@@ -732,6 +787,8 @@ export default function App() {
             onSelectSampleOrder={() => { setTrackingQuery('085156010707'); setCurrentView('tracking'); }}
             onOpenMarketplace={() => setCurrentView('marketplace')}
             orders={orders}
+            heroContent={heroContent}
+            portfolioItems={portfolioItems}
           />
         )}
 
@@ -851,7 +908,17 @@ export default function App() {
               )}
 
               {activeTab === 'marketing' && (
-                <MarketingPanel orders={orders} />
+                <MarketingPanel
+                  orders={orders}
+                  heroContent={heroContent}
+                  onUpdateHeroContent={handleUpdateHeroContent}
+                  onUploadHeroImage={handleUploadHeroImage}
+                  portfolioItems={portfolioItems}
+                  onAddPortfolioItem={handleAddPortfolioItem}
+                  onDeletePortfolioItem={handleDeletePortfolioItem}
+                  onUploadPortfolioImage={handleUploadPortfolioImage}
+                  activeUser={activeStaffUser}
+                />
               )}
 
               {activeTab === 'finance_report' && (

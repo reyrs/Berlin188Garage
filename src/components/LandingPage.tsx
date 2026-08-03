@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Phone, Clock, ArrowRight, X } from 'lucide-react';
-import { Order } from '../types';
+import { Order, HeroContent, PortfolioItem } from '../types';
 import ThemeToggle from './ThemeToggle';
 import CurveAccent from './CurveAccent';
 
@@ -10,29 +10,25 @@ interface LandingPageProps {
   onSelectSampleOrder: () => void;
   onOpenMarketplace?: () => void;
   orders?: Order[];
+  heroContent?: HeroContent | null;
+  portfolioItems?: PortfolioItem[];
 }
 
-const CAR_IMG: Record<string, string> = {
-  'Mercedes-Benz': 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&auto=format&fit=crop&q=80',
-  'BMW': 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&auto=format&fit=crop&q=80',
-  'Audi': 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=800&auto=format&fit=crop&q=80',
-  'VW': 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&auto=format&fit=crop&q=80',
-  'MINI': 'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800&auto=format&fit=crop&q=80',
-  'Land Rover': 'https://images.unsplash.com/photo-1508974239320-0a029497e820?w=800&auto=format&fit=crop&q=80',
-  'Lainnya': 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&auto=format&fit=crop&q=80',
+// Dipakai kalau heroContent belum kefetch dari server (atau gagal) — landing
+// page nggak boleh pernah blank. Ini teks yang sama kayak yang di-seed ke
+// hero_content pas migrasi, jadi nggak ada bedanya secara visual.
+const DEFAULT_HERO: HeroContent = {
+  headline: 'Mobil Eropa kamu, ditangani spesialis yang ngerti mesinnya.',
+  subtitle: 'Kami foto setiap temuan. Kami jelasin setiap biaya. Kamu ACC dulu — baru kami kerjakan.',
+  ctaText: 'Cek servis',
 };
 
-
-const PORTFOLIO = [
-  { id: 'WO-101', carBrand: 'MINI' as const, carModel: 'Cooper S F56', serviceType: 'Kaki-Kaki' as const, complaint: 'Rem depan getar saat pengereman', date: '14 Jul 2026', work: 'Ganti piringan cakram + kampas Brembo' },
-  { id: 'WO-102', carBrand: 'Mercedes-Benz' as const, carModel: 'C200 W205', serviceType: 'Servis Rutin' as const, complaint: 'Servis berkala 10.000 km', date: '14 Jul 2026', work: 'Ganti oli Shell Helix Ultra + filter' },
-  { id: 'WO-100', carBrand: 'Audi' as const, carModel: 'A4 B9', serviceType: 'Perbaikan Mesin' as const, complaint: 'Check Engine & idle kasar', date: '13 Jul 2026', work: 'Ganti koil pengapian + busi NGK' },
-  { id: 'WO-099', carBrand: 'Land Rover' as const, carModel: 'Evoque', serviceType: 'Kelistrikan' as const, complaint: 'Power tailgate error', date: '12 Jul 2026', work: 'Ganti tailgate actuator motor' },
-  { id: 'WO-098', carBrand: 'BMW' as const, carModel: '320i F30', serviceType: 'Servis Rutin' as const, complaint: 'AC tidak dingin', date: '10 Jul 2026', work: 'Bersihkan evaporator + ganti filter kabin' },
-  { id: 'WO-097', carBrand: 'VW' as const, carModel: 'Golf GTI', serviceType: 'Kaki-Kaki' as const, complaint: 'Bunyi saat lewat polisi tidur', date: '8 Jul 2026', work: 'Ganti link stabilizer depan' },
-];
-
-const BRANDS = ['Mercedes-Benz', 'BMW', 'Audi', 'Volkswagen', 'MINI', 'Land Rover'];
+// Dipakai buat filter portofolio (dan dipakai ulang di form MarketingPanel
+// biar merek yang bisa dipilih pas nambah item nyambung sama filter di sini
+// — sebelumnya ada dua daftar beda yang nggak sinkron, "Volkswagen" di sini
+// vs "VW" di form staf, jadi filternya nggak pernah nemu apa-apa. Sekarang
+// disamain ke "VW" (sesuai penyebutan di seluruh app, mis. Order.carBrand).
+export const BRANDS = ['Mercedes-Benz', 'BMW', 'Audi', 'VW', 'MINI', 'Land Rover'];
 
 const STEPS = [
   { step: '01', t: 'Check-in', d: 'SA catat keluhan, data mobil, dan nomor HP kamu. 5 menit.' },
@@ -42,13 +38,14 @@ const STEPS = [
   { step: '05', t: 'Serah terima', d: 'Selesai, invoice otomatis. Bayar & bawa pulang mobil.' },
 ];
 
-export default function LandingPage({ onCheckOrder, onOpenLogin, onSelectSampleOrder, onOpenMarketplace, orders = [] }: LandingPageProps) {
+export default function LandingPage({ onCheckOrder, onOpenLogin, onSelectSampleOrder, onOpenMarketplace, orders = [], heroContent, portfolioItems = [] }: LandingPageProps) {
+  const hero = heroContent || DEFAULT_HERO;
   const [filter, setFilter] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const filtered = filter ? PORTFOLIO.filter(i => i.carBrand === filter) : PORTFOLIO;
+  const filtered = filter ? portfolioItems.filter(i => i.carBrand === filter) : portfolioItems;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -117,18 +114,26 @@ export default function LandingPage({ onCheckOrder, onOpenLogin, onSelectSampleO
         </div>
       </header>
 
-      {/* HERO — video background */}
+      {/* HERO — video background, atau gambar kalau marketing upload banner */}
       <section className="relative min-h-[94vh] md:min-h-screen overflow-hidden bg-berlin-navy">
         <div className="absolute inset-0">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          >
-            <source src="/car.mp4" type="video/mp4" />
-          </video>
+          {hero.backgroundImageUrl ? (
+            <img
+              src={hero.backgroundImageUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            >
+              <source src="/car.mp4" type="video/mp4" />
+            </video>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-berlin-navy via-berlin-navy/60 to-berlin-navy/25" />
           <div className="absolute inset-0 bg-gradient-to-r from-berlin-navy-dark/95 via-berlin-navy/35 to-transparent" />
         </div>
@@ -136,13 +141,13 @@ export default function LandingPage({ onCheckOrder, onOpenLogin, onSelectSampleO
         <div className="relative z-10 flex flex-col justify-end min-h-[94vh] md:min-h-screen pt-24">
           <div className="max-w-6xl mx-auto w-full px-6 pb-12 md:pb-16">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-[1.05] tracking-tight text-white mb-6 max-w-3xl animate-fade-up">
-              Mobil Eropa kamu, <span className="text-berlin-red">ditangani spesialis</span> yang ngerti mesinnya.
+              {hero.headline}
             </h1>
             <p className="text-gray-300 text-sm sm:text-base leading-relaxed mb-9 max-w-md animate-fade-up [animation-delay:100ms]">
-              Kami foto setiap temuan. Kami jelasin setiap biaya. Kamu ACC dulu — baru kami kerjakan.
+              {hero.subtitle}
             </p>
             <button onClick={onCheckOrder} className="bg-berlin-red hover:bg-berlin-red/90 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 animate-fade-up [animation-delay:200ms]">
-              Cek servis <ArrowRight className="w-3.5 h-3.5" />
+              {hero.ctaText} <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -186,28 +191,41 @@ export default function LandingPage({ onCheckOrder, onOpenLogin, onSelectSampleO
         </div>
 
         {/* Cards — hover reveal */}
+        {portfolioItems.length === 0 ? (
+          <div className="text-center py-16 px-6 rounded-xl border border-dashed border-gray-300">
+            <p className="text-sm font-medium text-gray-500">Portofolio segera hadir.</p>
+            <p className="text-xs text-gray-400 mt-1">Tim kami lagi nyiapin dokumentasi hasil kerja terbaik.</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16 px-6 rounded-xl border border-dashed border-gray-300">
+            <p className="text-sm font-medium text-gray-500">Belum ada portofolio untuk merek ini.</p>
+          </div>
+        ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((item, i) => {
-            const img = CAR_IMG[item.carBrand] || CAR_IMG['Lainnya'];
+            const formattedDate = item.createdAt
+              ? new Date(item.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+              : '';
             return (
               <div
                 key={item.id}
                 data-reveal
                 style={{ transitionDelay: `${(i % 3) * 80}ms` }}
                 className="group relative cursor-pointer aspect-[4/3] rounded-xl overflow-hidden bg-gray-100"
-                onClick={() => setLightbox(img)}
+                onClick={() => setLightbox(item.imageUrl)}
               >
-                <img src={img} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]" referrerPolicy="no-referrer" />
+                <img src={item.imageUrl} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]" referrerPolicy="no-referrer" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-4">
                   <p className="font-bold text-sm text-white">{item.carBrand} {item.carModel}</p>
-                  <p className="text-xs text-gray-300 mt-1 max-h-0 opacity-0 group-hover:max-h-10 group-hover:opacity-100 overflow-hidden transition-all duration-300">{item.work}</p>
-                  <p className="text-[10px] text-gray-400 mt-1 font-sans">{item.date}</p>
+                  <p className="text-xs text-gray-300 mt-1 max-h-0 opacity-0 group-hover:max-h-10 group-hover:opacity-100 overflow-hidden transition-all duration-300">{item.workDescription}</p>
+                  <p className="text-[10px] text-gray-400 mt-1 font-sans">{formattedDate}</p>
                 </div>
               </div>
             );
           })}
         </div>
+        )}
       </section>
 
       {/* HOW IT WORKS — dark instrument band */}

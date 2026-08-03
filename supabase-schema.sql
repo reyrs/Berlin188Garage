@@ -126,6 +126,33 @@ CREATE TABLE stock_mutations (
 
 ALTER TABLE stock_mutations ENABLE ROW LEVEL SECURITY;
 
+-- 8. HERO CONTENT (landing page "banner promosi" — singleton, bukan carousel)
+CREATE TABLE hero_content (
+  id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  headline TEXT NOT NULL,
+  subtitle TEXT NOT NULL,
+  cta_text TEXT NOT NULL,
+  background_image_url TEXT,
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  updated_by TEXT
+);
+
+ALTER TABLE hero_content ENABLE ROW LEVEL SECURITY;
+
+-- 9. PORTFOLIO ITEMS (landing page — dikelola manual marketing)
+CREATE TABLE portfolio_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  car_brand TEXT NOT NULL,
+  car_model TEXT NOT NULL,
+  service_type TEXT NOT NULL,
+  work_description TEXT NOT NULL,
+  image_url TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by TEXT
+);
+
+ALTER TABLE portfolio_items ENABLE ROW LEVEL SECURITY;
+
 -- INDEXES
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_phone ON orders(customer_phone);
@@ -135,6 +162,7 @@ CREATE INDEX idx_transactions_date ON transactions(timestamp);
 CREATE INDEX idx_expenses_date ON expenses(date);
 CREATE INDEX idx_closings_date ON closings(timestamp);
 CREATE INDEX idx_stock_mutations_item ON stock_mutations(stock_item_id);
+CREATE INDEX idx_portfolio_items_created_at ON portfolio_items(created_at DESC);
 
 -- Papan slot kerja: cegah 2 order aktif kebagian bay fisik yang sama.
 CREATE UNIQUE INDEX idx_orders_active_slot_unique
@@ -190,6 +218,26 @@ CREATE POLICY "stock_mutations_role_based"
   USING (current_staff_role() IN ('owner','gudang'))
   WITH CHECK (current_staff_role() IN ('owner','gudang'));
 
+-- hero_content: baca terbuka (landing page publik), tulis marketing/owner saja
+CREATE POLICY "hero_content_select_anyone"
+  ON hero_content FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "hero_content_write_marketing"
+  ON hero_content FOR ALL TO authenticated
+  USING (current_staff_role() IN ('marketing', 'owner'))
+  WITH CHECK (current_staff_role() IN ('marketing', 'owner'));
+
+-- portfolio_items: baca terbuka, tulis marketing/owner saja
+CREATE POLICY "portfolio_items_select_anyone"
+  ON portfolio_items FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "portfolio_items_write_marketing"
+  ON portfolio_items FOR ALL TO authenticated
+  USING (current_staff_role() IN ('marketing', 'owner'))
+  WITH CHECK (current_staff_role() IN ('marketing', 'owner'));
+
 -- TRIGGER: update updated_at on orders
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
@@ -206,3 +254,17 @@ CREATE TRIGGER orders_updated_at
 CREATE TRIGGER warehouse_stock_updated_at
   BEFORE UPDATE ON warehouse_stock
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER hero_content_updated_at
+  BEFORE UPDATE ON hero_content
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Seed hero_content dengan teks yang sama persis kayak yang hardcode di
+-- LandingPage.tsx — biar setup baru dari nol pun landing page-nya nggak blank.
+INSERT INTO hero_content (id, headline, subtitle, cta_text)
+VALUES (
+  1,
+  'Mobil Eropa kamu, ditangani spesialis yang ngerti mesinnya.',
+  'Kami foto setiap temuan. Kami jelasin setiap biaya. Kamu ACC dulu — baru kami kerjakan.',
+  'Cek servis'
+);

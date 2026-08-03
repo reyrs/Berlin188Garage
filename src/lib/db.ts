@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Order, CashTransaction, CashClosing, Expense, WarehouseStockItem, User } from '../types'
+import type { Order, CashTransaction, CashClosing, Expense, WarehouseStockItem, User, HeroContent, PortfolioItem } from '../types'
 
 const db = () => {
   if (!supabase) throw new Error('DB_UNAVAILABLE')
@@ -158,4 +158,67 @@ export async function seedWarehouseStock(items: WarehouseStockItem[]): Promise<v
       console.error(`Failed to seed warehouse stock ${item.id}:`, err)
     }
   }
+}
+
+// ============================================================
+// HERO CONTENT (landing page "banner promosi")
+// ============================================================
+
+export async function fetchHeroContent(): Promise<HeroContent | null> {
+  const { data, error } = await db().from('hero_content').select('*').eq('id', 1).maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  return { headline: data.headline, subtitle: data.subtitle, ctaText: data.cta_text, backgroundImageUrl: data.background_image_url || undefined, updatedAt: data.updated_at || undefined, updatedBy: data.updated_by || undefined }
+}
+
+export async function updateHeroContent(fields: Partial<HeroContent>, updatedBy: string): Promise<void> {
+  const dbFields: Record<string, any> = { updated_by: updatedBy }
+  if (fields.headline !== undefined) dbFields.headline = fields.headline
+  if (fields.subtitle !== undefined) dbFields.subtitle = fields.subtitle
+  if (fields.ctaText !== undefined) dbFields.cta_text = fields.ctaText
+  if (fields.backgroundImageUrl !== undefined) dbFields.background_image_url = fields.backgroundImageUrl
+  const { error } = await db().from('hero_content').update(dbFields).eq('id', 1)
+  if (error) throw error
+}
+
+// Bucket landing-assets dipakai bareng buat hero image dan foto portofolio —
+// prefix cuma buat gampang bedain asal file pas lihat daftar bucket manual.
+export async function uploadLandingAsset(file: File, prefix: string): Promise<string> {
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `${prefix}-${Date.now()}.${ext}`
+  const { error } = await db().storage.from('landing-assets').upload(path, file, { upsert: true })
+  if (error) throw error
+  const { data } = db().storage.from('landing-assets').getPublicUrl(path)
+  return data.publicUrl
+}
+
+// ============================================================
+// PORTFOLIO ITEMS (landing page — dikelola manual marketing)
+// ============================================================
+
+export async function fetchPortfolioItems(): Promise<PortfolioItem[]> {
+  const { data, error } = await db().from('portfolio_items').select('*').order('created_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(mapPortfolioItem)
+}
+
+export async function createPortfolioItem(item: Omit<PortfolioItem, 'id' | 'createdAt'>): Promise<void> {
+  const { error } = await db().from('portfolio_items').insert({
+    car_brand: item.carBrand,
+    car_model: item.carModel,
+    service_type: item.serviceType,
+    work_description: item.workDescription,
+    image_url: item.imageUrl,
+    created_by: item.createdBy,
+  })
+  if (error) throw error
+}
+
+export async function deletePortfolioItem(id: string): Promise<void> {
+  const { error } = await db().from('portfolio_items').delete().eq('id', id)
+  if (error) throw error
+}
+
+function mapPortfolioItem(data: any): PortfolioItem {
+  return { id: data.id, carBrand: data.car_brand, carModel: data.car_model, serviceType: data.service_type, workDescription: data.work_description, imageUrl: data.image_url, createdAt: data.created_at || undefined, createdBy: data.created_by || undefined }
 }

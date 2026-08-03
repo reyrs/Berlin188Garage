@@ -7,7 +7,6 @@ import CurveAccent from './CurveAccent';
 
 interface LandingPageProps {
   onCheckOrder: () => void;
-  onOpenLogin: () => void;
   onSelectSampleOrder: () => void;
   onOpenMarketplace?: () => void;
   orders?: Order[];
@@ -39,7 +38,7 @@ const STEPS = [
   { step: '05', t: 'Serah terima', d: 'Selesai, invoice otomatis. Bayar & bawa pulang mobil.' },
 ];
 
-export default function LandingPage({ onCheckOrder, onOpenLogin, onSelectSampleOrder, onOpenMarketplace, orders = [], heroContent, portfolioItems = [] }: LandingPageProps) {
+export default function LandingPage({ onCheckOrder, onSelectSampleOrder, onOpenMarketplace, orders = [], heroContent, portfolioItems = [] }: LandingPageProps) {
   const hero = heroContent || DEFAULT_HERO;
   const [filter, setFilter] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -108,14 +107,6 @@ export default function LandingPage({ onCheckOrder, onOpenLogin, onSelectSampleO
                 scrolled ? 'text-gray-500 hover:text-berlin-navy' : 'text-white/70 hover:text-white'
               }`}>
               Cek Servis
-            </button>
-            <button onClick={onOpenLogin}
-              className={`text-xs font-semibold px-4 py-2 rounded-lg transition-all cursor-pointer ${
-                scrolled
-                  ? 'border border-berlin-navy text-berlin-navy hover:bg-berlin-navy hover:text-white'
-                  : 'border border-white/30 text-white hover:bg-white/10'
-              }`}>
-              Masuk Staff
             </button>
           </div>
         </div>

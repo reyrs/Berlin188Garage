@@ -82,7 +82,6 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   const [activeStaffUser, setActiveStaffUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor_service' | 'monitor_tunggu' | 'marketplace' | 'staff_login'>(entryMode === 'staff' ? 'staff_login' : 'landing');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [trackingQuery, setTrackingQuery] = useState('');
   const [sandboxNotification, setSandboxNotification] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -716,7 +715,6 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   // ---- AUTH ----
   const handleLoginSuccess = (user: User) => {
     setActiveStaffUser(user);
-    setIsLoginModalOpen(false);
     setCurrentView('staff_portal');
     if (user.role === 'owner') setActiveTab('dashboard');
     else if (user.role === 'advisor') setActiveTab('track_dashboard');
@@ -817,7 +815,6 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         {currentView === 'landing' && (
           <LandingPage
             onCheckOrder={() => setCurrentView('tracking')}
-            onOpenLogin={() => setIsLoginModalOpen(true)}
             onSelectSampleOrder={() => { setTrackingQuery('085156010707'); setCurrentView('tracking'); }}
             onOpenMarketplace={() => setCurrentView('marketplace')}
             orders={orders}
@@ -1002,12 +999,6 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
           </div>
         )}
       </main>
-
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
     </div>
   );
 }

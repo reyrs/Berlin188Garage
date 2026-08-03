@@ -40,7 +40,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
   const [engineCode, setEngineCode] = useState('');
   const [serviceType, setServiceType] = useState<Order['serviceType']>('Servis Rutin');
   const [complaint, setComplaint] = useState('');
-  const [mechanicId, setMechanicId] = useState('');
+  const [mechanicName, setMechanicName] = useState('');
 
   // Multi-step validator
   const canProceed = () => {
@@ -56,7 +56,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
       );
     }
     if (step === 3) return complaint.trim() !== '';
-    if (step === 4) return mechanicId !== '';
+    if (step === 4) return mechanicName.trim() !== '';
     return true;
   };
 
@@ -72,7 +72,12 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
 
   const handleSubmit = () => {
     const nextWoNumber = generateWoNumber();
-    const selectedMechanic = mechanics.find(m => m.id === mechanicId);
+    const trimmedMechanicName = mechanicName.trim();
+    // Kalau nama yang ditulis cocok sama mekanik yang punya akun staf asli,
+    // tetap link ke id-nya (biar dia bisa lihat WO ini di "Kerja Saya").
+    // Kalau nggak ada yang cocok (nama baru diketik manual), assignedMechanicId
+    // dibiarkan kosong — cuma nama-nya aja yang tersimpan/ditampilkan.
+    const selectedMechanic = mechanics.find(m => m.name.trim().toLowerCase() === trimmedMechanicName.toLowerCase());
 
     const newOrder: Order = {
       id: nextWoNumber,
@@ -93,7 +98,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
       advisorId: activeUser?.id || '',  // SA yang pegang WO
       advisorName: activeUser?.name || 'SA',  // SA bertanggung jawab
       assignedMechanicId: selectedMechanic?.id,
-      assignedMechanicName: selectedMechanic?.name,
+      assignedMechanicName: trimmedMechanicName,
       findings: [],
       serviceItems: [],
       timeline: [
@@ -127,7 +132,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
     setEngineCode('');
     setServiceType('Servis Rutin');
     setComplaint('');
-    setMechanicId('');
+    setMechanicName('');
     setStep(1);
     setSuccess(false);
   };
@@ -401,21 +406,18 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
 
               <div className="space-y-2">
                 <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">MEKANIK BERTUGAS</label>
-                <p className="text-[10px] text-gray-400">Pilih mekanik yang sedang stand-by untuk mulai diagnosis kendaraan ini.</p>
-                {mechanics.length > 0 ? (
-                  <select
-                    value={mechanicId}
-                    onChange={e => setMechanicId(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400 bg-white text-gray-800 cursor-pointer"
-                  >
-                    <option value="">— Pilih Mekanik —</option>
-                    {mechanics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
-                ) : (
-                  <div className="bg-warning-50 border border-warning-100 rounded-xl p-3 text-xs text-warning-700">
-                    Daftar mekanik belum termuat. Coba refresh halaman.
-                  </div>
-                )}
+                <p className="text-[10px] text-gray-400">Ketik atau pilih dari saran nama mekanik yang sedang stand-by untuk mulai diagnosis kendaraan ini.</p>
+                <input
+                  type="text"
+                  list="mechanic-suggestions"
+                  value={mechanicName}
+                  onChange={e => setMechanicName(e.target.value)}
+                  placeholder="Ketik nama mekanik..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400 bg-white text-gray-800"
+                />
+                <datalist id="mechanic-suggestions">
+                  {mechanics.map(m => <option key={m.id} value={m.name} />)}
+                </datalist>
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
                   Mekanik yang dipilih bisa diganti nanti saat SPK dikirim dari Papan Kerja Advisor.
                 </div>
@@ -474,7 +476,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
                   </div>
                   <div>
                     <span className="text-gray-400 block leading-tight font-semibold">MEKANIK BERTUGAS</span>
-                    <span className="font-bold text-gray-850 mt-1 block">{mechanics.find(m => m.id === mechanicId)?.name || 'Belum ditentukan'}</span>
+                    <span className="font-bold text-gray-850 mt-1 block">{mechanicName.trim() || 'Belum ditentukan'}</span>
                   </div>
                 </div>
 

@@ -79,7 +79,7 @@ export default function AdvisorDashboard({
   const [jasaPrice, setJasaPrice] = useState('');
   const [jasaQty, setJasaQty] = useState('1');
 
-  const [selectedMechanicId, setSelectedMechanicId] = useState('');
+  const [selectedMechanicName, setSelectedMechanicName] = useState('');
   const mechanics = users.filter(u => u.role === 'mekanik');
 
   const startTemuanCamera = async () => {
@@ -158,11 +158,13 @@ export default function AdvisorDashboard({
   };
 
   const handleSendSPKClick = (orderId: string) => {
-    if (!selectedMechanicId) { notify('❌ Pilih mekanik terlebih dahulu.'); return; }
-    const mec = mechanics.find(m => m.id === selectedMechanicId);
-    if (!mec) return;
-    onSendSPK?.(orderId, mec.id, mec.name);
-    setSelectedMechanicId('');
+    const trimmedName = selectedMechanicName.trim();
+    if (!trimmedName) { notify('❌ Tulis nama mekanik terlebih dahulu.'); return; }
+    // Kalau nama yang ditulis cocok sama mekanik yang punya akun staf asli,
+    // tetap link ke id-nya (biar dia bisa lihat WO ini di "Kerja Saya").
+    const mec = mechanics.find(m => m.name.trim().toLowerCase() === trimmedName.toLowerCase());
+    onSendSPK?.(orderId, mec?.id || '', trimmedName);
+    setSelectedMechanicName('');
 
     // Send invoice to customer
     const order = orders.find(o => o.id === orderId);
@@ -625,13 +627,15 @@ export default function AdvisorDashboard({
                       </p>
                       {readyToSend && (
                         <>
-                          <select value={selectedMechanicId} onChange={e => setSelectedMechanicId(e.target.value)}
-                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none bg-white text-gray-800 cursor-pointer">
-                            <option value="">— Pilih Mekanik —</option>
-                            {mechanics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                          </select>
+                          <input type="text" list="spk-mechanic-suggestions"
+                            value={selectedMechanicName} onChange={e => setSelectedMechanicName(e.target.value)}
+                            placeholder="Ketik nama mekanik..."
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none bg-white text-gray-800" />
+                          <datalist id="spk-mechanic-suggestions">
+                            {mechanics.map(m => <option key={m.id} value={m.name} />)}
+                          </datalist>
                           <button onClick={() => handleSendSPKClick(selectedOrder.id)}
-                            disabled={!selectedMechanicId}
+                            disabled={!selectedMechanicName.trim()}
                             className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 disabled:bg-gray-200 disabled:text-gray-400 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all cursor-pointer disabled:cursor-not-allowed">
                             <Send className="w-3.5 h-3.5" /> Kirim SPK ke Mekanik
                           </button>

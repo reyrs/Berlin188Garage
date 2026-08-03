@@ -82,6 +82,38 @@ function StaffLoadingFallback() {
   );
 }
 
+class StaffChunkErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Failed to load dashboard chunk:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gray-50 text-gray-500 text-sm">
+          <p>Gagal memuat halaman. Coba muat ulang.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-berlin-navy text-white px-4 py-2 rounded-lg text-xs font-bold cursor-pointer hover:bg-berlin-navy-dark transition-colors"
+          >
+            Muat Ulang
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App({ entryMode = 'public' }: { entryMode?: 'public' | 'staff' }) {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [transactions, setTransactions] = useState<CashTransaction[]>(INITIAL_TRANSACTIONS);
@@ -172,7 +204,10 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     })();
 
     const subscription = onAuthStateChange((session) => {
-      if (!session) setActiveStaffUser(null);
+      if (!session) {
+        setActiveStaffUser(null);
+        setCurrentView(entryMode === 'staff' ? 'staff_login' : 'landing');
+      }
     });
 
     return () => {
@@ -746,7 +781,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
       console.error('Failed to sign out:', err);
     }
     setActiveStaffUser(null);
-    setCurrentView('landing');
+    setCurrentView(entryMode === 'staff' ? 'staff_login' : 'landing');
   };
 
   const getStatusTitle = (status: Order['status']) => {
@@ -789,9 +824,11 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         >
           ← Kembali
         </button>
-        <React.Suspense fallback={<StaffLoadingFallback />}>
-          <SlotBoard orders={orders} interactive={currentView === 'monitor_service'} />
-        </React.Suspense>
+        <StaffChunkErrorBoundary>
+          <React.Suspense fallback={<StaffLoadingFallback />}>
+            <SlotBoard orders={orders} interactive={currentView === 'monitor_service'} />
+          </React.Suspense>
+        </StaffChunkErrorBoundary>
       </div>
     );
   }
@@ -838,14 +875,16 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         )}
 
         {currentView === 'staff_login' && (
-          <React.Suspense fallback={<StaffLoadingFallback />}>
-            <LoginModal
-              isOpen={true}
-              variant="page"
-              onClose={() => {}}
-              onLoginSuccess={handleLoginSuccess}
-            />
-          </React.Suspense>
+          <StaffChunkErrorBoundary>
+            <React.Suspense fallback={<StaffLoadingFallback />}>
+              <LoginModal
+                isOpen={true}
+                variant="page"
+                onClose={() => {}}
+                onLoginSuccess={handleLoginSuccess}
+              />
+            </React.Suspense>
+          </StaffChunkErrorBoundary>
         )}
 
         {currentView === 'marketplace' && (
@@ -904,6 +943,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
             </div>
 
             <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24">
+              <StaffChunkErrorBoundary>
               <React.Suspense fallback={<StaffLoadingFallback />}>
 
               {activeTab === 'dashboard' && (
@@ -1013,6 +1053,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                 </div>
               )}
               </React.Suspense>
+              </StaffChunkErrorBoundary>
             </div>
           </div>
         )}

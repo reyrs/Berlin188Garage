@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Download, Share2, Image, Star, Filter, Layout, Upload, Save, Loader2, Trash2, Plus } from 'lucide-react';
-import { Order, HeroContent, PortfolioItem, User } from '../types';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Camera, Image, Star, Layout, Upload, Save, Loader2, Trash2, Plus, FileText, Eye, EyeOff, Pencil } from 'lucide-react';
+import { Order, HeroContent, PortfolioItem, User, BlogPost } from '../types';
 import { BRANDS } from './LandingPage';
+import { BLOG_CATEGORIES } from './BlogListPage';
+import BlogEditor from './BlogEditor';
+import {
+  fetchAllBlogPosts, generateUniqueBlogSlug, createBlogPost, updateBlogPost,
+  publishBlogPost, unpublishBlogPost, deleteBlogPost, uploadLandingAsset,
+} from '../lib/db';
 
 const SERVICE_TYPES: PortfolioItem['serviceType'][] = ['Servis Rutin', 'Perbaikan Mesin', 'Kelistrikan', 'Kaki-Kaki', 'Restorasi'];
 
@@ -17,7 +23,7 @@ interface MarketingPanelProps {
   activeUser?: User | null;
 }
 
-type PanelTab = 'galeri' | 'banner' | 'portofolio';
+type PanelTab = 'galeri' | 'banner' | 'portofolio' | 'blog';
 
 export default function MarketingPanel({ orders, heroContent, onUpdateHeroContent, onUploadHeroImage, portfolioItems = [], onAddPortfolioItem, onDeletePortfolioItem, onUploadPortfolioImage, activeUser }: MarketingPanelProps) {
   const [panelTab, setPanelTab] = useState<PanelTab>('galeri');
@@ -150,6 +156,158 @@ export default function MarketingPanel({ orders, heroContent, onUpdateHeroConten
     onDeletePortfolioItem(id);
   };
 
+  // --- Blog ---
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [isLoadingBlog, setIsLoadingBlog] = useState(false);
+  const [editingBlogId, setEditingBlogId] = useState<string | null>(null);
+  const [blogTitle, setBlogTitle] = useState('');
+  const [blogCategory, setBlogCategory] = useState<BlogPost['category']>(BLOG_CATEGORIES[0]);
+  const [blogExcerpt, setBlogExcerpt] = useState('');
+  const [blogContent, setBlogContent] = useState('');
+  const [blogCoverFile, setBlogCoverFile] = useState<File | null>(null);
+  const [blogCoverPreview, setBlogCoverPreview] = useState<string | null>(null);
+  const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
+  const [isSavingBlog, setIsSavingBlog] = useState(false);
+  const [blogEditorKey, setBlogEditorKey] = useState(0);
+
+  const loadBlogPosts = useCallback(() => {
+    setIsLoadingBlog(true);
+    fetchAllBlogPosts()
+      .then(setBlogPosts)
+      .catch(err => console.error('Failed to load blog posts:', err))
+      .finally(() => setIsLoadingBlog(false));
+  }, []);
+
+  const hasLoadedBlog = useRef(false);
+  useEffect(() => {
+    if (panelTab === 'blog' && !hasLoadedBlog.current) {
+      hasLoadedBlog.current = true;
+      loadBlogPosts();
+    }
+  }, [panelTab, loadBlogPosts]);
+
+  const resetBlogForm = () => {
+    setEditingBlogId(null);
+    setBlogTitle('');
+    setBlogCategory(BLOG_CATEGORIES[0]);
+    setBlogExcerpt('');
+    setBlogContent('');
+    setBlogCoverFile(null);
+    setBlogCoverPreview(null);
+    setExistingCoverUrl(null);
+    setBlogEditorKey(k => k + 1); // force BlogEditor to remount with fresh content
+  };
+
+  const startEditBlog = (post: BlogPost) => {
+    setEditingBlogId(post.id);
+    setBlogTitle(post.title);
+    setBlogCategory(post.category);
+    setBlogExcerpt(post.excerpt);
+    setBlogContent(post.content);
+    setBlogCoverFile(null);
+    setBlogCoverPreview(null);
+    setExistingCoverUrl(post.coverImageUrl);
+    setBlogEditorKey(k => k + 1);
+  };
+
+  const handleBlogCoverPick = (file: File) => {
+    setBlogCoverFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setBlogCoverPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadBlogInlineImage = async (file: File): Promise<string> => {
+    return uploadLandingAsset(file, 'blog');
+  };
+
+  const showNotificationLocal = (msg: string) => alert(msg);
+
+  const handleSaveBlog = async (publish: boolean) => {
+    if (!blogTitle.trim() || !blogExcerpt.trim() || !blogContent.trim()) {
+      alert('Judul, ringkasan, dan isi artikel wajib diisi.');
+      return;
+    }
+    if (!blogCoverFile && !existingCoverUrl) {
+      alert('Cover image wajib diupload.');
+      return;
+    }
+
+    const existingPost = editingBlogId ? blogPosts.find(p => p.id === editingBlogId) : undefined;
+    const wasPublished = existingPost?.status === 'published';
+    if (editingBlogId && !publish && wasPublished) {
+      // Confirm BEFORE any write happens — declining here must cancel the
+      // entire save (content edits included), not just the unpublish step.
+      if (!confirm('Artikel ini sedang tayang. Simpan sebagai draft akan menurunkannya dari halaman publik. Lanjutkan?')) {
+        return;
+      }
+    }
+
+    setIsSavingBlog(true);
+    try {
+      const coverImageUrl = blogCoverFile ? await uploadLandingAsset(blogCoverFile, 'blog-cover') : existingCoverUrl!;
+
+      if (editingBlogId) {
+        await updateBlogPost(editingBlogId, {
+          title: blogTitle.trim(),
+          excerpt: blogExcerpt.trim(),
+          content: blogContent,
+          coverImageUrl,
+          category: blogCategory,
+        });
+        if (publish && !wasPublished) {
+          await publishBlogPost(editingBlogId, !!existingPost?.publishedAt);
+        } else if (!publish && wasPublished) {
+          await unpublishBlogPost(editingBlogId);
+        }
+      } else {
+        const slug = await generateUniqueBlogSlug(blogTitle.trim());
+        await createBlogPost({
+          title: blogTitle.trim(),
+          slug,
+          excerpt: blogExcerpt.trim(),
+          content: blogContent,
+          coverImageUrl,
+          category: blogCategory,
+          status: publish ? 'published' : 'draft',
+          createdBy: activeUser?.name,
+        });
+      }
+
+      showNotificationLocal(publish ? '✅ Artikel dipublish.' : '✅ Draft disimpan.');
+      resetBlogForm();
+      loadBlogPosts();
+    } catch (err) {
+      console.error('Gagal menyimpan artikel:', err);
+      alert('Gagal menyimpan artikel. Coba lagi.');
+    } finally {
+      setIsSavingBlog(false);
+    }
+  };
+
+  const handleTogglePublish = async (post: BlogPost) => {
+    try {
+      if (post.status === 'published') await unpublishBlogPost(post.id);
+      else await publishBlogPost(post.id, !!post.publishedAt);
+      loadBlogPosts();
+    } catch (err) {
+      console.error('Gagal mengubah status artikel:', err);
+      alert('Gagal mengubah status artikel. Coba lagi.');
+    }
+  };
+
+  const handleDeleteBlog = async (id: string) => {
+    if (!confirm('Hapus artikel ini? Tindakan ini tidak bisa dibatalkan.')) return;
+    try {
+      await deleteBlogPost(id);
+      if (editingBlogId === id) resetBlogForm();
+      loadBlogPosts();
+    } catch (err) {
+      console.error('Gagal menghapus artikel:', err);
+      alert('Gagal menghapus artikel. Coba lagi.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -173,6 +331,7 @@ export default function MarketingPanel({ orders, heroContent, onUpdateHeroConten
           { id: 'galeri' as const, label: 'Galeri & Portofolio', icon: Image },
           { id: 'banner' as const, label: 'Banner Beranda', icon: Layout },
           { id: 'portofolio' as const, label: 'Portofolio Beranda', icon: Star },
+          { id: 'blog' as const, label: 'Blog', icon: FileText },
         ]).map(t => (
           <button key={t.id} onClick={() => setPanelTab(t.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
@@ -342,6 +501,109 @@ export default function MarketingPanel({ orders, heroContent, onUpdateHeroConten
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {panelTab === 'blog' && (
+        <div className="grid lg:grid-cols-2 gap-6 items-start">
+          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">
+              {editingBlogId ? 'Edit Artikel' : 'Tulis Artikel Baru'}
+            </h4>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Judul</label>
+                <input type="text" value={blogTitle} onChange={e => setBlogTitle(e.target.value)}
+                  placeholder="Cth: 5 Tanda Timing Belt Perlu Diganti"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Kategori</label>
+                <select value={blogCategory} onChange={e => setBlogCategory(e.target.value as BlogPost['category'])}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors">
+                  {BLOG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Ringkasan</label>
+                <textarea value={blogExcerpt} onChange={e => setBlogExcerpt(e.target.value)} rows={2}
+                  placeholder="1-2 kalimat buat card & preview link"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors resize-none" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Cover Image</label>
+                <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-lg py-4 cursor-pointer hover:bg-gray-50 transition-colors text-xs text-gray-500 font-semibold">
+                  <Upload className="w-4 h-4" /> {blogCoverFile ? blogCoverFile.name : existingCoverUrl ? 'Ganti cover (opsional)' : 'Pilih Cover (wajib)'}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleBlogCoverPick(f); }} />
+                </label>
+                {(blogCoverPreview || existingCoverUrl) && (
+                  <img src={blogCoverPreview || existingCoverUrl!} alt="" className="mt-2 w-full aspect-[16/9] object-cover rounded-lg border border-gray-200" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Isi Artikel</label>
+                <BlogEditor key={blogEditorKey} content={blogContent} onChange={setBlogContent} onUploadImage={handleUploadBlogInlineImage} />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => handleSaveBlog(false)} disabled={isSavingBlog}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all">
+                  {isSavingBlog ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  Simpan Draft
+                </button>
+                <button onClick={() => handleSaveBlog(true)} disabled={isSavingBlog}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-berlin-navy hover:bg-berlin-navy/90 disabled:opacity-60 text-white py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all">
+                  {isSavingBlog ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+                  Publish
+                </button>
+              </div>
+              {editingBlogId && (
+                <button onClick={resetBlogForm} className="w-full text-[10px] text-gray-400 hover:text-gray-600 cursor-pointer">
+                  Batal edit, tulis artikel baru
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Semua Artikel ({blogPosts.length})</h4>
+            {isLoadingBlog ? (
+              <p className="text-xs text-gray-400 text-center py-8">Memuat...</p>
+            ) : blogPosts.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-8">Belum ada artikel.</p>
+            ) : (
+              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                {blogPosts.map(post => (
+                  <div key={post.id} className="flex items-center gap-3 border border-gray-150 rounded-xl p-3 hover:border-gray-300 transition-colors">
+                    <img src={post.coverImageUrl} alt="" className="w-14 h-14 rounded-lg object-cover border border-gray-200 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                          post.status === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500 border border-gray-200'
+                        }`}>{post.status === 'published' ? 'Published' : 'Draft'}</span>
+                        <span className="text-[9px] text-gray-400">{post.category}</span>
+                      </div>
+                      <p className="font-bold text-xs text-gray-900 truncate mt-0.5">{post.title}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => handleTogglePublish(post)} title={post.status === 'published' ? 'Jadikan draft' : 'Publish'}
+                        className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 cursor-pointer transition-colors">
+                        {post.status === 'published' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                      <button onClick={() => startEditBlog(post)} title="Edit"
+                        className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 cursor-pointer transition-colors">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleDeleteBlog(post.id)} title="Hapus"
+                        className="p-1.5 rounded-lg text-berlin-red hover:bg-red-50 cursor-pointer transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

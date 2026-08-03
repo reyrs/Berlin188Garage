@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
-import type { Order, CashTransaction, CashClosing, Expense, WarehouseStockItem, User, HeroContent, PortfolioItem } from '../types'
+import type { Order, CashTransaction, CashClosing, Expense, WarehouseStockItem, User, HeroContent, PortfolioItem, BlogPost } from '../types'
+import { sanitizeBlogHtml } from './sanitize'
 
 const db = () => {
   if (!supabase) throw new Error('DB_UNAVAILABLE')
@@ -181,8 +182,10 @@ export async function updateHeroContent(fields: Partial<HeroContent>, updatedBy:
   if (error) throw error
 }
 
-// Bucket landing-assets dipakai bareng buat hero image dan foto portofolio —
-// prefix cuma buat gampang bedain asal file pas lihat daftar bucket manual.
+// Bucket landing-assets sudah ada di Supabase (dibuat & di-RLS lewat migration
+// terpisah, dijalankan manual oleh user) — dipakai bareng buat semua upload
+// gambar landing page (hero, portofolio, blog). prefix cuma buat gampang
+// bedain asal file pas lihat daftar bucket manual.
 export async function uploadLandingAsset(file: File, prefix: string): Promise<string> {
   const ext = file.name.split('.').pop() || 'jpg'
   const path = `${prefix}-${Date.now()}.${ext}`
@@ -221,4 +224,122 @@ export async function deletePortfolioItem(id: string): Promise<void> {
 
 function mapPortfolioItem(data: any): PortfolioItem {
   return { id: data.id, carBrand: data.car_brand, carModel: data.car_model, serviceType: data.service_type, workDescription: data.work_description, imageUrl: data.image_url, createdAt: data.created_at || undefined, createdBy: data.created_by || undefined }
+}
+
+// ============================================================
+// BLOG POSTS (landing page — artikel dikelola manual marketing,
+// tiap post punya URL sendiri lewat routing di src/main.tsx)
+// ============================================================
+
+export async function fetchPublishedBlogPosts(): Promise<BlogPost[]> {
+  const { data, error } = await db().from('blog_posts').select('*').eq('status', 'published').order('published_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(mapBlogPost)
+}
+
+export async function fetchBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+  const { data, error } = await db().from('blog_posts').select('*').eq('slug', slug).eq('status', 'published').maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  return mapBlogPost(data)
+}
+
+// Staff-only: RLS (blog_posts_select_staff_all) is what actually restricts
+// this to marketing/owner and is what includes drafts — this function has
+// no separate status filter, it just asks for everything the caller's role
+// is allowed to see.
+export async function fetchAllBlogPosts(): Promise<BlogPost[]> {
+  const { data, error } = await db().from('blog_posts').select('*').order('created_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(mapBlogPost)
+}
+
+async function isBlogSlugTaken(slug: string): Promise<boolean> {
+  const { data, error } = await db().from('blog_posts').select('id').eq('slug', slug).maybeSingle()
+  if (error) throw error
+  return !!data
+}
+
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+}
+
+export async function generateUniqueBlogSlug(title: string): Promise<string> {
+  const base = slugify(title)
+  let candidate = base
+  let n = 2
+  while (await isBlogSlugTaken(candidate)) {
+    candidate = `${base}-${n}`
+    n++
+  }
+  return candidate
+}
+
+export async function createBlogPost(post: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt' | 'publishedAt'>): Promise<void> {
+  const { error } = await db().from('blog_posts').insert({
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    content: sanitizeBlogHtml(post.content),
+    cover_image_url: post.coverImageUrl,
+    category: post.category,
+    status: post.status,
+    published_at: post.status === 'published' ? new Date().toISOString() : null,
+    created_by: post.createdBy,
+  })
+  if (error) throw error
+}
+
+export async function updateBlogPost(id: string, fields: Partial<Pick<BlogPost, 'title' | 'slug' | 'excerpt' | 'content' | 'coverImageUrl' | 'category'>>): Promise<void> {
+  const dbFields: Record<string, any> = {}
+  if (fields.title !== undefined) dbFields.title = fields.title
+  if (fields.slug !== undefined) dbFields.slug = fields.slug
+  if (fields.excerpt !== undefined) dbFields.excerpt = fields.excerpt
+  if (fields.content !== undefined) dbFields.content = sanitizeBlogHtml(fields.content)
+  if (fields.coverImageUrl !== undefined) dbFields.cover_image_url = fields.coverImageUrl
+  if (fields.category !== undefined) dbFields.category = fields.category
+  const { error } = await db().from('blog_posts').update(dbFields).eq('id', id)
+  if (error) throw error
+}
+
+// published_at cuma diisi kalau ini PERTAMA kali post-nya publish — supaya
+// urutan /blog nggak berubah kalau draft lama di-publish belakangan
+// (published_at, bukan created_at, yang dipakai buat ORDER BY).
+export async function publishBlogPost(id: string, alreadyPublishedBefore: boolean): Promise<void> {
+  const dbFields: Record<string, any> = { status: 'published' }
+  if (!alreadyPublishedBefore) dbFields.published_at = new Date().toISOString()
+  const { error } = await db().from('blog_posts').update(dbFields).eq('id', id)
+  if (error) throw error
+}
+
+export async function unpublishBlogPost(id: string): Promise<void> {
+  const { error } = await db().from('blog_posts').update({ status: 'draft' }).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteBlogPost(id: string): Promise<void> {
+  const { error } = await db().from('blog_posts').delete().eq('id', id)
+  if (error) throw error
+}
+
+function mapBlogPost(data: any): BlogPost {
+  return {
+    id: data.id,
+    title: data.title,
+    slug: data.slug,
+    excerpt: data.excerpt,
+    content: data.content,
+    coverImageUrl: data.cover_image_url,
+    category: data.category,
+    status: data.status,
+    publishedAt: data.published_at || undefined,
+    createdAt: data.created_at || undefined,
+    updatedAt: data.updated_at || undefined,
+    createdBy: data.created_by || undefined,
+  }
 }

@@ -155,3 +155,18 @@ export interface PortfolioItem {
   createdBy?: string;
 }
 
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  coverImageUrl: string;
+  category: 'Tips Perawatan' | 'Berita Bengkel' | 'Promo';
+  status: 'draft' | 'published';
+  publishedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+}
+

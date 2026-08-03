@@ -323,30 +323,30 @@ export default function AccountingPanel({
                 <div>
                   <label className="text-xs font-medium text-gray-500 block mb-1">Tanggal</label>
                   <input type="date" value={expForm.date} onChange={e => setExpForm(p => ({ ...p, date: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400" />
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-gray-400" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 block mb-1">Jumlah (Rp)</label>
                   <input type="number" placeholder="0" value={expForm.amount} onChange={e => setExpForm(p => ({ ...p, amount: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400" />
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-gray-400" />
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs font-medium text-gray-500 block mb-1">Keterangan</label>
                   <input placeholder="Contoh: Beli brake cleaner 2 botol" value={expForm.description}
                     onChange={e => setExpForm(p => ({ ...p, description: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400" />
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-gray-400" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 block mb-1">Kategori</label>
                   <select value={expForm.category} onChange={e => setExpForm(p => ({ ...p, category: e.target.value as any }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400">
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-gray-400">
                     {EXPENSE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-500 block mb-1">Metode</label>
                   <select value={expForm.method} onChange={e => setExpForm(p => ({ ...p, method: e.target.value as any }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400">
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-gray-400">
                     <option value="tunai">Tunai</option>
                     <option value="transfer">Transfer</option>
                     <option value="qris">QRIS</option>
@@ -410,7 +410,7 @@ export default function AccountingPanel({
                 <label className="text-xs font-medium text-gray-500 block mb-1">Kas Fisik (hitung manual)</label>
                 <input type="number" placeholder="0" value={physicalCash}
                   onChange={e => setPhysicalCash(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-sans focus:outline-none focus:border-gray-400" />
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-lg font-sans text-gray-800 focus:outline-none focus:border-gray-400" />
                 {physicalCash && (
                   <p className={`text-sm font-medium mt-1 ${parseInt(physicalCash) - systemCash === 0 ? 'text-emerald-600' : parseInt(physicalCash) - systemCash > 0 ? 'text-blue-600' : 'text-red-500'}`}>
                     Selisih: {formatRp(Math.abs(parseInt(physicalCash) - systemCash))}
@@ -423,7 +423,7 @@ export default function AccountingPanel({
               <label className="text-xs font-medium text-gray-500 block mb-1">Catatan (opsional)</label>
               <textarea placeholder="Keterangan selisih atau catatan lain..." value={closingNotes}
                 onChange={e => setClosingNotes(e.target.value)} rows={2}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-gray-400 resize-none" />
+                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-gray-400 resize-none" />
             </div>
             <button onClick={handleClosing} disabled={!physicalCash}
               className="w-full bg-berlin-navy text-white py-3 rounded-xl font-medium hover:bg-berlin-navy-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
@@ -512,7 +512,7 @@ export default function AccountingPanel({
                     {payMethod === 'qris' ? 'QRIS Tujuan' : 'Tujuan Transfer'}
                   </label>
                   <select value={payDest} onChange={e => setPayDest(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-gray-400">
+                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-gray-400">
                     <option>BCA - 8831881888</option>
                     <option>Mandiri - 1550018818818</option>
                     {payMethod === 'qris' && <option>QRIS GoPay/OVO/ShopeePay</option>}
@@ -523,7 +523,7 @@ export default function AccountingPanel({
                 <div>
                   <label className="text-xs font-medium text-gray-500 block mb-1">Jenis Kartu</label>
                   <select value={payDest} onChange={e => setPayDest(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-gray-400">
+                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-gray-400">
                     <option>EDC BCA Debit/Kredit</option>
                     <option>EDC Mandiri Debit/Kredit</option>
                   </select>
@@ -540,7 +540,7 @@ export default function AccountingPanel({
                   <label className="text-xs font-medium text-gray-500 block mb-1">Jumlah DP (Rp)</label>
                   <input type="number" value={dpAmount} onChange={e => setDpAmount(e.target.value)}
                     placeholder="Masukkan nominal DP..."
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-sans focus:outline-none focus:border-gray-400" />
+                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-sans text-gray-800 focus:outline-none focus:border-gray-400" />
                 </div>
               )}
             </div>

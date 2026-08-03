@@ -200,7 +200,9 @@ export default function App() {
     // jalur lain yang manggil dengan 'selesai', tapi jangan andelin ini
     // sebagai satu-satunya tempat backfill jalan (lihat handleConfirmPayment).
     const target = orders.find(o => o.id === orderId);
+    const previousStatus = target?.status;
     const backfill = status === 'selesai' ? computeSlotBackfill(orders, target) : null;
+    const previousBackfillSlot = backfill ? orders.find(o => o.id === backfill.backfillOrderId)?.slotNumber : undefined;
 
     setOrders(prev => prev.map(o => {
       if (o.id === orderId) {
@@ -225,10 +227,14 @@ export default function App() {
 
     updateOrder(orderId, { status }).catch(err => {
       console.error('Failed to update status:', err);
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: previousStatus ?? o.status } : o));
+      showNotification(`❌ Gagal menyimpan perubahan status ${orderId} ke server. Status dikembalikan, coba lagi.`);
     });
     if (backfill) {
       updateOrder(backfill.backfillOrderId, { slotNumber: backfill.freedSlot }).catch(err => {
         console.error('Failed to backfill slot:', err);
+        setOrders(prev => prev.map(o => o.id === backfill.backfillOrderId ? { ...o, slotNumber: previousBackfillSlot } : o));
+        showNotification(`❌ Gagal memindahkan slot bay untuk ${backfill.backfillOrderId}.`);
       });
     }
   }, [activeStaffUser, orders]);
@@ -236,6 +242,8 @@ export default function App() {
   const handleAddFinding = useCallback((orderId: string, finding: any) => {
     let newStatus: Order['status'] | null = null;
     const order = orders.find(o => o.id === orderId);
+    const previousFindings = order?.findings ?? [];
+    const previousStatus = order?.status;
     const updatedFindings = order ? [...order.findings, finding] : [finding];
 
     setOrders(prev => prev.map(o => {
@@ -250,9 +258,14 @@ export default function App() {
 
     updateOrderJsonb(orderId, 'findings', updatedFindings).catch(err => {
       console.error('Failed to add finding:', err);
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, findings: previousFindings } : o));
+      showNotification(`❌ Gagal menyimpan temuan baru di ${orderId} ke server. Coba lapor ulang.`);
     });
     if (order?.status === 'dikerjakan') {
-      updateOrder(orderId, { status: 'temuan_dilaporkan' }).catch(() => {});
+      updateOrder(orderId, { status: 'temuan_dilaporkan' }).catch(err => {
+        console.error('Failed to update status after finding:', err);
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: previousStatus ?? o.status } : o));
+      });
     }
 
     showNotification(`📋 Temuan baru di ${orderId} — customer akan menerima notifikasi.`);
@@ -278,11 +291,14 @@ export default function App() {
 
     const order = orders.find(o => o.id === orderId);
     if (order) {
+      const previousFindings = order.findings;
       const updatedFindings = order.findings.map(f =>
         f.id === findingId ? { ...f, status: 'approved' as const } : f
       );
       updateOrderJsonb(orderId, 'findings', updatedFindings).catch(err => {
         console.error('Failed to approve finding:', err);
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, findings: previousFindings } : o));
+        showNotification(`❌ Gagal menyimpan persetujuan temuan di ${orderId}. Coba lagi.`);
       });
     }
   }, [orders]);
@@ -307,11 +323,14 @@ export default function App() {
 
     const order = orders.find(o => o.id === orderId);
     if (order) {
+      const previousFindings = order.findings;
       const updatedFindings = order.findings.map(f =>
         f.id === findingId ? { ...f, status: 'rejected' as const } : f
       );
       updateOrderJsonb(orderId, 'findings', updatedFindings).catch(err => {
         console.error('Failed to reject finding:', err);
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, findings: previousFindings } : o));
+        showNotification(`❌ Gagal menyimpan penolakan temuan di ${orderId}. Coba lagi.`);
       });
     }
   }, [orders]);
@@ -336,11 +355,14 @@ export default function App() {
 
     const order = orders.find(o => o.id === orderId);
     if (order) {
+      const previousItems = order.serviceItems;
       const updatedItems = order.serviceItems.map(i =>
         i.id === itemId ? { ...i, status: 'approved' as const } : i
       );
       updateOrderJsonb(orderId, 'service_items', updatedItems).catch(err => {
         console.error('Failed to approve service item:', err);
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, serviceItems: previousItems } : o));
+        showNotification(`❌ Gagal menyimpan persetujuan jasa/part di ${orderId}. Coba lagi.`);
       });
     }
   }, [orders]);
@@ -365,28 +387,37 @@ export default function App() {
 
     const order = orders.find(o => o.id === orderId);
     if (order) {
+      const previousItems = order.serviceItems;
       const updatedItems = order.serviceItems.map(i =>
         i.id === itemId ? { ...i, status: 'rejected' as const } : i
       );
       updateOrderJsonb(orderId, 'service_items', updatedItems).catch(err => {
         console.error('Failed to reject service item:', err);
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, serviceItems: previousItems } : o));
+        showNotification(`❌ Gagal menyimpan penolakan jasa/part di ${orderId}. Coba lagi.`);
       });
     }
   }, [orders]);
 
   const handleUpdateServiceItems = useCallback((orderId: string, items: any[]) => {
+    const previousItems = orders.find(o => o.id === orderId)?.serviceItems ?? [];
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, serviceItems: items } : o));
     updateOrderJsonb(orderId, 'service_items', items).catch(err => {
       console.error('Failed to update service items:', err);
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, serviceItems: previousItems } : o));
+      showNotification(`❌ Gagal menyimpan perubahan jasa/part di ${orderId}. Coba lagi.`);
     });
-  }, []);
+  }, [orders]);
 
   const handleUpdateOrder = useCallback((orderId: string, fields: Partial<Order>) => {
+    const previous = orders.find(o => o.id === orderId);
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...fields } : o));
     updateOrder(orderId, fields).catch(err => {
       console.error('Failed to update order:', err);
+      if (previous) setOrders(prev => prev.map(o => o.id === orderId ? previous : o));
+      showNotification(`❌ Gagal menyimpan perubahan WO ${orderId}. Perubahan dikembalikan, coba lagi.`);
     });
-  }, []);
+  }, [orders]);
 
   const handleSendSPK = useCallback((orderId: string, mechanicId: string, mechanicName: string) => {
     const now = new Date().toISOString();
@@ -436,6 +467,17 @@ export default function App() {
       slotNumber: assignedSlot,
     }).catch(err => {
       console.error('Failed to send SPK:', err);
+      if (existingOrder) {
+        setOrders(prev => prev.map(o => o.id === orderId ? {
+          ...o,
+          status: existingOrder.status,
+          spkSent: existingOrder.spkSent,
+          assignedMechanicId: existingOrder.assignedMechanicId,
+          assignedMechanicName: existingOrder.assignedMechanicName,
+          slotNumber: existingOrder.slotNumber,
+        } : o));
+      }
+      showNotification(`❌ Gagal mengirim SPK ${orderId} ke ${mechanicName} — perubahan dikembalikan, coba lagi.`);
     });
     showNotification(
       assignedSlot
@@ -454,11 +496,14 @@ export default function App() {
 
     const order = orders.find(o => o.id === orderId);
     if (order) {
+      const previousFindings = order.findings;
       const updatedFindings = order.findings.map(f =>
         f.id === findingId ? { ...f, estimatedCost: cost } : f
       );
       updateOrderJsonb(orderId, 'findings', updatedFindings).catch(err => {
         console.error('Failed to update finding cost:', err);
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, findings: previousFindings } : o));
+        showNotification(`❌ Gagal menyimpan estimasi biaya temuan di ${orderId}. Coba lagi.`);
       });
     }
   }, [orders]);
@@ -655,13 +700,18 @@ export default function App() {
 
   // ---- STOCK ----
   const handleUpdateStock = useCallback((itemId: string, newStock: number) => {
+    const previousItem = warehouseStock.find(item => item.id === itemId);
     setWarehouseStock(prev => prev.map(item =>
       item.id === itemId ? { ...item, stock: newStock } : item
     ));
     updateStockQuantity(itemId, newStock).catch(err => {
       console.error('Failed to update stock:', err);
+      if (previousItem) {
+        setWarehouseStock(prev => prev.map(item => item.id === itemId ? { ...item, stock: previousItem.stock } : item));
+      }
+      showNotification(`❌ Gagal menyimpan perubahan stok "${previousItem?.name || itemId}" ke server. Stok dikembalikan, coba lagi.`);
     });
-  }, []);
+  }, [warehouseStock]);
 
   // ---- AUTH ----
   const handleLoginSuccess = (user: User) => {
@@ -702,17 +752,17 @@ export default function App() {
 
   const getTabsForRole = (role: string) => {
     const all: { id: ActiveTab; label: string; icon: any; roles: string[] }[] = [
-      { id: 'dashboard', label: 'Laporan', icon: LayoutDashboard, roles: ['owner'] },
+      { id: 'dashboard', label: 'Laporan', icon: LayoutDashboard, roles: ['owner', 'advisor'] },
       { id: 'create_order', label: 'Buat WO', icon: FilePlus, roles: ['advisor', 'owner'] },
       { id: 'track_dashboard', label: 'Kelola WO', icon: ClipboardList, roles: ['advisor', 'owner'] },
-      { id: 'gudang', label: 'Gudang', icon: Package, roles: ['gudang', 'owner'] },
-      { id: 'spk', label: 'Kerja Saya', icon: Wrench, roles: ['mekanik'] },
-      { id: 'manager_dashboard', label: 'Pantauan', icon: LayoutDashboard, roles: ['manager'] },
-      { id: 'marketing', label: 'Konten & Portofolio', icon: Monitor, roles: ['marketing'] },
+      { id: 'gudang', label: 'Gudang', icon: Package, roles: ['gudang', 'owner', 'advisor'] },
+      { id: 'spk', label: 'Kerja Saya', icon: Wrench, roles: ['mekanik', 'advisor'] },
+      { id: 'manager_dashboard', label: 'Pantauan', icon: LayoutDashboard, roles: ['manager', 'advisor'] },
+      { id: 'marketing', label: 'Konten & Portofolio', icon: Monitor, roles: ['marketing', 'advisor'] },
       { id: 'monitor_service', label: 'Monitor Service', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager', 'mekanik'] },
       { id: 'monitor_tunggu', label: 'Monitor Tunggu', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager'] },
-      { id: 'accounting', label: 'Akunting', icon: BookOpen, roles: ['kasir', 'owner'] },
-      { id: 'finance_report', label: 'Laporan Keuangan', icon: FileBarChart, roles: ['accounting', 'owner', 'kasir'] },
+      { id: 'accounting', label: 'Akunting', icon: BookOpen, roles: ['kasir', 'owner', 'advisor'] },
+      { id: 'finance_report', label: 'Laporan Keuangan', icon: FileBarChart, roles: ['accounting', 'owner', 'kasir', 'advisor'] },
     ];
     return all.filter(t => t.roles.includes(role));
   };
@@ -790,6 +840,7 @@ export default function App() {
             onRejectServiceItem={handleRejectServiceItem}
             onUpdateFindingCost={handleUpdateFindingCost}
             onUpdateOrder={handleUpdateOrder}
+            onNotify={showNotification}
             initialSearchQuery={trackingQuery}
           />
         )}
@@ -866,6 +917,7 @@ export default function App() {
                   onAddFinding={handleAddFinding}
                   onUpdateServiceItems={handleUpdateServiceItems}
                   onSendSPK={handleSendSPK}
+                  onNotify={showNotification}
                 />
               )}
 
@@ -898,6 +950,7 @@ export default function App() {
                   onAddPortfolioItem={handleAddPortfolioItem}
                   onDeletePortfolioItem={handleDeletePortfolioItem}
                   onUploadPortfolioImage={handleUploadPortfolioImage}
+                  onNotify={showNotification}
                   activeUser={activeStaffUser}
                 />
               )}
@@ -925,6 +978,7 @@ export default function App() {
                   onUpdateOrderStatus={handleUpdateOrderStatus}
                   onUpdateOrder={handleUpdateOrder}
                   onUpdateStock={handleUpdateStock}
+                  onNotify={showNotification}
                   activeUser={activeStaffUser}
                 />
               )}

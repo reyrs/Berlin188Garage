@@ -8,9 +8,11 @@ interface BlogEditorProps {
   content: string;
   onChange: (html: string) => void;
   onUploadImage: (file: File) => Promise<string>;
+  onNotify?: (message: string) => void;
 }
 
-export default function BlogEditor({ content, onChange, onUploadImage }: BlogEditorProps) {
+export default function BlogEditor({ content, onChange, onUploadImage, onNotify }: BlogEditorProps) {
+  const notify = onNotify || alert;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -32,7 +34,7 @@ export default function BlogEditor({ content, onChange, onUploadImage }: BlogEdi
       editor.chain().focus().setImage({ src: url }).run();
     } catch (err) {
       console.error('Gagal upload gambar ke editor:', err);
-      alert('Gagal upload gambar. Coba lagi.');
+      notify('❌ Gagal upload gambar. Coba lagi.');
     }
   };
 

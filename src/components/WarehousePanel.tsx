@@ -105,6 +105,7 @@ interface WarehousePanelProps {
   onUpdateOrderStatus: (orderId: string, status: Order['status'], timelineDescription: string) => void;
   onUpdateOrder: (orderId: string, updatedFields: Partial<Order>) => void;
   onUpdateStock?: (itemId: string, newStock: number) => void;
+  onNotify?: (message: string) => void;
   activeUser: StaffUser;
 }
 
@@ -115,8 +116,10 @@ export default function WarehousePanel({
   onUpdateOrderStatus,
   onUpdateOrder,
   onUpdateStock,
+  onNotify,
   activeUser
 }: WarehousePanelProps) {
+  const notify = onNotify || alert;
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [searchStockQuery, setSearchStockQuery] = useState('');
@@ -163,7 +166,7 @@ export default function WarehousePanel({
     if (qtyToAdd <= 0) return;
 
     if (stockItem.stock < qtyToAdd) {
-      alert(`Stok tidak mencukupi! Tersedia: ${stockItem.stock}`);
+      notify(`❌ Stok tidak mencukupi! Tersedia: ${stockItem.stock}`);
       return;
     }
 
@@ -236,7 +239,7 @@ export default function WarehousePanel({
     if (!selectedOrder) return;
     const stockItemId = selectedFindingStockMap[findingId];
     if (!stockItemId) {
-      alert("Harap pilih sparepart dari stock opname terlebih dahulu!");
+      notify("❌ Harap pilih sparepart dari stock opname terlebih dahulu!");
       return;
     }
 
@@ -244,7 +247,7 @@ export default function WarehousePanel({
     if (!stockItem) return;
 
     if (stockItem.stock <= 0) {
-      alert("Stok barang ini habis di gudang!");
+      notify("❌ Stok barang ini habis di gudang!");
       return;
     }
 
@@ -307,7 +310,7 @@ export default function WarehousePanel({
       return copy;
     });
 
-    alert(`Berhasil menambahkan ${stockItem.name} ke daftar temuan.`);
+    notify(`✅ Berhasil menambahkan ${stockItem.name} ke daftar temuan.`);
   };
 
   // Resolve finding using customer-brought sparepart
@@ -362,7 +365,7 @@ export default function WarehousePanel({
       timeline: [...selectedOrder.timeline, newTimelineEvent]
     });
 
-    alert("Berhasil menambahkan sparepart bawa sendiri!");
+    notify("✅ Berhasil menambahkan sparepart bawa sendiri!");
   };
 
   // Resolve finding as "No Sparepart Needed"
@@ -396,7 +399,7 @@ export default function WarehousePanel({
       timeline: [...selectedOrder.timeline, newTimelineEvent]
     });
 
-    alert("Temuan berhasil ditandai tidak memerlukan sparepart.");
+    notify("✅ Temuan berhasil ditandai tidak memerlukan sparepart.");
   };
 
   // Lock resolution for multiple parts
@@ -407,7 +410,7 @@ export default function WarehousePanel({
 
     const parts = finding.resolvedParts || [];
     if (parts.length === 0) {
-      alert("Harap tambahkan minimal 1 sparepart terlebih dahulu atau pilih 'Tidak Perlu Sparepart'!");
+      notify("❌ Harap tambahkan minimal 1 sparepart terlebih dahulu atau pilih 'Tidak Perlu Sparepart'!");
       return;
     }
 
@@ -440,7 +443,7 @@ export default function WarehousePanel({
       timeline: [...selectedOrder.timeline, newTimelineEvent]
     });
 
-    alert("Penyelesaian pencarian sparepart berhasil disimpan & dikunci!");
+    notify("✅ Penyelesaian pencarian sparepart berhasil disimpan & dikunci!");
   };
 
   // Remove a single part from a finding before locking
@@ -475,7 +478,7 @@ export default function WarehousePanel({
       findings: updatedFindings
     });
 
-    alert(`Berhasil menghapus ${itemName} dari temuan ini.`);
+    notify(`🗑️ Berhasil menghapus ${itemName} dari temuan ini.`);
   };
 
   // Reset resolution completely
@@ -536,7 +539,7 @@ export default function WarehousePanel({
       timeline: [...selectedOrder.timeline, newTimelineEvent]
     });
 
-    alert("Pencarian sparepart berhasil di-reset untuk temuan ini.");
+    notify("🔄 Pencarian sparepart berhasil di-reset untuk temuan ini.");
   };
 
   return (
@@ -689,7 +692,7 @@ export default function WarehousePanel({
                             'temuan_dilaporkan',
                             `Unit Gudang (${activeUser.name}) mengajukan persetujuan pengiriman barang/sparepart baru ke Service Advisor untuk disetujui (ACC).`
                           );
-                          alert("Pengajuan sparepart berhasil dikirim ke Service Advisor!");
+                          notify("✅ Pengajuan sparepart berhasil dikirim ke Service Advisor!");
                         }}
                         className="bg-berlin-navy hover:bg-berlin-navy-dark text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                       >

@@ -17,16 +17,17 @@ interface TrackingPortalProps {
   onUpdateOrderStatus?: (orderId: string, status: Order['status'], timelineDescription: string) => void;
   onUpdateFindingCost?: (orderId: string, findingId: string, cost: number) => void;
   onUpdateOrder?: (orderId: string, fields: Partial<Order>) => void;
+  onNotify?: (message: string) => void;
   initialSearchQuery?: string;
   isStaffView?: boolean;
   key?: string;
 }
 
-export default function TrackingPortal({ 
-  orders, 
-  onBack, 
-  onApproveFinding, 
-  onRejectFinding, 
+export default function TrackingPortal({
+  orders,
+  onBack,
+  onApproveFinding,
+  onRejectFinding,
   onApproveServiceItem,
   onRejectServiceItem,
   onConfirmPayment,
@@ -34,9 +35,11 @@ export default function TrackingPortal({
   onUpdateOrderStatus,
   onUpdateFindingCost,
   onUpdateOrder,
+  onNotify,
   initialSearchQuery = '',
   isStaffView = false
 }: TrackingPortalProps) {
+  const notify = onNotify || alert;
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [searched, setSearched] = useState(initialSearchQuery !== '');
@@ -407,7 +410,7 @@ export default function TrackingPortal({
                                         'dikerjakan',
                                         `Service Advisor memberikan instruksi pengerjaan aktif. Mekanik mulai mengerjakan seluruh item pengerjaan & sparepart yang telah mendapatkan ACC.`
                                       );
-                                      alert("Surat Perintah Kerja (SPK) berhasil dikirim! Status kendaraan diubah ke DIKERJAKAN.");
+                                      notify("✅ Surat Perintah Kerja (SPK) berhasil dikirim! Status kendaraan diubah ke DIKERJAKAN.");
                                     }
                                   }}
                                   className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm text-center"

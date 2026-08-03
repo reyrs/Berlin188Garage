@@ -17,12 +17,14 @@ interface MarketingPanelProps {
   onAddPortfolioItem?: (item: Omit<PortfolioItem, 'id' | 'createdAt'>) => void;
   onDeletePortfolioItem?: (id: string) => void;
   onUploadPortfolioImage?: (file: File) => Promise<string>;
+  onNotify?: (message: string) => void;
   activeUser?: User | null;
 }
 
 type PanelTab = 'galeri' | 'portofolio' | 'blog';
 
-export default function MarketingPanel({ orders, portfolioItems = [], onAddPortfolioItem, onDeletePortfolioItem, onUploadPortfolioImage, activeUser }: MarketingPanelProps) {
+export default function MarketingPanel({ orders, portfolioItems = [], onAddPortfolioItem, onDeletePortfolioItem, onUploadPortfolioImage, onNotify, activeUser }: MarketingPanelProps) {
+  const notify = onNotify || alert;
   const [panelTab, setPanelTab] = useState<PanelTab>('galeri');
   const [selectedBrand, setSelectedBrand] = useState('Semua');
 
@@ -79,7 +81,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
   const handleAddPortfolio = async () => {
     if (!onAddPortfolioItem || !onUploadPortfolioImage) return;
     if (!pfModel.trim() || !pfDescription.trim() || !pfImageFile) {
-      alert('Model mobil, deskripsi kerjaan, dan foto wajib diisi.');
+      notify('❌ Model mobil, deskripsi kerjaan, dan foto wajib diisi.');
       return;
     }
     setIsSavingPortfolio(true);
@@ -96,7 +98,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       resetPortfolioForm();
     } catch (err) {
       console.error('Gagal upload gambar portofolio:', err);
-      alert('Gagal upload gambar portofolio. Coba lagi.');
+      notify('❌ Gagal upload gambar portofolio. Coba lagi.');
     } finally {
       setIsSavingPortfolio(false);
     }
@@ -173,15 +175,13 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
     return uploadLandingAsset(file, 'blog');
   };
 
-  const showNotificationLocal = (msg: string) => alert(msg);
-
   const handleSaveBlog = async (publish: boolean) => {
     if (!blogTitle.trim() || !blogExcerpt.trim() || !blogContent.trim()) {
-      alert('Judul, ringkasan, dan isi artikel wajib diisi.');
+      notify('❌ Judul, ringkasan, dan isi artikel wajib diisi.');
       return;
     }
     if (!blogCoverFile && !existingCoverUrl) {
-      alert('Cover image wajib diupload.');
+      notify('❌ Cover image wajib diupload.');
       return;
     }
 
@@ -226,12 +226,12 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
         });
       }
 
-      showNotificationLocal(publish ? '✅ Artikel dipublish.' : '✅ Draft disimpan.');
+      notify(publish ? '✅ Artikel dipublish.' : '✅ Draft disimpan.');
       resetBlogForm();
       loadBlogPosts();
     } catch (err) {
       console.error('Gagal menyimpan artikel:', err);
-      alert('Gagal menyimpan artikel. Coba lagi.');
+      notify('❌ Gagal menyimpan artikel. Coba lagi.');
     } finally {
       setIsSavingBlog(false);
     }
@@ -244,7 +244,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       loadBlogPosts();
     } catch (err) {
       console.error('Gagal mengubah status artikel:', err);
-      alert('Gagal mengubah status artikel. Coba lagi.');
+      notify('❌ Gagal mengubah status artikel. Coba lagi.');
     }
   };
 
@@ -256,7 +256,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       loadBlogPosts();
     } catch (err) {
       console.error('Gagal menghapus artikel:', err);
-      alert('Gagal menghapus artikel. Coba lagi.');
+      notify('❌ Gagal menghapus artikel. Coba lagi.');
     }
   };
 
@@ -425,7 +425,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Isi Artikel</label>
-                <BlogEditor key={blogEditorKey} content={blogContent} onChange={setBlogContent} onUploadImage={handleUploadBlogInlineImage} />
+                <BlogEditor key={blogEditorKey} content={blogContent} onChange={setBlogContent} onUploadImage={handleUploadBlogInlineImage} onNotify={onNotify} />
               </div>
               <div className="flex gap-2">
                 <button onClick={() => handleSaveBlog(false)} disabled={isSavingBlog}

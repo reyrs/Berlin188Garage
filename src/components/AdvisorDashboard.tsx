@@ -32,6 +32,7 @@ interface AdvisorDashboardProps {
   onAddFinding?: (orderId: string, finding: DiagnosticFinding) => void;
   onUpdateServiceItems?: (orderId: string, items: ServiceItem[]) => void;
   onSendSPK?: (orderId: string, mechanicId: string, mechanicName: string) => void;
+  onNotify?: (message: string) => void;
   activeUser?: StaffUser;
 }
 
@@ -52,8 +53,10 @@ export default function AdvisorDashboard({
   onAddFinding,
   onUpdateServiceItems,
   onSendSPK,
+  onNotify,
   activeUser
 }: AdvisorDashboardProps) {
+  const notify = onNotify || alert;
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<FilterType>('all');
@@ -88,7 +91,7 @@ export default function AdvisorDashboard({
       setTimeout(() => {
         if (wsTemuanVideoRef.current) { wsTemuanVideoRef.current.srcObject = stream; wsTemuanVideoRef.current.play(); }
       }, 150);
-    } catch { alert('Tidak dapat membuka kamera.'); }
+    } catch { notify('❌ Tidak dapat membuka kamera.'); }
   };
 
   const stopTemuanCamera = () => {
@@ -155,7 +158,7 @@ export default function AdvisorDashboard({
   };
 
   const handleSendSPKClick = (orderId: string) => {
-    if (!selectedMechanicId) { alert('Pilih mekanik terlebih dahulu.'); return; }
+    if (!selectedMechanicId) { notify('❌ Pilih mekanik terlebih dahulu.'); return; }
     const mec = mechanics.find(m => m.id === selectedMechanicId);
     if (!mec) return;
     onSendSPK?.(orderId, mec.id, mec.name);
@@ -199,7 +202,7 @@ export default function AdvisorDashboard({
       setTimeout(() => {
         if (checklistVideoRef.current) { checklistVideoRef.current.srcObject = stream; checklistVideoRef.current.play(); }
       }, 150);
-    } catch { alert("Tidak dapat membuka kamera."); }
+    } catch { notify('❌ Tidak dapat membuka kamera.'); }
   };
 
   const stopChecklistCamera = () => {
@@ -240,7 +243,7 @@ export default function AdvisorDashboard({
     const item = order.serviceItems.find(i => i.id === itemId);
     if (!item) return;
     if (!item.completed && !item.photoUrl) {
-      alert("Wajib lampirkan foto bukti sebelum menandai item selesai!");
+      notify('❌ Wajib lampirkan foto bukti sebelum menandai item selesai!');
       return;
     }
     onUpdateOrder(orderId, {
@@ -252,7 +255,7 @@ export default function AdvisorDashboard({
     const approved = order.serviceItems.filter(i => i.status === 'approved');
     const undone = approved.filter(i => !i.completed);
     if (undone.length > 0) {
-      alert(`Masih ada ${undone.length} item yang belum selesai/berfoto.`);
+      notify(`❌ Masih ada ${undone.length} item yang belum selesai/berfoto.`);
       return;
     }
     const report = saReport.trim() || "Seluruh pekerjaan selesai dikerjakan dan didokumentasikan.";
@@ -268,7 +271,7 @@ export default function AdvisorDashboard({
       }]
     });
     setSaReport('');
-    alert("Konfirmasi selesai! Kendaraan siap ke billing.");
+    notify('✅ Konfirmasi selesai! Kendaraan siap ke billing.');
   };
 
   // Find if selected order still exists
@@ -408,10 +411,10 @@ export default function AdvisorDashboard({
                 </div>
                 <input value={wsDesc} onChange={e => setWsDesc(e.target.value)}
                   placeholder="Deskripsi temuan (e.g. Knalpot bocor di header pipe)"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-berlin-navy/40" />
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy/40" />
                 <input value={wsCost} onChange={e => setWsCost(e.target.value)} type="number"
                   placeholder="Estimasi biaya (Rp, opsional)"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-berlin-navy/40" />
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy/40" />
 
                 {/* Photo */}
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -668,6 +671,7 @@ export default function AdvisorDashboard({
             onUpdateOrderStatus={onUpdateOrderStatus}
             onUpdateFindingCost={onUpdateFindingCost}
             onUpdateOrder={onUpdateOrder}
+            onNotify={onNotify}
             initialSearchQuery={selectedOrder.id}
             isStaffView={true}
           />

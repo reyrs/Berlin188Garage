@@ -184,10 +184,6 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
               <div className="truncate">
                 <div className="text-xs font-bold text-gray-800 truncate">{u.name}</div>
                 <div className="text-[9px] uppercase tracking-wider text-black font-bold mt-0.5">{u.role}</div>
-                <span className="inline-flex items-center gap-1.5 text-[9px] text-emerald-700 mt-1 font-bold">
-                  <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                  AKTIF ONLINE
-                </span>
               </div>
             </div>
           ))}

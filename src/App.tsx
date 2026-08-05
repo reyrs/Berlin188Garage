@@ -843,12 +843,6 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans">
 
-      {isLoading && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-gray-900 text-white text-[10px] font-bold text-center py-0.5 tracking-wider">
-          memuat data...
-        </div>
-      )}
-
       {dbError && !isLoading && (
         <div className="fixed top-0 left-0 right-0 z-[100] bg-berlin-red text-white text-xs font-semibold py-2 px-4 flex items-center justify-center gap-3 flex-wrap">
           <span>⚠️ {dbError}</span>

@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
-  Wrench, Users, CheckCircle2, ChevronRight, AlertTriangle, Search, Filter,
-  Clock, Sparkles, User, FileText, ArrowLeft, Check, X, ShieldAlert, Car, RefreshCw, Smartphone,
-  Camera, Upload, Trash2, AlertCircle, Plus, Send, Package, Settings
-} from 'lucide-react';
+  Wrench, CheckCircle, CaretRight, Warning, MagnifyingGlass,
+  ArrowLeft, Check, X, Car, DeviceMobile,
+  Camera, UploadSimple, Trash, WarningCircle, Plus, PaperPlaneTilt, Package
+} from '@phosphor-icons/react';
 import { Order, User as StaffUser, ServiceItem, DiagnosticFinding } from '../types';
 import { STATUS_CONFIG } from '../lib/design';
 import TrackingPortal from './TrackingPortal';
@@ -347,12 +347,12 @@ export default function AdvisorDashboard({
     return (
       <div className="space-y-4">
         {/* Back navigation header */}
-        <div className="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex items-center justify-between">
+        <div className="card p-4 flex items-center justify-between">
           <button
             onClick={() => setSelectedOrderId(null)}
             className="inline-flex items-center gap-2 text-xs font-bold text-berlin-navy hover:text-berlin-red transition-all cursor-pointer bg-gray-50 border border-gray-200 px-3.5 py-2.5 rounded-xl hover:bg-gray-100"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" weight="duotone" />
             Kembali ke Daftar Progres Mobil
           </button>
           
@@ -367,7 +367,7 @@ export default function AdvisorDashboard({
           <div className="space-y-4">
 
             {/* 1. Vehicle header card */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+            <div className="card-padded">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="text-[10px] text-gray-400 font-sans font-bold tracking-wider">
@@ -393,7 +393,7 @@ export default function AdvisorDashboard({
                   <button
                     onClick={() => { setShowTemuanForm(v => !v); setWsTemuanPhoto(null); setWsDesc(''); setWsCost(''); }}
                     className="bg-berlin-navy text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer hover:bg-berlin-navy-dark transition-colors">
-                    <Camera className="w-3.5 h-3.5" /> MELAPORKAN TEMUAN
+                    <Camera className="w-3.5 h-3.5" weight="duotone" /> MELAPORKAN TEMUAN
                   </button>
                 </div>
               </div>
@@ -404,11 +404,11 @@ export default function AdvisorDashboard({
               <div className="bg-white border border-berlin-navy/20 rounded-2xl p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-bold text-berlin-navy flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-500" /> Form Laporan Temuan
+                    <Warning className="w-4 h-4 text-amber-500" weight="duotone" /> Form Laporan Temuan
                   </h4>
                   <button onClick={() => { setShowTemuanForm(false); setWsTemuanPhoto(null); setWsDesc(''); setWsCost(''); }}
                     className="text-gray-400 hover:text-gray-600 cursor-pointer p-1">
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" weight="duotone" />
                   </button>
                 </div>
                 <input value={wsDesc} onChange={e => setWsDesc(e.target.value)}
@@ -422,7 +422,7 @@ export default function AdvisorDashboard({
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <div className="bg-gray-50 px-3 py-1.5 flex items-center justify-between border-b border-gray-100">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1">
-                      <Camera className="w-3 h-3" /> Foto Bukti Temuan
+                      <Camera className="w-3 h-3" weight="duotone" /> Foto Bukti Temuan
                     </span>
                     {wsTemuanPhoto && (
                       <button type="button" onClick={() => setWsTemuanPhoto(null)}
@@ -432,7 +432,7 @@ export default function AdvisorDashboard({
                   {wsTemuanPhoto ? (
                     <div className="p-2.5">
                       <img src={wsTemuanPhoto} alt="Bukti temuan" className="w-full max-h-40 object-cover rounded-lg border border-gray-200" referrerPolicy="no-referrer" />
-                      <p className="text-[9px] text-emerald-600 font-bold mt-1.5 flex items-center gap-1"><Check className="w-3 h-3" /> Foto terlampir</p>
+                      <p className="text-[9px] text-emerald-600 font-bold mt-1.5 flex items-center gap-1"><Check className="w-3 h-3" weight="duotone" /> Foto terlampir</p>
                     </div>
                   ) : wsTemuanCamActive ? (
                     <div className="p-2.5 space-y-2">
@@ -443,7 +443,7 @@ export default function AdvisorDashboard({
                       <div className="flex gap-2">
                         <button type="button" onClick={captureTemuanPhoto}
                           className="flex-1 bg-emerald-600 text-white text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer">
-                          <Camera className="w-3.5 h-3.5" /> Ambil Foto
+                          <Camera className="w-3.5 h-3.5" weight="duotone" /> Ambil Foto
                         </button>
                         <button type="button" onClick={stopTemuanCamera}
                           className="px-4 bg-gray-100 text-gray-600 text-[10px] font-bold py-2 rounded-lg cursor-pointer">Batal</button>
@@ -452,13 +452,13 @@ export default function AdvisorDashboard({
                   ) : (
                     <div className="p-2.5 grid grid-cols-2 gap-2">
                       <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-lg py-3 cursor-pointer hover:bg-gray-50 transition-colors text-[10px] text-gray-500 font-semibold">
-                        <Upload className="w-3.5 h-3.5" /> Upload Foto
+                        <UploadSimple className="w-3.5 h-3.5" weight="duotone" /> Upload Foto
                         <input type="file" accept="image/*" className="hidden"
                           onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => setWsTemuanPhoto(r.result as string); r.readAsDataURL(f); } }} />
                       </label>
                       <button type="button" onClick={startTemuanCamera}
                         className="border border-dashed border-gray-300 rounded-lg py-3 text-[10px] font-semibold text-gray-500 flex items-center justify-center gap-1.5 cursor-pointer hover:bg-gray-50 transition-colors">
-                        <Camera className="w-3.5 h-3.5" /> Aktifkan Kamera
+                        <Camera className="w-3.5 h-3.5" weight="duotone" /> Aktifkan Kamera
                       </button>
                     </div>
                   )}
@@ -466,13 +466,13 @@ export default function AdvisorDashboard({
 
                 <button onClick={() => handleAddTemuan(selectedOrder.id)}
                   className="w-full flex items-center justify-center gap-1.5 bg-berlin-navy text-white py-2.5 rounded-xl text-xs font-bold hover:bg-berlin-navy/90 transition-all cursor-pointer">
-                  <Plus className="w-3.5 h-3.5" /> Simpan Temuan
+                  <Plus className="w-3.5 h-3.5" weight="duotone" /> Simpan Temuan
                 </button>
               </div>
             )}
 
             {/* 3. ACC TEMUAN section — per-finding jasa input */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="card overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
                 <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-2.5 py-1 rounded-lg">ACC TEMUAN</span>
                 <span className="text-sm font-bold text-gray-900">Temuan yang Disetujui & Jasa Pengerjaan</span>
@@ -485,7 +485,7 @@ export default function AdvisorDashboard({
 
                 {selectedOrder.findings.length === 0 ? (
                   <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl">
-                    <AlertTriangle className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                    <Warning className="w-8 h-8 text-gray-200 mx-auto mb-2" weight="duotone" />
                     <p className="text-xs text-gray-400 font-semibold">Belum ada temuan.</p>
                     <p className="text-[10px] text-gray-300 mt-0.5">Klik "MELAPORKAN TEMUAN" di atas untuk menambahkan.</p>
                   </div>
@@ -530,7 +530,7 @@ export default function AdvisorDashboard({
                                   <span className="text-blue-600 font-sans tabular-nums">{formatRupiah(item.price)} × {item.qty}</span>
                                   <button onClick={() => handleRemoveItem(selectedOrder.id, item.id)}
                                     className="text-gray-300 hover:text-red-500 transition-colors cursor-pointer">
-                                    <X className="w-3.5 h-3.5" />
+                                    <X className="w-3.5 h-3.5" weight="duotone" />
                                   </button>
                                 </div>
                               </div>
@@ -586,7 +586,7 @@ export default function AdvisorDashboard({
                 {selectedOrder.serviceItems.filter(i => i.type === 'part' && i.status === 'pending').length > 0 && (
                   <div className="border border-amber-200 bg-amber-50 rounded-2xl p-4 space-y-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5" /> Sparepart dari Gudang — perlu ACC Anda
+                      <Package className="w-3.5 h-3.5" weight="duotone" /> Sparepart dari Gudang — perlu ACC Anda
                     </p>
                     {selectedOrder.serviceItems.filter(i => i.type === 'part' && i.status === 'pending').map(item => (
                       <div key={item.id} className="flex items-center gap-2 p-2.5 bg-white border border-amber-100 rounded-xl text-xs">
@@ -596,11 +596,11 @@ export default function AdvisorDashboard({
                         </div>
                         <button onClick={() => handleSAApprovePartItem(selectedOrder.id, item.id)}
                           className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold hover:bg-emerald-700 transition-all cursor-pointer flex items-center gap-1">
-                          <Check className="w-3 h-3" /> ACC
+                          <Check className="w-3 h-3" weight="duotone" /> ACC
                         </button>
                         <button onClick={() => handleSARejectPartItem(selectedOrder.id, item.id)}
                           className="px-2.5 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg text-[10px] font-bold hover:bg-red-100 transition-all cursor-pointer flex items-center gap-1">
-                          <X className="w-3 h-3" /> Tolak
+                          <X className="w-3 h-3" weight="duotone" /> Tolak
                         </button>
                       </div>
                     ))}
@@ -637,7 +637,7 @@ export default function AdvisorDashboard({
                           <button onClick={() => handleSendSPKClick(selectedOrder.id)}
                             disabled={!selectedMechanicName.trim()}
                             className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 disabled:bg-gray-200 disabled:text-gray-400 text-white py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all cursor-pointer disabled:cursor-not-allowed">
-                            <Send className="w-3.5 h-3.5" /> Kirim SPK ke Mekanik
+                            <PaperPlaneTilt className="w-3.5 h-3.5" weight="duotone" /> Kirim SPK ke Mekanik
                           </button>
                         </>
                       )}
@@ -653,7 +653,7 @@ export default function AdvisorDashboard({
         {/* SPK sudah dikirim — info banner */}
         {selectedOrder.spkSent && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3">
-            <Send className="w-5 h-5 text-blue-600 shrink-0" />
+            <PaperPlaneTilt className="w-5 h-5 text-blue-600 shrink-0" weight="duotone" />
             <div>
               <p className="text-xs font-bold text-blue-800">SPK sudah dikirim ke {selectedOrder.assignedMechanicName}</p>
               <p className="text-[10px] text-blue-600 mt-0.5">Kendaraan sedang dikerjakan. Pantau progres di timeline bawah.</p>
@@ -662,7 +662,7 @@ export default function AdvisorDashboard({
         )}
 
         {/* Re-use TrackingPortal in staff approval mode */}
-        <div className="bg-white border border-gray-150 rounded-2xl overflow-hidden shadow-sm">
+        <div className="card overflow-hidden">
           <TrackingPortal
             key={selectedOrder.id}
             orders={orders}
@@ -684,9 +684,9 @@ export default function AdvisorDashboard({
         {/* SA Checklist & Foto Pengerjaan */}
         {(selectedOrder.status === 'dikerjakan' || selectedOrder.status === 'temuan_dilaporkan') &&
           selectedOrder.serviceItems.filter(i => i.status === 'approved').length > 0 && (
-          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+          <div className="card-padded space-y-4">
             <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-              <Wrench className="w-4 h-4 text-berlin-navy" />
+              <Wrench className="w-4 h-4 text-berlin-navy" weight="duotone" />
               <div>
                 <h4 className="text-xs font-bold text-berlin-navy uppercase tracking-wider">Checklist & Foto Bukti Pengerjaan</h4>
                 <p className="text-[10px] text-gray-400 mt-0.5">SA memantau dan mendokumentasikan setiap item pekerjaan yang diselesaikan mekanik.</p>
@@ -721,23 +721,23 @@ export default function AdvisorDashboard({
                               : 'bg-white text-gray-400 border-gray-300'
                         }`}
                       >
-                        {item.completed ? <><CheckCircle2 className="w-3.5 h-3.5" /> Selesai</> : item.type === 'part' ? 'Pasang' : 'Kerjakan'}
+                        {item.completed ? <><CheckCircle className="w-3.5 h-3.5" weight="duotone" /> Selesai</> : item.type === 'part' ? 'Pasang' : 'Kerjakan'}
                       </button>
                     </div>
 
                     <div className="border-t border-gray-200/60 pt-2.5">
                       {item.photoUrl ? (
-                        <div className="flex items-center justify-between bg-white border border-gray-150 rounded-xl p-2.5">
+                        <div className="flex items-center justify-between card p-2.5">
                           <div className="flex items-center gap-3">
                             <img src={item.photoUrl} alt="Bukti" className="w-12 h-12 rounded-lg object-cover border border-gray-200" referrerPolicy="no-referrer" />
                             <span className="text-[9px] font-extrabold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 uppercase">
-                              <Check className="w-3 h-3" /> Foto Terlampir
+                              <Check className="w-3 h-3" weight="duotone" /> Foto Terlampir
                             </span>
                           </div>
                           {!item.completed && (
                             <button type="button" onClick={() => removePhotoFromItem(selectedOrder.id, item.id)}
                               className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 cursor-pointer">
-                              <Trash2 className="w-4 h-4" />
+                              <Trash className="w-4 h-4" weight="duotone" />
                             </button>
                           )}
                         </div>
@@ -745,7 +745,7 @@ export default function AdvisorDashboard({
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-[11px]">
                             <span className="text-amber-600 font-bold flex items-center gap-1">
-                              <AlertCircle className="w-3.5 h-3.5 text-amber-500" /> Wajib Foto Bukti
+                              <WarningCircle className="w-3.5 h-3.5 text-amber-500" weight="duotone" /> Wajib Foto Bukti
                             </span>
                             <button type="button" onClick={() => setActivePhotoItemId(isUploadingThis ? null : item.id)}
                               className="text-blue-600 font-bold text-[10px] uppercase bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
@@ -754,7 +754,7 @@ export default function AdvisorDashboard({
                           </div>
 
                           {isUploadingThis && (
-                            <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-3">
+                            <div className="card p-3 space-y-3">
                               {checklistCamActive ? (
                                 <div className="space-y-2">
                                   <div className="relative rounded-lg overflow-hidden border border-gray-300 aspect-video bg-black max-w-xs mx-auto">
@@ -764,7 +764,7 @@ export default function AdvisorDashboard({
                                   <div className="flex justify-center gap-2">
                                     <button type="button" onClick={() => captureChecklistPhoto(selectedOrder.id, item.id)}
                                       className="bg-emerald-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer">
-                                      <Camera className="w-3.5 h-3.5" /> Ambil Foto
+                                      <Camera className="w-3.5 h-3.5" weight="duotone" /> Ambil Foto
                                     </button>
                                     <button type="button" onClick={stopChecklistCamera}
                                       className="bg-gray-100 text-gray-700 font-bold text-[10px] px-3 py-1.5 rounded-lg cursor-pointer">Batal</button>
@@ -780,12 +780,12 @@ export default function AdvisorDashboard({
                                   >
                                     <input id={`sa-file-${item.id}`} type="file" accept="image/*" className="hidden"
                                       onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => attachPhotoToItem(selectedOrder.id, item.id, r.result as string); r.readAsDataURL(f); } }} />
-                                    <Upload className="w-5 h-5 text-gray-400 mx-auto mb-1" />
+                                    <UploadSimple className="w-5 h-5 text-gray-400 mx-auto mb-1" weight="duotone" />
                                     <p className="text-[10px] text-gray-600 font-bold">Seret foto atau <span className="text-blue-600 underline">klik untuk pilih</span></p>
                                   </div>
                                   <button type="button" onClick={() => startChecklistCamera(item.id)}
                                     className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer">
-                                    <Camera className="w-3.5 h-3.5" /> AKTIFKAN KAMERA
+                                    <Camera className="w-3.5 h-3.5" weight="duotone" /> AKTIFKAN KAMERA
                                   </button>
                                   <div className="grid grid-cols-2 gap-1.5">
                                     {MOCK_PROOFS.map((p, idx) => (
@@ -816,7 +816,7 @@ export default function AdvisorDashboard({
               return (
                 <div className="pt-3 space-y-3 border-t border-gray-100">
                   <div className={`p-3 rounded-xl text-xs flex items-center gap-2 border ${allDone ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <WarningCircle className="w-4 h-4 shrink-0" weight="duotone" />
                     <p className="font-medium">{allDone ? `Semua ${approved.length} item selesai & terfoto. Siap konfirmasi.` : `${done} dari ${approved.length} item selesai. Selesaikan semua sebelum konfirmasi.`}</p>
                   </div>
                   <textarea rows={2} placeholder="Catatan SA (opsional): kondisi kendaraan, hasil test drive, dll."
@@ -826,7 +826,7 @@ export default function AdvisorDashboard({
                     className={`w-full py-2.5 rounded-xl text-xs font-black tracking-wider flex items-center justify-center gap-1.5 transition-all ${
                       allDone ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     }`}>
-                    <CheckCircle2 className="w-4 h-4" /> KONFIRMASI SERVIS SELESAI
+                    <CheckCircle className="w-4 h-4" weight="duotone" /> KONFIRMASI SERVIS SELESAI
                   </button>
                 </div>
               );
@@ -852,7 +852,7 @@ export default function AdvisorDashboard({
     <div className="space-y-6">
       
       {/* Dashboard Header */}
-      <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm space-y-4">
+      <div className="card p-6 space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <span className="text-[10px] bg-berlin-navy/5 text-berlin-navy px-2.5 py-1 rounded-full font-bold uppercase tracking-widest border border-berlin-navy/10">
@@ -875,7 +875,7 @@ export default function AdvisorDashboard({
 
           <div className="bg-amber-50/50 border border-amber-200/60 p-4 rounded-xl space-y-1 relative overflow-hidden">
             <span className="text-[10px] uppercase tracking-widest text-amber-800 font-bold block flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+              <Warning className="w-3 h-3 text-amber-600 shrink-0" weight="duotone" />
               BUTUH ACC SA
             </span>
             <div className="flex items-baseline justify-between">
@@ -906,7 +906,7 @@ export default function AdvisorDashboard({
       </div>
 
       {/* Control Filters and Search */}
-      <div className="bg-white border border-gray-200 p-4 rounded-xl shadow-xs space-y-4">
+      <div className="card p-4 space-y-4">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           
           {/* Filters Bar */}
@@ -925,7 +925,7 @@ export default function AdvisorDashboard({
                   : 'bg-amber-50/50 border-amber-200 text-amber-800 hover:bg-amber-100/50'
               }`}
             >
-              <AlertTriangle className="w-3.5 h-3.5" />
+              <Warning className="w-3.5 h-3.5" weight="duotone" />
               Butuh ACC ({stats.pendingAccCount})
             </button>
             <button
@@ -963,13 +963,13 @@ export default function AdvisorDashboard({
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 pl-9 pr-4 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-black transition-colors"
             />
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+            <MagnifyingGlass className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" weight="duotone" />
           </div>
         </div>
       </div>
 
       {/* Grid List of Car Progresses */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xs">
+      <div className="card overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
           <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400">
             MENAMPILKAN {filteredOrders.length} MOBIL AKTIF
@@ -979,7 +979,7 @@ export default function AdvisorDashboard({
 
         {filteredOrders.length === 0 ? (
           <div className="p-12 text-center text-gray-400 space-y-2">
-            <Car className="w-10 h-10 text-gray-300 mx-auto" />
+            <Car className="w-10 h-10 text-gray-300 mx-auto" weight="duotone" />
             <p className="text-xs font-semibold">Tidak ada kendaraan yang sesuai filter.</p>
             <p className="text-[11px] text-gray-400 leading-normal max-w-xs mx-auto">Coba ganti filter status atau periksa kembali kata kunci pencarian Anda.</p>
           </div>
@@ -1007,7 +1007,7 @@ export default function AdvisorDashboard({
                       
                       {hasAccRequest && (
                         <span className="bg-amber-100 text-amber-900 border border-amber-300/60 px-2 py-0.5 rounded font-bold text-[9px] tracking-wider uppercase flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3 text-amber-700 shrink-0" />
+                          <Warning className="w-3 h-3 text-amber-700 shrink-0" weight="duotone" />
                           BUTUH ACC ({pendingItemsCount} ITEM)
                         </span>
                       )}
@@ -1023,7 +1023,7 @@ export default function AdvisorDashboard({
                         <span className="text-[9px] uppercase tracking-wider text-gray-400 font-bold block leading-none">CUSTOMER</span>
                         <span className="text-sm font-bold text-gray-800 mt-1 block">{order.customerName}</span>
                         <span className="text-[10px] text-gray-500 font-sans mt-0.5 block flex items-center gap-1">
-                          <Smartphone className="w-3 h-3 text-gray-400" />
+                          <DeviceMobile className="w-3 h-3 text-gray-400" weight="duotone" />
                           {order.customerPhone}
                         </span>
                       </div>
@@ -1060,7 +1060,7 @@ export default function AdvisorDashboard({
                         }`}
                       >
                         Buka Lacak & ACC
-                        <ChevronRight className="w-3.5 h-3.5" />
+                        <CaretRight className="w-3.5 h-3.5" weight="duotone" />
                       </button>
                     </div>
                   </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, Car, Wrench, ChevronRight, Check, Sparkles, User, HelpCircle, FileText, ArrowRight, ShieldAlert, CheckCircle } from 'lucide-react';
+import { UserPlus, Car, Wrench, CaretRight, User, FileText, ArrowRight, CheckCircle } from '@phosphor-icons/react';
 import { Order, User as StaffUser } from '../types';
 
 interface AdvisorPanelProps {
@@ -138,7 +138,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
   };
 
   return (
-    <div className="bg-white border border-gray-200 p-6 rounded-2xl space-y-6 shadow-sm">
+    <div className="card p-6 space-y-6">
       
       {/* Advisor Header */}
       <div className="flex items-center justify-between border-b border-gray-100 pb-4">
@@ -154,7 +154,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
       {success ? (
         <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200 space-y-5">
           <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center mx-auto text-2xl font-bold">
-            <CheckCircle className="w-8 h-8 text-emerald-600" />
+            <CheckCircle className="w-8 h-8 text-emerald-600" weight="duotone" />
           </div>
           <div className="space-y-1">
             <h4 className="text-md font-bold text-black">Work Order Berhasil Dibuat!</h4>
@@ -197,7 +197,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
                   <span className={`text-[10px] font-bold uppercase tracking-wider hidden md:block ${isActive ? 'text-black' : 'text-gray-400'}`}>
                     {st.label}
                   </span>
-                  {idx < 5 && <ChevronRight className="w-3.5 h-3.5 text-gray-300 hidden md:block" />}
+                  {idx < 5 && <CaretRight className="w-3.5 h-3.5 text-gray-300 hidden md:block" weight="duotone" />}
                 </div>
               );
             })}
@@ -515,7 +515,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
                 }`}
               >
                 LANJUT
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5" weight="duotone" />
               </button>
             ) : (
               <button

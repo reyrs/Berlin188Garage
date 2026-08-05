@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import {
-  DollarSign, TrendingDown, TrendingUp, PlusCircle, FileText, X,
-  Calendar, Filter, ChevronDown, Printer, Banknote, CreditCard,
-  ShoppingCart, Zap, Users, MoreHorizontal, CheckCircle2, AlertCircle
-} from 'lucide-react';
+  CurrencyDollar, TrendDown, TrendUp, PlusCircle, FileText, X,
+  ShoppingCart, Lightning, Users, DotsThree, CheckCircle, WarningCircle
+} from '@phosphor-icons/react';
+import KpiTile from './ui/KpiTile';
 import { CashTransaction, CashClosing, Order, Expense, User } from '../types';
 import { KPI_TONE, KpiTone } from '../lib/design';
 import InvoicePrint from './InvoicePrint';
@@ -23,10 +23,10 @@ interface AccountingPanelProps {
 
 const EXPENSE_CATEGORIES = [
   { value: 'operasional', label: 'Operasional', icon: ShoppingCart, color: 'amber' },
-  { value: 'pembelian_part', label: 'Pembelian Part', icon: Zap, color: 'blue' },
+  { value: 'pembelian_part', label: 'Pembelian Part', icon: Lightning, color: 'blue' },
   { value: 'gaji', label: 'Gaji / Honor', icon: Users, color: 'purple' },
-  { value: 'utilitas', label: 'Utilitas (Listrik/Air)', icon: Zap, color: 'green' },
-  { value: 'lainnya', label: 'Lainnya', icon: MoreHorizontal, color: 'gray' },
+  { value: 'utilitas', label: 'Utilitas (Listrik/Air)', icon: Lightning, color: 'green' },
+  { value: 'lainnya', label: 'Lainnya', icon: DotsThree, color: 'gray' },
 ];
 
 const formatRp = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
@@ -141,26 +141,17 @@ export default function AccountingPanel({
           {/* KPI cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: 'Pendapatan Hari Ini', value: formatRp(todayIncome), icon: TrendingUp, tone: 'success' as KpiTone, sub: `${todayTx.filter(t=>t.type==='masuk').length} transaksi` },
-              { label: 'Pengeluaran Hari Ini', value: formatRp(todayExpenses), icon: TrendingDown, tone: 'danger' as KpiTone, sub: 'Biaya operasional' },
-              { label: 'Total Pendapatan', value: formatRp(totalIncome), icon: DollarSign, tone: 'info' as KpiTone, sub: 'Sejak awal' },
-              { label: 'Net Profit', value: formatRp(netProfit), icon: CheckCircle2, tone: (netProfit >= 0 ? 'success' : 'danger') as KpiTone, sub: 'Pendapatan - Pengeluaran' },
+              { label: 'Pendapatan Hari Ini', value: formatRp(todayIncome), icon: TrendUp, tone: 'success' as KpiTone, sub: `${todayTx.filter(t=>t.type==='masuk').length} transaksi` },
+              { label: 'Pengeluaran Hari Ini', value: formatRp(todayExpenses), icon: TrendDown, tone: 'danger' as KpiTone, sub: 'Biaya operasional' },
+              { label: 'Total Pendapatan', value: formatRp(totalIncome), icon: CurrencyDollar, tone: 'info' as KpiTone, sub: 'Sejak awal' },
+              { label: 'Net Profit', value: formatRp(netProfit), icon: CheckCircle, tone: (netProfit >= 0 ? 'success' : 'danger') as KpiTone, sub: 'Pendapatan - Pengeluaran' },
             ].map((kpi, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{kpi.label}</span>
-                  <div className={`w-8 h-8 rounded-lg ${KPI_TONE[kpi.tone].bg} ${KPI_TONE[kpi.tone].text} flex items-center justify-center`}>
-                    <kpi.icon className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-lg font-bold text-gray-900 font-sans">{kpi.value}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{kpi.sub}</div>
-              </div>
+              <KpiTile key={i} label={kpi.label} value={kpi.value} sublabel={kpi.sub} icon={kpi.icon} tone={kpi.tone} />
             ))}
           </div>
 
           {/* Backup Data */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div className="card p-4 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-gray-900">Backup & Export Data</h3>
               <p className="text-xs text-gray-400">Download semua data bengkel sebagai file JSON</p>
@@ -176,13 +167,13 @@ export default function AccountingPanel({
               URL.revokeObjectURL(url);
             }}
               className="flex items-center gap-2 bg-berlin-navy text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-berlin-navy-dark transition-colors">
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4 h-4" weight="duotone" />
               Download Backup
             </button>
           </div>
 
           {/* Recent transactions */}
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="card overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Transaksi Terbaru</h3>
               <span className="text-xs text-gray-400">{transactions.length} total</span>
@@ -192,7 +183,7 @@ export default function AccountingPanel({
                 <div key={tx.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === 'masuk' ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                      {tx.type === 'masuk' ? <TrendingUp className="w-4 h-4 text-emerald-600" /> : <TrendingDown className="w-4 h-4 text-red-500" />}
+                      {tx.type === 'masuk' ? <TrendUp className="w-4 h-4 text-emerald-600" weight="duotone" /> : <TrendDown className="w-4 h-4 text-red-500" weight="duotone" />}
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-800">{tx.description}</div>
@@ -216,13 +207,13 @@ export default function AccountingPanel({
       {activeTab === 'pembayaran' && (
         <div className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <WarningCircle className="w-4 h-4 text-amber-600 shrink-0" weight="duotone" />
             <span className="text-sm text-amber-800">{pendingOrders.length} kendaraan menunggu pembayaran</span>
           </div>
 
           {pendingOrders.length === 0 && (
-            <div className="bg-white border border-gray-200 rounded-2xl py-16 text-center">
-              <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
+            <div className="card py-16 text-center">
+              <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" weight="duotone" />
               <p className="text-gray-500 font-medium">Semua tagihan sudah lunas</p>
             </div>
           )}
@@ -233,7 +224,7 @@ export default function AccountingPanel({
                 .filter(i => i.status !== 'rejected')
                 .reduce((s, i) => s + i.price * i.qty, 0);
               return (
-                <div key={order.id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+                <div key={order.id} className="card-padded">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -270,7 +261,7 @@ export default function AccountingPanel({
           </div>
 
           {/* Paid history */}
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="card overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
               <h3 className="font-semibold text-gray-900">Riwayat Pembayaran</h3>
             </div>
@@ -307,17 +298,17 @@ export default function AccountingPanel({
             </div>
             <button onClick={() => setShowExpenseForm(true)}
               className="flex items-center gap-2 bg-berlin-navy text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-berlin-navy-dark transition-colors">
-              <PlusCircle className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4" weight="duotone" />
               Tambah Pengeluaran
             </button>
           </div>
 
           {/* Expense form */}
           {showExpenseForm && (
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+            <div className="card-padded">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="font-semibold text-gray-900">Pengeluaran Baru</h4>
-                <button onClick={() => setShowExpenseForm(false)}><X className="w-5 h-5 text-gray-400" /></button>
+                <button onClick={() => setShowExpenseForm(false)}><X className="w-5 h-5 text-gray-400" weight="duotone" /></button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -364,7 +355,7 @@ export default function AccountingPanel({
           )}
 
           {/* Expense list */}
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="card overflow-hidden">
             <div className="divide-y divide-gray-50">
               {[...expenses].reverse().map(exp => {
                 const cat = EXPENSE_CATEGORIES.find(c => c.value === exp.category);
@@ -372,7 +363,7 @@ export default function AccountingPanel({
                   <div key={exp.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
-                        <TrendingDown className="w-4 h-4 text-red-500" />
+                        <TrendDown className="w-4 h-4 text-red-500" weight="duotone" />
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-800">{exp.description}</div>
@@ -398,7 +389,7 @@ export default function AccountingPanel({
       {/* CLOSING KAS TAB */}
       {activeTab === 'closing' && (
         <div className="space-y-4">
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <div className="card-padded">
             <h3 className="font-semibold text-gray-900 mb-4">Closing Kas Harian</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="bg-gray-50 rounded-xl p-4">
@@ -432,7 +423,7 @@ export default function AccountingPanel({
           </div>
 
           {/* Closing history */}
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="card overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
               <h3 className="font-semibold text-gray-900">Riwayat Closing</h3>
             </div>
@@ -480,7 +471,7 @@ export default function AccountingPanel({
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-gray-900">Proses Pembayaran</h3>
-              <button onClick={() => setShowPaymentModal(null)}><X className="w-5 h-5 text-gray-400" /></button>
+              <button onClick={() => setShowPaymentModal(null)}><X className="w-5 h-5 text-gray-400" weight="duotone" /></button>
             </div>
             <div className="bg-gray-50 rounded-xl p-4 mb-4">
               <p className="text-sm font-medium text-gray-900">{showPaymentModal.id} — {showPaymentModal.customerName}</p>

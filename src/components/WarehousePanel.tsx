@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Package, Search, Plus, MapPin, Trash2, ClipboardList, AlertCircle, CheckCircle2, ChevronRight, CornerDownRight, PackagePlus, Compass, Sliders, Hash, Check, X, RotateCcw
-} from 'lucide-react';
+import {
+  Package, MagnifyingGlass, Plus, MapPin, Trash, ClipboardText, WarningCircle, CheckCircle, CaretRight, ArrowElbowDownRight, Compass, Sliders, HashStraight, Check, X, ArrowCounterClockwise
+} from '@phosphor-icons/react';
 import { Order, ServiceItem, User as StaffUser, WarehouseStockItem } from '../types';
 import { STATUS_CONFIG } from '../lib/design';
 import ImageLightbox from './ImageLightbox';
@@ -32,7 +32,7 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
           
           {/* Map Locator / Rack Location Badge - HIGH VISIBILITY */}
           <div className="bg-berlin-navy text-white text-[9px] px-2 py-0.5 rounded font-bold flex items-center gap-1.5 shadow-sm border border-berlin-gold/25">
-            <MapPin className="w-3 h-3 text-[#E6C687] shrink-0" />
+            <MapPin className="w-3 h-3 text-[#E6C687] shrink-0" weight="duotone" />
             <span>{stockItem.rackLocation}</span>
           </div>
         </div>
@@ -90,7 +90,7 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
               : 'bg-berlin-navy text-white hover:bg-berlin-navy-dark'
           }`}
         >
-          <Plus className="w-3.5 h-3.5 text-white shrink-0" />
+          <Plus className="w-3.5 h-3.5 text-white shrink-0" weight="duotone" />
           Pasang
         </button>
       </div>
@@ -546,9 +546,9 @@ export default function WarehousePanel({
     <div className="grid md:grid-cols-12 gap-6 items-start">
 
       {/* Left Side: Active Orders List */}
-      <div className="md:col-span-4 bg-white border border-gray-200 p-5 rounded-2xl space-y-4 shadow-sm">
+      <div className="md:col-span-4 card-padded space-y-4">
         <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-          <ClipboardList className="w-5 h-5 text-black" />
+          <ClipboardText className="w-5 h-5 text-black" weight="duotone" />
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">Order Antrean Sparepart</h3>
             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Gudang: {activeUser.name}</span>
@@ -607,7 +607,7 @@ export default function WarehousePanel({
 
           {activeOrders.length === 0 && (
             <div className="text-center p-8 text-gray-400 space-y-2">
-              <Package className="w-8 h-8 text-gray-300 mx-auto" />
+              <Package className="w-8 h-8 text-gray-300 mx-auto" weight="duotone" />
               <p className="text-xs font-semibold">Tidak ada antrean kendaraan aktif.</p>
             </div>
           )}
@@ -620,7 +620,7 @@ export default function WarehousePanel({
           <div className="space-y-5">
             
             {/* Header: Vehicle & Client details */}
-            <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+            <div className="card-padded space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150 pb-3">
                 <div>
                   <span className="text-[10px] bg-berlin-navy text-white px-2 py-0.5 rounded font-sans font-bold">{selectedOrder.id}</span>
@@ -644,7 +644,7 @@ export default function WarehousePanel({
                   {selectedOrder.serviceItems.filter(item => item.type === 'part').map((item) => (
                     <div key={item.id} className="bg-amber-50/40 border border-amber-200/50 p-3 rounded-xl flex items-center justify-between text-xs hover:border-amber-200 transition-colors">
                       <div className="flex items-start gap-2.5">
-                        <Package className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+                        <Package className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" weight="duotone" />
                         <div>
                           <div className="font-bold text-gray-800">{item.name}</div>
                           <div className="text-[9px] text-amber-800 font-bold tracking-wide uppercase mt-0.5 flex items-center gap-1.5">
@@ -670,7 +670,7 @@ export default function WarehousePanel({
                           className="p-1 rounded bg-white hover:bg-red-50 text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-200 transition-all cursor-pointer"
                           title="Hapus Part"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash className="w-3.5 h-3.5" weight="duotone" />
                         </button>
                       </div>
                     </div>
@@ -696,7 +696,7 @@ export default function WarehousePanel({
                         }}
                         className="bg-berlin-navy hover:bg-berlin-navy-dark text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-berlin-gold" />
+                        <CheckCircle className="w-4 h-4 text-berlin-gold" weight="duotone" />
                         Kirim Pengajuan Barang ke Service Advisor
                       </button>
                     </div>
@@ -706,7 +706,7 @@ export default function WarehousePanel({
             </div>
 
             {/* DIAGNOSIS TEMUAN MEKANIK & TINDAKAN GUDANG */}
-            <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+            <div className="card-padded space-y-4">
               <div className="flex items-center gap-2 border-b border-gray-150 pb-3">
                 <span className="text-gray-600 font-bold text-xs uppercase tracking-wider bg-gray-100 px-2.5 py-0.5 rounded">Resolusi Temuan</span>
                 <h4 className="text-xs sm:text-sm font-bold text-berlin-navy">Penyelesaian Temuan Kerusakan Mekanik</h4>
@@ -761,7 +761,7 @@ export default function WarehousePanel({
                               className="p-1.5 rounded-lg bg-white hover:bg-red-50 text-gray-500 hover:text-red-600 border border-gray-200 hover:border-red-200 cursor-pointer transition-all flex items-center gap-1 text-[10px] font-bold shadow-xs"
                               title="Reset / Ubah Sourcing"
                             >
-                              <RotateCcw className="w-3.5 h-3.5" />
+                              <ArrowCounterClockwise className="w-3.5 h-3.5" weight="duotone" />
                               <span>Reset</span>
                             </button>
                           </div>
@@ -794,7 +794,7 @@ export default function WarehousePanel({
                                         className="text-gray-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 border border-transparent hover:border-red-100 cursor-pointer"
                                         title="Hapus dari temuan"
                                       >
-                                        <X className="w-3.5 h-3.5" />
+                                        <X className="w-3.5 h-3.5" weight="duotone" />
                                       </button>
                                     </div>
                                   </div>
@@ -873,7 +873,7 @@ export default function WarehousePanel({
                                 onClick={() => handleLockResolution(finding.id, finding.description)}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all"
                               >
-                                <Check className="w-4 h-4 text-white" />
+                                <Check className="w-4 h-4 text-white" weight="duotone" />
                                 Simpan & Kunci Sourcing ({finding.resolvedParts.length} Barang)
                               </button>
                             </div>
@@ -893,10 +893,10 @@ export default function WarehousePanel({
             </div>
 
             {/* Warehouse Stock Selection & Locator (Stock Opname) */}
-            <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm space-y-4">
+            <div className="card p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3.5">
                 <div className="flex items-center gap-2">
-                  <Compass className="w-5 h-5 text-[#E6C687] shrink-0" />
+                  <Compass className="w-5 h-5 text-[#E6C687] shrink-0" weight="duotone" />
                   <div>
                     <h4 className="text-xs uppercase tracking-widest text-gray-400 font-extrabold leading-none">STOCK OPNAME GUDANG</h4>
                     <span className="text-xs font-bold text-gray-800 mt-1 block">Pilih Barang & Ambil Sesuai Lokasi Rak</span>
@@ -907,7 +907,7 @@ export default function WarehousePanel({
                   onClick={() => setShowCustomForm(!showCustomForm)}
                   className="bg-white hover:bg-gray-50 border border-gray-250 hover:border-gray-350 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors shrink-0"
                 >
-                  <PackagePlus className="w-4 h-4 text-berlin-gold" />
+                  <Package className="w-4 h-4 text-berlin-gold" weight="duotone" />
                   {showCustomForm ? 'Batal Tambah' : '+ Barang Tidak Ada Di Gudang'}
                 </button>
               </div>
@@ -916,7 +916,7 @@ export default function WarehousePanel({
               {showCustomForm && (
                 <form onSubmit={handleAddCustomPart} className="bg-amber-50/40 border border-amber-200/60 p-4 rounded-xl space-y-3.5 animate-fadeIn">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800">
-                    <PackagePlus className="w-4 h-4" />
+                    <Package className="w-4 h-4" weight="duotone" />
                     <span>FORM PENAMBAHAN BARANG NON-STOCK (TIDAK ADA DI GUDANG)</span>
                   </div>
 
@@ -975,7 +975,7 @@ export default function WarehousePanel({
                     type="submit"
                     className="w-full bg-berlin-navy hover:bg-berlin-navy-dark text-white py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
                   >
-                    <Plus className="w-4 h-4 text-white" />
+                    <Plus className="w-4 h-4 text-white" weight="duotone" />
                     Tambahkan Barang Non-Stock ke WO
                   </button>
                 </form>
@@ -990,7 +990,7 @@ export default function WarehousePanel({
                   onChange={(e) => setSearchStockQuery(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-250 focus:border-black rounded-xl py-2.5 pl-9 pr-4 text-xs text-gray-800 placeholder-gray-400 focus:outline-none transition-all"
                 />
-                <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                <MagnifyingGlass className="absolute left-3 top-3 w-4 h-4 text-gray-400" weight="duotone" />
               </div>
 
               {/* Stock Opname Items Listing with Locator (Rack Location) */}
@@ -1007,7 +1007,7 @@ export default function WarehousePanel({
 
                 {filteredStock.length === 0 && (
                   <div className="col-span-full text-center py-8 text-gray-400">
-                    <AlertCircle className="w-6 h-6 text-gray-300 mx-auto mb-1" />
+                    <WarningCircle className="w-6 h-6 text-gray-300 mx-auto mb-1" weight="duotone" />
                     <p className="text-xs font-semibold">Tidak ada barang stock opname yang cocok.</p>
                   </div>
                 )}
@@ -1016,8 +1016,8 @@ export default function WarehousePanel({
 
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 p-16 rounded-2xl text-center space-y-4 shadow-sm">
-            <Package className="w-12 h-12 text-gray-300 mx-auto" />
+          <div className="card p-16 text-center space-y-4">
+            <Package className="w-12 h-12 text-gray-300 mx-auto" weight="duotone" />
             <div>
               <h4 className="text-sm font-bold text-[#1A1A1A]">Pilih Antrean Sparepart Mobil</h4>
               <p className="text-gray-400 text-xs mt-1">Pilih nomor Work Order aktif di antrean kiri untuk memasangkan sparepart dari Stock Opname Gudang.</p>

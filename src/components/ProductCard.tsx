@@ -11,18 +11,17 @@ interface ProductCardProps {
   inCart: boolean;
   wishlisted: boolean;
   onToggleWishlist: (id: string) => void;
-  featured?: boolean;
 }
 
-export default function ProductCard({ product, onAdd, onDetail, inCart, wishlisted, onToggleWishlist, featured = false }: ProductCardProps) {
+export default function ProductCard({ product, onAdd, onDetail, inCart, wishlisted, onToggleWishlist }: ProductCardProps) {
   return (
-    <div className={`group card-product hover:shadow-lg transition-shadow ${featured ? 'sm:col-span-2' : ''}`}>
-      <div className={`bg-gray-50 dark:bg-[#22252c] overflow-hidden relative ${featured ? 'aspect-[16/9]' : 'aspect-square'}`}>
+    <div className="group card-product hover:shadow-lg transition-shadow">
+      <div className="bg-gray-50 dark:bg-[#22252c] overflow-hidden relative aspect-square p-3">
         <img
           src={product.image}
           alt={product.name}
           loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
           referrerPolicy="no-referrer"
         />
         <button

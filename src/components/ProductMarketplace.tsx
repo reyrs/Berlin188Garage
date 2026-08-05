@@ -11,7 +11,6 @@ import ThemeToggle from './ThemeToggle';
 import CurveAccent from './CurveAccent';
 import { useWishlist } from '../lib/wishlist';
 import { useTheme } from '../lib/theme';
-import { useScrollReveal } from '../lib/useScrollReveal';
 import { useCountUp } from '../lib/useCountUp';
 
 const PAGE_SIZE = 12;
@@ -31,7 +30,6 @@ export default function ProductMarketplace() {
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const { ids: wishlistIds, isWishlisted, toggle: toggleWishlist, remove: removeFromWishlist } = useWishlist();
   const { theme } = useTheme();
-  const revealRef = useScrollReveal();
   const logoSrc = theme === 'dark' ? '/logo.png' : '/logo-on-white.png';
   const wishlistItems = useMemo(() => PRODUCTS.filter(p => wishlistIds.includes(p.id)), [wishlistIds]);
 
@@ -302,11 +300,9 @@ export default function ProductMarketplace() {
                     <option value="price_desc">Harga Tertinggi</option>
                   </select>
                 </div>
-                <div ref={revealRef} className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {paged.map((p: Product, i: number) => (
-                    <div key={p.id} data-reveal style={{ transitionDelay: `${(i % 12) * 60}ms` }} className={i % 5 === 0 ? 'sm:col-span-2 lg:col-span-2' : ''}>
-                      <ProductCard product={p} onAdd={addToCart} onDetail={setDetail} inCart={inCart(p.id)} wishlisted={isWishlisted(p.id)} onToggleWishlist={toggleWishlist} featured={i % 5 === 0} />
-                    </div>
+                <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {paged.map((p: Product) => (
+                    <ProductCard key={p.id} product={p} onAdd={addToCart} onDetail={setDetail} inCart={inCart(p.id)} wishlisted={isWishlisted(p.id)} onToggleWishlist={toggleWishlist} />
                   ))}
                 </div>
 

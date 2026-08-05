@@ -66,6 +66,7 @@
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.03);
   --shadow-elevated: 0 4px 6px -1px rgb(0 0 0 / 0.04), 0 2px 4px -2px rgb(0 0 0 / 0.03);
   --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+  --shadow-instrument: 0 4px 6px -1px rgb(0 101 192 / 0.06), 0 2px 4px -2px rgb(0 101 192 / 0.04);
 }
 
 /* Base */
@@ -100,10 +101,16 @@ body {
 
 /* Card base */
 @utility card {
-  @apply bg-white border border-gray-150 rounded-2xl;
+  @apply bg-white border border-gray-150 rounded-md;
 }
 .card-padded {
   @apply card p-5;
+}
+
+/* Tier 1 — KPI tiles: tinted shadow, no border, used only by <KpiTile>. */
+@utility card-instrument {
+  @apply bg-white rounded-lg;
+  box-shadow: var(--shadow-instrument);
 }
 
 /* Instrument-strip label — uppercase, wide-tracked eyebrow/data text */

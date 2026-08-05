@@ -137,15 +137,19 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   };
 
   // ---- LOAD DATA FROM SUPABASE ----
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (roleForSeed?: string) => {
     setIsLoading(true);
 
-    // Seeding cuma relevan (dan cuma lolos RLS) buat sesi staf yang sudah
-    // login — pengunjung publik/anon selalu ditolak policy warehouse_stock,
-    // jadi jangan coba di luar sesi staf (skip 12 insert yang pasti gagal
-    // tiap kali landing page/marketplace dibuka).
-    const seedSession = await getSession();
-    if (seedSession) {
+    // Seeding cuma lolos RLS buat role 'owner'/'gudang' (lihat
+    // warehouse_stock_role_based di supabase-schema.sql) — role staf lain
+    // (advisor, kasir, mekanik, dst) ditolak dengan benar, jadi jangan coba
+    // di luar dua role itu supaya login mereka nggak spam error 42501 di
+    // console tiap kali loadData() jalan ulang (lihat handleLoginSuccess).
+    // roleForSeed harus dioper eksplisit tiap panggilan yang tahu role-nya
+    // (bukan baca activeStaffUser dari closure — loadData sengaja punya
+    // deps [] biar effect mount-nya nggak nge-trigger ulang tiap kali
+    // activeStaffUser berubah).
+    if (roleForSeed === 'owner' || roleForSeed === 'gudang') {
       await seedWarehouseStock(MOCK_WAREHOUSE_STOCK);
     }
 
@@ -779,6 +783,13 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     else if (user.role === 'marketing') setActiveTab('marketing');
     else if (user.role === 'accounting') setActiveTab('finance_report');
     showNotification(`👋 Selamat bekerja, ${user.name}!`);
+
+    // Kritis: loadData() awal (di mount) selalu jalan sebelum login selesai
+    // — jadi authenticated as anon, dapat data kosong (RLS nolak SELECT buat
+    // anon). Tanpa refetch ini, semua data (order, transaksi, staf, dst)
+    // permanen kosong/basi sampai user reload manual. Ini akar dari bug
+    // "data ada tapi gak update di akun lain" yang dilaporkan user.
+    loadData(user.role);
   };
 
   const handleLogout = async () => {
@@ -847,7 +858,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         <div className="fixed top-0 left-0 right-0 z-[100] bg-berlin-red text-white text-xs font-semibold py-2 px-4 flex items-center justify-center gap-3 flex-wrap">
           <span>⚠️ {dbError}</span>
           <button
-            onClick={() => loadData()}
+            onClick={() => loadData(activeStaffUser?.role)}
             className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
           >
             Coba Lagi

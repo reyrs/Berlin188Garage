@@ -13,9 +13,10 @@ interface OwnerPanelProps {
   transactions: CashTransaction[];
   closings: CashClosing[];
   staffUsers: StaffUser[];
+  onlineStaffIds: Set<string>;
 }
 
-export default function OwnerPanel({ orders, transactions, closings, staffUsers }: OwnerPanelProps) {
+export default function OwnerPanel({ orders, transactions, closings, staffUsers, onlineStaffIds }: OwnerPanelProps) {
   
   // Rincian Keuangan (Slide 8 Metrics)
   const totalRevenue = transactions.reduce((acc, curr) => acc + curr.amount, 0);
@@ -184,6 +185,17 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
               <div className="truncate">
                 <div className="text-xs font-bold text-gray-800 truncate">{u.name}</div>
                 <div className="text-[9px] uppercase tracking-wider text-black font-bold mt-0.5">{u.role}</div>
+                {onlineStaffIds.has(u.id) ? (
+                  <span className="inline-flex items-center gap-1.5 text-[9px] text-emerald-700 mt-1 font-bold">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                    AKTIF ONLINE
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-[9px] text-gray-400 mt-1 font-bold">
+                    <span className="w-1 h-1 rounded-full bg-gray-300" />
+                    OFFLINE
+                  </span>
+                )}
               </div>
             </div>
           ))}

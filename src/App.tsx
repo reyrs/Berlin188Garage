@@ -41,8 +41,11 @@ import {
   fetchProfiles, seedWarehouseStock,
   fetchHeroContent, uploadLandingAsset,
   fetchPortfolioItems, createPortfolioItem, deletePortfolioItem,
+  mapOrder,
 } from './lib/db';
 import { getSession, onAuthStateChange, signOutStaff } from './lib/auth';
+import { supabase } from './lib/supabase';
+import { usePresence } from './lib/usePresence';
 
 type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report';
 
@@ -130,6 +133,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   const [sandboxNotification, setSandboxNotification] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
+  const onlineStaffIds = usePresence(activeStaffUser?.id);
 
   const showNotification = (msg: string) => {
     setSandboxNotification(msg);
@@ -194,6 +198,37 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // ---- REALTIME ORDERS ----
+  // Genuinely live: postgres_changes pushes INSERT/UPDATE/DELETE on `orders`
+  // to every subscribed staff session over the same websocket, so a payment
+  // processed by Kasir shows up on Advisor's already-open screen without
+  // them refreshing. Requires `orders` added to the `supabase_realtime`
+  // publication (see supabase/migrations/20260805_enable_orders_realtime.sql
+  // — run once via the Dashboard SQL Editor, same as the other migrations).
+  useEffect(() => {
+    if (!supabase || !activeStaffUser) return;
+
+    const channel = supabase
+      .channel('orders-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          const deletedId = (payload.old as { id?: string }).id;
+          if (deletedId) setOrders(prev => prev.filter(o => o.id !== deletedId));
+          return;
+        }
+        const updated = mapOrder(payload.new);
+        setOrders(prev => {
+          const exists = prev.some(o => o.id === updated.id);
+          return exists ? prev.map(o => (o.id === updated.id ? updated : o)) : [updated, ...prev];
+        });
+      })
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [activeStaffUser]);
 
   // ---- RESTORE STAFF SESSION ----
   useEffect(() => {
@@ -964,6 +999,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                   transactions={transactions}
                   closings={closings}
                   staffUsers={staffDirectory}
+                  onlineStaffIds={onlineStaffIds}
                 />
               )}
 

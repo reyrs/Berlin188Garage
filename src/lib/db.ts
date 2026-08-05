@@ -89,7 +89,7 @@ export async function customerSetServiceItemStatus(orderId: string, phone: strin
   return data && data[0] ? mapOrder(data[0]) : null
 }
 
-function mapOrder(data: any): Order {
+export function mapOrder(data: any): Order {
   return { id: data.id, customerName: data.customer_name, customerPhone: data.customer_phone, customerAddress: data.customer_address || undefined, carBrand: data.car_brand, carModel: data.car_model, plateNumber: data.plate_number, carVin: data.car_vin || undefined, carType: data.car_type || undefined, carYear: data.car_year || undefined, carEngineCode: data.car_engine_code || undefined, complaint: data.complaint, serviceType: data.service_type, status: data.status, createdAt: data.created_at, advisorId: data.advisor_id || undefined, advisorName: data.advisor_name || undefined, spkNumber: data.spk_number || undefined, findings: typeof data.findings === 'string' ? JSON.parse(data.findings) : (data.findings || []), serviceItems: typeof data.service_items === 'string' ? JSON.parse(data.service_items) : (data.service_items || []), timeline: typeof data.timeline === 'string' ? JSON.parse(data.timeline) : (data.timeline || []), paymentStatus: data.payment_status, paymentMethod: data.payment_method || undefined, paymentDestination: data.payment_destination || undefined, paidAt: data.paid_at || undefined, dpAmountPaid: data.dp_amount !== null && data.dp_amount !== undefined ? Number(data.dp_amount) : undefined, notes: data.notes || undefined, spkSent: data.spk_sent || undefined, assignedMechanicId: data.assigned_mechanic_id || undefined, assignedMechanicName: data.assigned_mechanic_name || undefined, slotNumber: data.slot_number ?? undefined }
 }
 

@@ -173,6 +173,14 @@ body {
   }
 }
 
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Print isolation — mark the one element that should end up on paper with
    .print-area (invoices, SPK, customer receipts). Everything else in the
    document — dashboard shell, nav, sidebars — is hidden instead of printed

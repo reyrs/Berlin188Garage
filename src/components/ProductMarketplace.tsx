@@ -234,8 +234,8 @@ export default function ProductMarketplace() {
       </div>
 
       {/* Brand filter */}
-      <div className="border-b border-gray-100 dark:border-[#2a2d35]">
-        <div className="max-w-6xl mx-auto px-6 flex gap-6 overflow-x-auto">
+      <div className="relative border-b border-gray-100 dark:border-[#2a2d35]">
+        <div className="max-w-6xl mx-auto px-6 flex gap-6 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => { setBrand(null); setPage(1); }}
             className={`relative spec-label py-3 whitespace-nowrap transition-colors cursor-pointer ${!brand ? 'text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
@@ -247,13 +247,15 @@ export default function ProductMarketplace() {
             <button
               key={b}
               onClick={() => { setBrand(b); setPage(1); }}
-              className={`relative spec-label py-3 whitespace-nowrap transition-colors cursor-pointer ${brand === b ? 'text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              className={`relative spec-label py-3 whitespace-nowrap transition-colors cursor-pointer shrink-0 ${brand === b ? 'text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
             >
               {b}
               <CurveAccent active={brand === b} />
             </button>
           ))}
+          <div className="shrink-0 w-2" aria-hidden="true" />
         </div>
+        <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white dark:from-gray-950 to-transparent pointer-events-none" />
       </div>
 
       {/* Main content */}

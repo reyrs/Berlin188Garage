@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Wrench, X } from 'lucide-react';
+import { Wrench, X } from '@phosphor-icons/react';
 import { Order } from '../types';
 import { STATUS_CONFIG, BADGE_CLASS } from '../lib/design';
 import SPKPrintCard from './SPKPrintCard';
@@ -38,7 +38,7 @@ export default function SlotBoard({ orders, interactive }: SlotBoardProps) {
           onClick={() => setSelectedOrderId(null)}
           className="print:hidden mb-5 flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer"
         >
-          <X className="w-3.5 h-3.5" /> Kembali ke Papan Slot
+          <X className="w-3.5 h-3.5" weight="duotone" /> Kembali ke Papan Slot
         </button>
         {selectedOrder.spkSent ? (
           <SPKPrintCard order={selectedOrder} />
@@ -92,7 +92,7 @@ export default function SlotBoard({ orders, interactive }: SlotBoardProps) {
                   <div className="text-sm font-bold text-white">{order.plateNumber}</div>
                   <div className="text-xs text-gray-400">{order.carBrand} {order.carType || order.carModel}</div>
                   <div className="text-xs text-gray-300 flex items-center gap-1">
-                    <Wrench className="w-3 h-3 shrink-0" /> {order.assignedMechanicName || '—'}
+                    <Wrench className="w-3 h-3 shrink-0" weight="duotone" /> {order.assignedMechanicName || '—'}
                   </div>
                   {badge && (
                     <span className={`inline-block mt-1 ${BADGE_CLASS} ${badge.bg} ${badge.text} ${badge.border}`}>

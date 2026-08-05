@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { TrendingUp, TrendingDown, Wallet, FileBarChart } from 'lucide-react';
+import { TrendUp, TrendDown, Wallet, ChartBarHorizontal } from '@phosphor-icons/react';
 import { CashTransaction, Expense } from '../types';
 import { KPI_TONE, PAYMENT_LABEL, formatRupiah } from '../lib/design';
 
@@ -76,7 +76,7 @@ export default function FinanceReportPanel({ transactions, expenses }: FinanceRe
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+      <div className="card p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <span className="text-[10px] bg-berlin-navy/5 text-berlin-navy px-2.5 py-1 rounded-full font-bold uppercase tracking-widest border border-berlin-navy/10">LAPORAN KEUANGAN</span>
@@ -97,7 +97,7 @@ export default function FinanceReportPanel({ transactions, expenses }: FinanceRe
       </div>
 
       {/* Laba/Rugi Bersih — headline */}
-      <div className={`border rounded-2xl p-6 shadow-sm ${isProfit ? `${KPI_TONE.success.bg} ${KPI_TONE.success.border}` : `${KPI_TONE.danger.bg} ${KPI_TONE.danger.border}`}`}>
+      <div className="card-instrument p-6">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Laba / Rugi Bersih — {PERIOD_LABEL[period]}</span>
@@ -106,15 +106,15 @@ export default function FinanceReportPanel({ transactions, expenses }: FinanceRe
             </p>
             <p className="text-xs text-gray-500 mt-1">{formatRupiah(totalRevenue)} pendapatan − {formatRupiah(totalExpense)} pengeluaran</p>
           </div>
-          {isProfit ? <TrendingUp className={`w-10 h-10 ${KPI_TONE.success.text}`} /> : <TrendingDown className={`w-10 h-10 ${KPI_TONE.danger.text}`} />}
+          {isProfit ? <TrendUp className={`w-10 h-10 ${KPI_TONE.success.text}`} weight="duotone" /> : <TrendDown className={`w-10 h-10 ${KPI_TONE.danger.text}`} weight="duotone" />}
         </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Breakdown pendapatan */}
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+        <div className="card-padded space-y-4">
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-            <Wallet className="w-4 h-4" /> Pendapatan per Kategori
+            <Wallet className="w-4 h-4" weight="duotone" /> Pendapatan per Kategori
           </h4>
           <div className="space-y-2.5">
             {revenueByCategory.map(([cat, amount]) => (
@@ -135,9 +135,9 @@ export default function FinanceReportPanel({ transactions, expenses }: FinanceRe
         </div>
 
         {/* Breakdown pengeluaran */}
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+        <div className="card-padded space-y-4">
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-            <FileBarChart className="w-4 h-4" /> Pengeluaran per Kategori
+            <ChartBarHorizontal className="w-4 h-4" weight="duotone" /> Pengeluaran per Kategori
           </h4>
           <div className="space-y-2.5">
             {expenseByCategory.map(([cat, amount]) => (
@@ -159,7 +159,7 @@ export default function FinanceReportPanel({ transactions, expenses }: FinanceRe
       </div>
 
       {/* Drill-down transaksi */}
-      <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-3">
+      <div className="card-padded space-y-3">
         <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Rincian Transaksi — {PERIOD_LABEL[period]}</h4>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">

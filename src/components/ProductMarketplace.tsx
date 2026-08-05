@@ -308,7 +308,7 @@ export default function ProductMarketplace() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {paged.map((p: Product) => (
                     <ProductCard key={p.id} product={p} onAdd={addToCart} onDetail={setDetail} inCart={inCart(p.id)} wishlisted={isWishlisted(p.id)} onToggleWishlist={toggleWishlist} />
                   ))}

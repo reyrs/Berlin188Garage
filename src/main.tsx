@@ -5,6 +5,7 @@ import { ThemeProvider } from './lib/theme';
 import App from './App.tsx';
 import BlogListPage from './components/BlogListPage.tsx';
 import BlogPostPage from './components/BlogPostPage.tsx';
+import NotFoundPage from './components/NotFoundPage.tsx';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -12,10 +13,11 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<App />} />
           <Route path="/blog" element={<BlogListPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/staff" element={<App entryMode="staff" />} />
-          <Route path="*" element={<App />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

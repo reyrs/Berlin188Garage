@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Search, ShoppingCart, ChevronLeft, ChevronRight, X, Package, SlidersHorizontal, Heart, MessageCircle, Sparkles,
-} from 'lucide-react';
+  MagnifyingGlass, ShoppingCart, CaretLeft, CaretRight, X, Package, SlidersHorizontal, Heart, ChatCircle, Sparkle,
+} from '@phosphor-icons/react';
 import { PRODUCTS, CATEGORIES, Product } from '../data/products';
 import ProductCard from './ProductCard';
 import CartDrawer from './CartDrawer';
@@ -11,6 +11,7 @@ import ThemeToggle from './ThemeToggle';
 import CurveAccent from './CurveAccent';
 import { useWishlist } from '../lib/wishlist';
 import { useTheme } from '../lib/theme';
+import { useScrollReveal } from '../lib/useScrollReveal';
 
 const PAGE_SIZE = 12;
 const fmt = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
@@ -29,6 +30,7 @@ export default function ProductMarketplace() {
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const { ids: wishlistIds, isWishlisted, toggle: toggleWishlist, remove: removeFromWishlist } = useWishlist();
   const { theme } = useTheme();
+  const revealRef = useScrollReveal();
   const logoSrc = theme === 'dark' ? '/logo.png' : '/logo-on-white.png';
   const wishlistItems = useMemo(() => PRODUCTS.filter(p => wishlistIds.includes(p.id)), [wishlistIds]);
 
@@ -92,10 +94,10 @@ export default function ProductMarketplace() {
     <div className="space-y-1">
       <button
         onClick={() => { setCategory(null); setPage(1); setShowMobileFilter(false); }}
-        className={`w-full text-left px-3 py-2 rounded-lg spec-label transition-colors cursor-pointer flex items-center justify-between ${!category ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#22252c]'}`}
+        className={`w-full text-left px-3 py-2 rounded-lg spec-label transition-colors cursor-pointer flex items-center justify-between ${!category ? 'bg-berlin-navy text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#22252c]'}`}
       >
         <span>Semua Kategori</span>
-        <span className={`text-[11px] font-sans font-semibold ${!category ? 'text-white/70 dark:text-gray-900/60' : 'text-gray-400 dark:text-gray-500'}`}>{PRODUCTS.length}</span>
+        <span className={`text-[11px] font-sans font-semibold ${!category ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}`}>{PRODUCTS.length}</span>
       </button>
       {CATEGORIES.map(cat => {
         const count = categoryCounts[cat] || 0;
@@ -104,10 +106,10 @@ export default function ProductMarketplace() {
           <button
             key={cat}
             onClick={() => { setCategory(cat); setPage(1); setShowMobileFilter(false); }}
-            className={`w-full text-left px-3 py-2 rounded-lg spec-label normal-case tracking-normal font-semibold transition-colors cursor-pointer flex items-center justify-between ${active ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#22252c]'}`}
+            className={`w-full text-left px-3 py-2 rounded-lg spec-label normal-case tracking-normal font-semibold transition-colors cursor-pointer flex items-center justify-between ${active ? 'bg-berlin-navy text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#22252c]'}`}
           >
             <span>{cat}</span>
-            <span className={`text-[11px] font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20 dark:bg-gray-900/20 text-white/80 dark:text-gray-900/70' : 'bg-gray-100 dark:bg-[#22252c] text-gray-400 dark:text-gray-500'}`}>
+            <span className={`text-[11px] font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded-md ${active ? 'bg-white/20 text-white/80' : 'bg-gray-100 dark:bg-[#22252c] text-gray-400 dark:text-gray-500'}`}>
               {count}
             </span>
           </button>
@@ -132,7 +134,7 @@ export default function ProductMarketplace() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <div className="relative hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" weight="duotone" />
               <input
                 type="text"
                 placeholder="Cari part atau kode..."
@@ -142,7 +144,7 @@ export default function ProductMarketplace() {
               />
               {search && (
                 <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer">
-                  <X className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600" />
+                  <X className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600" weight="duotone" />
                 </button>
               )}
             </div>
@@ -150,7 +152,7 @@ export default function ProductMarketplace() {
               onClick={() => setShowWishlist(true)}
               className="relative w-9 h-9 rounded-xl bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] hover:border-gray-300 dark:hover:border-[#3a3d45] hover:bg-gray-50 dark:hover:bg-[#2a2d35] flex items-center justify-center cursor-pointer transition-colors"
             >
-              <Heart className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <Heart className="w-4 h-4 text-gray-600 dark:text-gray-400" weight="duotone" />
               {wishlistItems.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-berlin-red text-white text-[10px] font-extrabold rounded-full flex items-center justify-center">
                   {wishlistItems.length}
@@ -161,7 +163,7 @@ export default function ProductMarketplace() {
               onClick={() => setShowCart(true)}
               className="relative w-9 h-9 rounded-xl bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] hover:border-gray-300 dark:hover:border-[#3a3d45] hover:bg-gray-50 dark:hover:bg-[#2a2d35] flex items-center justify-center cursor-pointer transition-colors"
             >
-              <ShoppingCart className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <ShoppingCart className="w-4 h-4 text-gray-600 dark:text-gray-400" weight="duotone" />
               {cart.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-berlin-red text-white text-[10px] font-extrabold rounded-full flex items-center justify-center">
                   {cart.length}
@@ -172,13 +174,13 @@ export default function ProductMarketplace() {
               onClick={() => setShowChat(true)}
               className="relative w-9 h-9 rounded-xl bg-berlin-navy dark:bg-berlin-gold hover:bg-berlin-navy-dark dark:hover:bg-berlin-gold-light text-white flex items-center justify-center cursor-pointer transition-colors"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkle className="w-4 h-4" weight="duotone" />
             </button>
             <button
               onClick={() => setShowMobileFilter(true)}
               className="sm:hidden w-9 h-9 rounded-xl bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 flex items-center justify-center cursor-pointer transition-colors"
             >
-              <SlidersHorizontal className="w-4 h-4 text-gray-600" />
+              <SlidersHorizontal className="w-4 h-4 text-gray-600" weight="duotone" />
             </button>
           </div>
         </div>
@@ -187,7 +189,7 @@ export default function ProductMarketplace() {
       {/* Mobile search */}
       <div className="sm:hidden px-6 py-3 border-b border-gray-50 dark:border-[#2a2d35]">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" weight="duotone" />
           <input
             type="text"
             placeholder="Cari part atau kode..."
@@ -197,7 +199,7 @@ export default function ProductMarketplace() {
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer">
-              <X className="w-3.5 h-3.5 text-gray-400" />
+              <X className="w-3.5 h-3.5 text-gray-400" weight="duotone" />
             </button>
           )}
         </div>
@@ -268,7 +270,7 @@ export default function ProductMarketplace() {
           <div className="sm:col-span-3">
             {filtered.length === 0 ? (
               <div className="text-center py-20">
-                <Package className="w-12 h-12 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
+                <Package className="w-12 h-12 text-gray-200 dark:text-gray-700 mx-auto mb-3" weight="duotone" />
                 <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Produk tidak ditemukan</p>
                 <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Coba kata kunci atau kategori lain</p>
               </div>
@@ -289,18 +291,18 @@ export default function ProductMarketplace() {
                   <select
                     value={sortOrder}
                     onChange={e => { setSortOrder(e.target.value as typeof sortOrder); setPage(1); }}
-                    className="bg-white dark:bg-[#22252c] border border-gray-300 dark:border-[#2a2d35] rounded-xl text-xs font-semibold px-3 py-2 focus:outline-none focus:border-gray-500 dark:text-gray-100 cursor-pointer transition-colors"
+                    className="bg-white dark:bg-[#22252c] border border-gray-300 dark:border-[#2a2d35] rounded-xl text-xs font-semibold px-3 py-2 focus:outline-none focus:border-berlin-navy dark:text-gray-100 cursor-pointer transition-colors"
                   >
                     <option value="default">Urutan Default</option>
                     <option value="price_asc">Harga Terendah</option>
                     <option value="price_desc">Harga Tertinggi</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {paged.map((p: Product) => (
-                    <React.Fragment key={p.id}>
-                      <ProductCard product={p} onAdd={addToCart} onDetail={setDetail} inCart={inCart(p.id)} wishlisted={isWishlisted(p.id)} onToggleWishlist={toggleWishlist} />
-                    </React.Fragment>
+                <div ref={revealRef} className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {paged.map((p: Product, i: number) => (
+                    <div key={p.id} data-reveal style={{ transitionDelay: `${(i % 12) * 60}ms` }} className={i % 5 === 0 ? 'sm:col-span-2 lg:col-span-2' : ''}>
+                      <ProductCard product={p} onAdd={addToCart} onDetail={setDetail} inCart={inCart(p.id)} wishlisted={isWishlisted(p.id)} onToggleWishlist={toggleWishlist} featured={i % 5 === 0} />
+                    </div>
                   ))}
                 </div>
 
@@ -309,21 +311,21 @@ export default function ProductMarketplace() {
                   <div className="flex items-center justify-center gap-1 mt-10">
                     <button onClick={() => handlePageChange(page - 1)} disabled={page === 1}
                       className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default">
-                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <CaretLeft className="w-3.5 h-3.5" weight="duotone" />
                     </button>
                     {getPageNumbers().map((p, i) =>
                       p === '...' ? (
                         <span key={`dots-${i}`} className="w-7 h-8 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500 select-none">&hellip;</span>
                       ) : (
                         <button key={p} onClick={() => handlePageChange(p)}
-                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors cursor-pointer tabular-nums ${p === page ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#22252c]'}`}>
+                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors cursor-pointer tabular-nums ${p === page ? 'bg-berlin-navy text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#22252c]'}`}>
                           {p}
                         </button>
                       )
                     )}
                     <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}
                       className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default">
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      <CaretRight className="w-3.5 h-3.5" weight="duotone" />
                     </button>
                   </div>
                 )}
@@ -340,7 +342,7 @@ export default function ProductMarketplace() {
           <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#1a1d23] rounded-t-2xl p-5 animate-slide-up">
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-extrabold text-gray-900 dark:text-white">Kategori</p>
-              <button onClick={() => setShowMobileFilter(false)} className="cursor-pointer"><X className="w-5 h-5 text-gray-400" /></button>
+              <button onClick={() => setShowMobileFilter(false)} className="cursor-pointer"><X className="w-5 h-5 text-gray-400" weight="duotone" /></button>
             </div>
             <FilterContent />
           </div>
@@ -357,10 +359,10 @@ export default function ProductMarketplace() {
                 onClick={() => toggleWishlist(detail.id)}
                 className="w-8 h-8 rounded-lg bg-white/90 dark:bg-[#22252c]/90 backdrop-blur flex items-center justify-center cursor-pointer hover:bg-white dark:hover:bg-[#22252c]"
               >
-                <Heart className={`w-4 h-4 ${isWishlisted(detail.id) ? 'text-berlin-red fill-berlin-red' : 'text-gray-600 dark:text-gray-400'}`} />
+                <Heart className={`w-4 h-4 ${isWishlisted(detail.id) ? 'text-berlin-red fill-berlin-red' : 'text-gray-600 dark:text-gray-400'}`} weight="duotone" />
               </button>
               <button onClick={() => setDetail(null)} className="w-8 h-8 rounded-lg bg-white/90 dark:bg-[#22252c]/90 backdrop-blur flex items-center justify-center cursor-pointer hover:bg-white dark:hover:bg-[#22252c]">
-                <X className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                <X className="w-4 h-4 text-gray-600 dark:text-gray-400" weight="duotone" />
               </button>
             </div>
             <div className="aspect-[4/3] bg-gray-50 dark:bg-[#22252c] overflow-hidden">
@@ -374,7 +376,7 @@ export default function ProductMarketplace() {
               </div>
               <div className="flex items-center justify-between bg-gray-50 dark:bg-[#22252c] rounded-xl p-3">
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Harga</span>
-                <span className="text-xl font-extrabold text-gray-900 dark:text-white">{fmt(detail.price)}</span>
+                <span className="text-2xl font-black text-berlin-navy dark:text-berlin-gold tabular-nums">{fmt(detail.price)}</span>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -400,7 +402,7 @@ export default function ProductMarketplace() {
                     : 'bg-berlin-navy hover:bg-berlin-navy-dark text-white'
                 }`}
               >
-                <ShoppingCart className="w-4 h-4" />
+                <ShoppingCart className="w-4 h-4" weight="duotone" />
                 {inCart(detail.id) ? 'Sudah di keranjang' : 'Tambah ke Keranjang'}
               </button>
               <a
@@ -409,7 +411,7 @@ export default function ProductMarketplace() {
                 rel="noopener noreferrer"
                 className="w-full font-bold text-sm py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 border border-emerald-600 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
               >
-                <MessageCircle className="w-4 h-4" /> Tanya via WhatsApp
+                <ChatCircle className="w-4 h-4" weight="duotone" /> Tanya via WhatsApp
               </a>
             </div>
           </div>

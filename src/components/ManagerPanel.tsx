@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { TrendingUp, Car, Users, CheckCircle2, Clock, AlertTriangle, BarChart2, Calendar, Filter } from 'lucide-react';
+import { TrendUp, Car, CheckCircle, Clock, ChartBar } from '@phosphor-icons/react';
 import { Order, CashTransaction } from '../types';
-import { STATUS_CONFIG, STATUS_SOLID, KPI_TONE } from '../lib/design';
+import { STATUS_CONFIG, STATUS_SOLID, type KpiTone } from '../lib/design';
+import KpiTile from './ui/KpiTile';
 
 interface ManagerPanelProps {
   orders: Order[];
@@ -60,7 +61,7 @@ export default function ManagerPanel({ orders, transactions }: ManagerPanelProps
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+      <div className="card p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <span className="text-[10px] bg-berlin-navy/5 text-berlin-navy px-2.5 py-1 rounded-full font-bold uppercase tracking-widest border border-berlin-navy/10">MANAGER PANEL</span>
@@ -82,28 +83,21 @@ export default function ManagerPanel({ orders, transactions }: ManagerPanelProps
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Pemasukan', value: fmt(totalPemasukan), icon: TrendingUp, color: KPI_TONE.success.text, bg: `${KPI_TONE.success.bg} ${KPI_TONE.success.border}` },
-          { label: 'Pengeluaran', value: fmt(totalPengeluaran), icon: TrendingUp, color: KPI_TONE.danger.text, bg: `${KPI_TONE.danger.bg} ${KPI_TONE.danger.border}` },
-          { label: 'WO Selesai', value: selesai.toString(), icon: CheckCircle2, color: KPI_TONE.success.text, bg: `${KPI_TONE.success.bg} ${KPI_TONE.success.border}` },
-          { label: 'WO Aktif', value: aktif.toString(), icon: Clock, color: KPI_TONE.info.text, bg: `${KPI_TONE.info.bg} ${KPI_TONE.info.border}` },
-        ].map(s => (
-          <div key={s.label} className={`bg-white border ${s.bg} p-5 rounded-2xl shadow-sm space-y-2`}>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">{s.label}</span>
-              <s.icon className={`w-4 h-4 ${s.color}`} />
-            </div>
-            <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
-            <p className="text-[9px] text-gray-400">{periodLabel[period]}</p>
-          </div>
+        {([
+          { label: 'Pemasukan', value: fmt(totalPemasukan), icon: TrendUp, tone: 'success' as KpiTone },
+          { label: 'Pengeluaran', value: fmt(totalPengeluaran), icon: TrendUp, tone: 'danger' as KpiTone },
+          { label: 'WO Selesai', value: selesai.toString(), icon: CheckCircle, tone: 'success' as KpiTone },
+          { label: 'WO Aktif', value: aktif.toString(), icon: Clock, tone: 'info' as KpiTone },
+        ]).map(s => (
+          <KpiTile key={s.label} label={s.label} value={s.value} sublabel={periodLabel[period]} icon={s.icon} tone={s.tone} />
         ))}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Status bengkel saat ini */}
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+        <div className="card-padded space-y-4">
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-            <BarChart2 className="w-4 h-4" /> Status Bengkel Saat Ini
+            <ChartBar className="w-4 h-4" weight="duotone" /> Status Bengkel Saat Ini
           </h4>
           <div className="space-y-2.5">
             {statusBreakdown.map(s => (
@@ -121,9 +115,9 @@ export default function ManagerPanel({ orders, transactions }: ManagerPanelProps
         </div>
 
         {/* Order terbaru */}
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-3">
+        <div className="card-padded space-y-3">
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-            <Car className="w-4 h-4" /> Order Terbaru ({periodLabel[period]})
+            <Car className="w-4 h-4" weight="duotone" /> Order Terbaru ({periodLabel[period]})
           </h4>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {filteredOrders.slice(0, 10).map(o => (
@@ -144,7 +138,7 @@ export default function ManagerPanel({ orders, transactions }: ManagerPanelProps
       </div>
 
       {/* Semua order aktif */}
-      <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-3">
+      <div className="card-padded space-y-3">
         <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Seluruh Work Order Aktif di Bengkel</h4>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">

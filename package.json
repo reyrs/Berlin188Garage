@@ -16,6 +16,7 @@
     "staff:provision": "tsx scripts/provision-staff.mjs"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.111.0",
     "@tailwindcss/vite": "^4.1.14",
     "@tiptap/extension-image": "^3.29.2",

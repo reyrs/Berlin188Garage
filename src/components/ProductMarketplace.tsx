@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  MagnifyingGlass, ShoppingCart, CaretLeft, CaretRight, X, Package, SlidersHorizontal, Heart, ChatCircle, Sparkle,
+  MagnifyingGlass, ShoppingCart, CaretLeft, CaretRight, CaretDown, X, Package, SlidersHorizontal, Heart, ChatCircle, Sparkle,
 } from '@phosphor-icons/react';
 import { PRODUCTS, CATEGORIES, Product } from '../data/products';
 import ProductCard from './ProductCard';
@@ -292,15 +292,21 @@ export default function ProductMarketplace() {
                       </button>
                     )}
                   </div>
-                  <select
-                    value={sortOrder}
-                    onChange={e => { setSortOrder(e.target.value as typeof sortOrder); setPage(1); }}
-                    className="bg-white dark:bg-[#22252c] border border-gray-300 dark:border-[#2a2d35] rounded-xl text-xs font-semibold px-3 py-2 focus:outline-none focus:border-berlin-navy dark:text-gray-100 cursor-pointer transition-colors"
-                  >
-                    <option value="default">Urutan Default</option>
-                    <option value="price_asc">Harga Terendah</option>
-                    <option value="price_desc">Harga Tertinggi</option>
-                  </select>
+                  <div className="relative flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 hidden sm:inline">Urutkan:</span>
+                    <div className="relative">
+                      <select
+                        value={sortOrder}
+                        onChange={e => { setSortOrder(e.target.value as typeof sortOrder); setPage(1); }}
+                        className="appearance-none bg-white dark:bg-[#2a2d35] border-2 border-gray-300 dark:border-gray-600 rounded-xl text-xs font-bold text-gray-900 dark:text-white pl-3 pr-8 py-2 focus:outline-none focus:border-berlin-navy dark:focus:border-berlin-gold cursor-pointer transition-colors"
+                      >
+                        <option value="default">Urutan Default</option>
+                        <option value="price_asc">Harga Terendah</option>
+                        <option value="price_desc">Harga Tertinggi</option>
+                      </select>
+                      <CaretDown className="w-3 h-3 text-gray-500 dark:text-gray-300 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" weight="bold" />
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4">
                   {paged.map((p: Product) => (

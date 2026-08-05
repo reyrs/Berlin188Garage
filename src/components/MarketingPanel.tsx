@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Camera, Image, Star, Upload, Save, Loader2, Trash2, Plus, FileText, Eye, EyeOff, Pencil } from 'lucide-react';
+import { Camera, Image, Star, UploadSimple, FloppyDisk, CircleNotch, Trash, Plus, FileText, Eye, EyeSlash, PencilSimple } from '@phosphor-icons/react';
 import { Order, PortfolioItem, User, BlogPost } from '../types';
 import { BRANDS } from './LandingPage';
 import { BLOG_CATEGORIES } from './BlogListPage';
@@ -263,7 +263,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+      <div className="card p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <span className="text-[10px] bg-berlin-red/10 text-berlin-red px-2.5 py-1 rounded-full font-bold uppercase tracking-widest border border-berlin-red/20">MARKETING & KOMUNIKASI</span>
@@ -271,7 +271,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
             <p className="text-gray-500 text-xs mt-0.5">Data foto, temuan, dan pengerjaan untuk konten media sosial dan portofolio bengkel.</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-xl">
-            <Image className="w-4 h-4" />
+            <Image className="w-4 h-4" weight="duotone" />
             <span className="font-semibold">{allPhotos.length} foto tersedia</span>
           </div>
         </div>
@@ -295,7 +295,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
 
       {panelTab === 'portofolio' && (
         <div className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+          <div className="card-padded space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Tambah Portofolio</h4>
             <div className="space-y-3">
               <div className="space-y-1">
@@ -341,7 +341,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Foto Hasil Kerja</label>
                 <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-lg py-4 cursor-pointer hover:bg-gray-50 transition-colors text-xs text-gray-500 font-semibold">
-                  <Upload className="w-4 h-4" /> {pfImageFile ? pfImageFile.name : 'Pilih Foto (wajib)'}
+                  <UploadSimple className="w-4 h-4" weight="duotone" /> {pfImageFile ? pfImageFile.name : 'Pilih Foto (wajib)'}
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handlePortfolioImagePick(f); }} />
                 </label>
@@ -351,13 +351,13 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
                 disabled={isSavingPortfolio}
                 className="w-full flex items-center justify-center gap-1.5 bg-berlin-navy hover:bg-berlin-navy/90 disabled:opacity-60 text-white py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all"
               >
-                {isSavingPortfolio ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                {isSavingPortfolio ? <CircleNotch className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" weight="duotone" />}
                 {isSavingPortfolio ? 'Menyimpan...' : 'Tambah ke Beranda'}
               </button>
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+          <div className="card-padded space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Portofolio Aktif ({portfolioItems.length})</h4>
             {portfolioItems.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-8">Belum ada portofolio yang ditambahkan.</p>
@@ -376,7 +376,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
                       className="absolute top-2 right-2 bg-white/90 hover:bg-white text-berlin-red p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                       title="Hapus"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash className="w-3.5 h-3.5" weight="duotone" />
                     </button>
                   </div>
                 ))}
@@ -388,7 +388,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
 
       {panelTab === 'blog' && (
         <div className="grid lg:grid-cols-2 gap-6 items-start">
-          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+          <div className="card-padded space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">
               {editingBlogId ? 'Edit Artikel' : 'Tulis Artikel Baru'}
             </h4>
@@ -415,7 +415,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Cover Image</label>
                 <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-lg py-4 cursor-pointer hover:bg-gray-50 transition-colors text-xs text-gray-500 font-semibold">
-                  <Upload className="w-4 h-4" /> {blogCoverFile ? blogCoverFile.name : existingCoverUrl ? 'Ganti cover (opsional)' : 'Pilih Cover (wajib)'}
+                  <UploadSimple className="w-4 h-4" weight="duotone" /> {blogCoverFile ? blogCoverFile.name : existingCoverUrl ? 'Ganti cover (opsional)' : 'Pilih Cover (wajib)'}
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleBlogCoverPick(f); }} />
                 </label>
@@ -430,12 +430,12 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
               <div className="flex gap-2">
                 <button onClick={() => handleSaveBlog(false)} disabled={isSavingBlog}
                   className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all">
-                  {isSavingBlog ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  {isSavingBlog ? <CircleNotch className="w-3.5 h-3.5 animate-spin" /> : <FloppyDisk className="w-3.5 h-3.5" weight="duotone" />}
                   Simpan Draft
                 </button>
                 <button onClick={() => handleSaveBlog(true)} disabled={isSavingBlog}
                   className="flex-1 flex items-center justify-center gap-1.5 bg-berlin-navy hover:bg-berlin-navy/90 disabled:opacity-60 text-white py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all">
-                  {isSavingBlog ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+                  {isSavingBlog ? <CircleNotch className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" weight="duotone" />}
                   Publish
                 </button>
               </div>
@@ -447,7 +447,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-3">
+          <div className="card-padded space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Semua Artikel ({blogPosts.length})</h4>
             {isLoadingBlog ? (
               <p className="text-xs text-gray-400 text-center py-8">Memuat...</p>
@@ -470,15 +470,15 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => handleTogglePublish(post)} title={post.status === 'published' ? 'Jadikan draft' : 'Publish'}
                         className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 cursor-pointer transition-colors">
-                        {post.status === 'published' ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {post.status === 'published' ? <EyeSlash className="w-3.5 h-3.5" weight="duotone" /> : <Eye className="w-3.5 h-3.5" weight="duotone" />}
                       </button>
                       <button onClick={() => startEditBlog(post)} title="Edit"
                         className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 cursor-pointer transition-colors">
-                        <Pencil className="w-3.5 h-3.5" />
+                        <PencilSimple className="w-3.5 h-3.5" weight="duotone" />
                       </button>
                       <button onClick={() => handleDeleteBlog(post.id)} title="Hapus"
                         className="p-1.5 rounded-lg text-berlin-red hover:bg-red-50 cursor-pointer transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash className="w-3.5 h-3.5" weight="duotone" />
                       </button>
                     </div>
                   </div>
@@ -498,7 +498,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
           { label: 'Foto Pengerjaan', value: allPhotos.filter(p => p.type === 'Bukti Pengerjaan').length, color: 'text-blue-600' },
           { label: 'Foto Temuan', value: allPhotos.filter(p => p.type === 'Temuan Diagnosis').length, color: 'text-purple-600' },
         ].map(s => (
-          <div key={s.label} className="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm text-center">
+          <div key={s.label} className="card p-4 text-center">
             <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
             <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mt-1">{s.label}</p>
           </div>
@@ -507,9 +507,9 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
 
       {/* Gallery foto */}
       {allPhotos.length > 0 && (
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+        <div className="card-padded space-y-4">
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-            <Camera className="w-4 h-4" /> Galeri Foto Pengerjaan & Temuan
+            <Camera className="w-4 h-4" weight="duotone" /> Galeri Foto Pengerjaan & Temuan
           </h4>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {allPhotos.map((photo, idx) => (
@@ -536,10 +536,10 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       )}
 
       {/* Portofolio order selesai */}
-      <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm space-y-4">
+      <div className="card-padded space-y-4">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
-            <Star className="w-4 h-4" /> Portofolio Kendaraan Selesai
+            <Star className="w-4 h-4" weight="duotone" /> Portofolio Kendaraan Selesai
           </h4>
           <div className="flex gap-1.5 flex-wrap">
             {brands.map(b => (

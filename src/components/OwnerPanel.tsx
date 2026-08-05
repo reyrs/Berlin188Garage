@@ -1,11 +1,12 @@
 import React from 'react';
 import {
-  DollarSign, Car, Users, TrendingUp, ShieldAlert, Clock, Calendar, CheckSquare, Sparkles, Award
-} from 'lucide-react';
+  CurrencyDollar, Car, Users, ShieldWarning
+} from '@phosphor-icons/react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 import { Order, CashTransaction, CashClosing, User as StaffUser } from '../types';
+import KpiTile from './ui/KpiTile';
 
 interface OwnerPanelProps {
   orders: Order[];
@@ -45,70 +46,41 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
       
       {/* Metrics Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl space-y-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">TOTAL PENDAPATAN</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-100">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="space-y-0.5">
-            <div className="text-lg sm:text-xl font-bold text-black font-sans tabular-nums">{formatRupiah(totalRevenue)}</div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Lunas Diterima</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl space-y-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">BELUM DIBAYAR</span>
-            <div className="w-8 h-8 rounded-lg bg-red-50 text-red-800 flex items-center justify-center border border-red-100">
-              <ShieldAlert className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="space-y-0.5">
-            <div className="text-lg sm:text-xl font-bold text-black font-sans tabular-nums">{formatRupiah(pendingRevenue)}</div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Tagihan Tertunda (Outstanding)</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl space-y-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">ORDERAN AKTIF</span>
-            <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-800 flex items-center justify-center border border-sky-100">
-              <Car className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="space-y-0.5">
-            <div className="text-lg sm:text-xl font-bold text-black font-sans">
-              {orders.filter(o => o.status !== 'selesai').length} WO
-            </div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Sedang Dikerjakan</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl space-y-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">TIM STAF AKTIF</span>
-            <div className="w-8 h-8 rounded-lg bg-gray-100 text-black flex items-center justify-center border border-gray-200">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="space-y-0.5">
-            <div className="text-lg sm:text-xl font-bold text-black font-sans">
-              {staffUsers.length} Orang
-            </div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Teknisi & Administrasi</p>
-          </div>
-        </div>
-
+        <KpiTile
+          label="TOTAL PENDAPATAN"
+          value={formatRupiah(totalRevenue)}
+          sublabel="Lunas Diterima"
+          icon={CurrencyDollar}
+          tone="success"
+        />
+        <KpiTile
+          label="BELUM DIBAYAR"
+          value={formatRupiah(pendingRevenue)}
+          sublabel="Tagihan Tertunda (Outstanding)"
+          icon={ShieldWarning}
+          tone="danger"
+        />
+        <KpiTile
+          label="ORDERAN AKTIF"
+          value={`${orders.filter(o => o.status !== 'selesai').length} WO`}
+          sublabel="Sedang Dikerjakan"
+          icon={Car}
+          tone="info"
+        />
+        <KpiTile
+          label="TIM STAF AKTIF"
+          value={`${staffUsers.length} Orang`}
+          sublabel="Teknisi & Administrasi"
+          icon={Users}
+          tone="neutral"
+        />
       </div>
 
       {/* Main Charts & History rows */}
       <div className="grid lg:grid-cols-12 gap-6 items-start">
         
         {/* Revenue chart */}
-        <div className="lg:col-span-8 bg-white border border-gray-200 p-6 rounded-2xl space-y-4 shadow-sm">
+        <div className="lg:col-span-8 card p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-gray-100 pb-3">
             <div>
               <span className="text-[10px] bg-gray-100 text-black px-2 py-0.5 rounded font-bold">Grafik Omset</span>
@@ -144,7 +116,7 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
         </div>
 
         {/* Right column: Audit logs / Closings logs */}
-        <div className="lg:col-span-4 bg-white border border-gray-200 p-6 rounded-2xl space-y-4 shadow-sm">
+        <div className="lg:col-span-4 card p-6 space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 pb-3 border-b border-gray-100">
             Riwayat Penutupan Kas
           </h3>
@@ -193,7 +165,7 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers 
       </div>
 
       {/* Staff directory */}
-      <div className="bg-white border border-gray-200 p-6 rounded-2xl space-y-4 shadow-sm">
+      <div className="card p-6 space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 pb-3 border-b border-gray-100">
           Daftar Kehadiran & Aktivitas Staff Bengkel
         </h3>

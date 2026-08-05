@@ -140,7 +140,14 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   const loadData = useCallback(async () => {
     setIsLoading(true);
 
-    await seedWarehouseStock(MOCK_WAREHOUSE_STOCK);
+    // Seeding cuma relevan (dan cuma lolos RLS) buat sesi staf yang sudah
+    // login — pengunjung publik/anon selalu ditolak policy warehouse_stock,
+    // jadi jangan coba di luar sesi staf (skip 12 insert yang pasti gagal
+    // tiap kali landing page/marketplace dibuka).
+    const seedSession = await getSession();
+    if (seedSession) {
+      await seedWarehouseStock(MOCK_WAREHOUSE_STOCK);
+    }
 
     const results = await Promise.allSettled([
       fetchOrders(),

@@ -12,6 +12,7 @@ import CurveAccent from './CurveAccent';
 import { useWishlist } from '../lib/wishlist';
 import { useTheme } from '../lib/theme';
 import { useScrollReveal } from '../lib/useScrollReveal';
+import { useCountUp } from '../lib/useCountUp';
 
 const PAGE_SIZE = 12;
 const fmt = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
@@ -35,6 +36,9 @@ export default function ProductMarketplace() {
   const wishlistItems = useMemo(() => PRODUCTS.filter(p => wishlistIds.includes(p.id)), [wishlistIds]);
 
   const brands = useMemo(() => Array.from(new Set(PRODUCTS.map(p => p.brand))).sort(), []);
+  const productCount = useCountUp(PRODUCTS.length);
+  const categoryCount = useCountUp(CATEGORIES.length);
+  const brandCount = useCountUp(brands.length);
 
   const filtered = useMemo(() => {
     let list = PRODUCTS;
@@ -216,15 +220,15 @@ export default function ProductMarketplace() {
           </h1>
           <div className="flex gap-8 mt-7">
             <div>
-              <p className="text-2xl font-sans font-bold text-white">{PRODUCTS.length}</p>
+              <p className="text-2xl font-sans font-bold text-white tabular-nums">{productCount}</p>
               <p className="spec-label text-white/50 mt-0.5">Part Siap Kirim</p>
             </div>
             <div>
-              <p className="text-2xl font-sans font-bold text-white">{CATEGORIES.length}</p>
+              <p className="text-2xl font-sans font-bold text-white tabular-nums">{categoryCount}</p>
               <p className="spec-label text-white/50 mt-0.5">Kategori</p>
             </div>
             <div>
-              <p className="text-2xl font-sans font-bold text-white">{brands.length}</p>
+              <p className="text-2xl font-sans font-bold text-white tabular-nums">{brandCount}</p>
               <p className="spec-label text-white/50 mt-0.5">Merek</p>
             </div>
           </div>

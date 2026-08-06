@@ -865,6 +865,11 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     return all.filter(t => t.roles.includes(role));
   };
 
+  const handleTabClick = (tab: { id: ActiveTab }) => {
+    if (tab.id === 'monitor_service' || tab.id === 'monitor_tunggu') setCurrentView(tab.id);
+    else setActiveTab(tab.id);
+  };
+
   // Papan slot standalone (dark screen untuk TV bengkel) — Ruang Service
   // interaktif (klik slot buka SPK), Ruang Tunggu pasif (papan status doang,
   // supaya customer nggak bisa buka data pribadi customer lain).
@@ -971,25 +976,42 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {getTabsForRole(activeStaffUser.role).map(tab => (
-                    <button key={tab.id}
-                      onClick={() => (tab.id === 'monitor_service' || tab.id === 'monitor_tunggu') ? setCurrentView(tab.id) : setActiveTab(tab.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                      <tab.icon className="w-3.5 h-3.5" />
-                      {tab.label}
-                    </button>
-                  ))}
-                  <button onClick={handleLogout}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all">
-                    <LogOut className="w-3.5 h-3.5" />
-                    Keluar
+                <button onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all shrink-0">
+                  <LogOut className="w-3.5 h-3.5" />
+                  Keluar
+                </button>
+              </div>
+
+              {/* Tab nav — horizontal scroller on mobile/tablet, hidden from lg up (sidebar takes over) */}
+              <div className="lg:hidden max-w-7xl mx-auto mt-3 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+                {getTabsForRole(activeStaffUser.role).map(tab => (
+                  <button key={tab.id}
+                    onClick={() => handleTabClick(tab)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    <tab.icon className="w-3.5 h-3.5" />
+                    {tab.label}
                   </button>
-                </div>
+                ))}
               </div>
             </div>
 
-            <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24">
+            <div className="max-w-7xl mx-auto flex gap-6 p-4 sm:p-6 pb-24">
+              {/* Sidebar nav — desktop only, from lg up */}
+              <aside className="hidden lg:block w-56 shrink-0">
+                <nav className="sticky top-24 space-y-1">
+                  {getTabsForRole(activeStaffUser.role).map(tab => (
+                    <button key={tab.id}
+                      onClick={() => handleTabClick(tab)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all text-left ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                      <tab.icon className="w-4 h-4 shrink-0" />
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
+              </aside>
+
+              <div className="flex-1 min-w-0">
               <StaffChunkErrorBoundary>
               <React.Suspense fallback={<StaffLoadingFallback />}>
 
@@ -1102,6 +1124,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
               )}
               </React.Suspense>
               </StaffChunkErrorBoundary>
+              </div>
             </div>
           </div>
         )}

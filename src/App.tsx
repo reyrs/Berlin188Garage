@@ -10,6 +10,7 @@ import LandingPage from './components/LandingPage';
 import TrackingPortal from './components/TrackingPortal';
 import ProductMarketplace from './components/ProductMarketplace';
 import ThemeToggle from './components/ThemeToggle';
+import NotificationCenter from './components/NotificationCenter';
 
 // Components — cuma dipakai lewat /staff. Lazy-load supaya kode ini tidak
 // pernah ikut ke-download pengunjung publik (lihat docs/superpowers/specs/
@@ -48,6 +49,7 @@ import {
 import { getSession, onAuthStateChange, signOutStaff } from './lib/auth';
 import { supabase } from './lib/supabase';
 import { usePresence } from './lib/usePresence';
+import { useNotifications } from './lib/notifications';
 
 type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report';
 
@@ -141,6 +143,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   const [isLoading, setIsLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
   const onlineStaffIds = usePresence(activeStaffUser?.id);
+  const { push: pushNotification } = useNotifications();
 
   const showNotification = (msg: string) => {
     setSandboxNotification(msg);
@@ -275,13 +278,14 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     createOrder(newOrder)
       .then(() => {
         showNotification(`✅ WO baru ${newOrder.id} berhasil dibuat — SPK siap dicetak.`);
+        pushNotification(`WO ${newOrder.id} (${newOrder.customerName}) berhasil dibuat`);
       })
       .catch(err => {
         console.error('Failed to save order:', err);
         setOrders(prev => prev.filter(o => o.id !== newOrder.id));
         showNotification(`❌ WO ${newOrder.id} gagal disimpan ke database. Coba buat ulang.`);
       });
-  }, []);
+  }, [pushNotification]);
 
   const handleUpdateOrderStatus = useCallback((orderId: string, status: Order['status'], description: string) => {
     const now = new Date().toISOString();
@@ -583,7 +587,8 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         ? `📋 SPK ${orderId} dikirim ke ${mechanicName} — Slot ${assignedSlot}.`
         : `📋 SPK ${orderId} dikirim ke ${mechanicName} — semua slot penuh, nunggu bay kosong.`
     );
-  }, [activeStaffUser, orders]);
+    pushNotification(`SPK ${orderId} dikirim ke mekanik ${mechanicName}`);
+  }, [activeStaffUser, orders, pushNotification]);
 
   const handleUpdateFindingCost = useCallback((orderId: string, findingId: string, cost: number) => {
     setOrders(prev => prev.map(o =>
@@ -690,7 +695,8 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     });
 
     showNotification(`💰 Pembayaran ${orderId} lunas — Rp ${remaining.toLocaleString('id-ID')}`);
-  }, [orders, activeStaffUser, createTransactionRecord]);
+    pushNotification(`Pembayaran WO ${orderId} telah dikonfirmasi lunas`);
+  }, [orders, activeStaffUser, createTransactionRecord, pushNotification]);
 
   const handleConfirmDPPayment = useCallback((orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dpAmount: number, dest: string) => {
     const order = orders.find(o => o.id === orderId);
@@ -984,6 +990,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
+                  <NotificationCenter />
                   <ThemeToggle />
                   <button onClick={handleLogout}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all shrink-0">

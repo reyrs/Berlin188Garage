@@ -284,7 +284,12 @@ export default function LandingPage({ onCheckOrder, onSelectSampleOrder, onOpenM
           </a>
         </div>
 
-        <div className="text-center mt-16 space-y-2">
+        <div className="text-center mt-16 space-y-3">
+          <div className="flex items-center justify-center gap-4">
+            <a href="/privasi" className="spec-label text-gray-400 hover:text-berlin-navy dark:hover:text-white transition-colors">Kebijakan Privasi</a>
+            <span className="text-gray-300 dark:text-gray-700">&middot;</span>
+            <a href="/syarat" className="spec-label text-gray-400 hover:text-berlin-navy dark:hover:text-white transition-colors">Syarat & Ketentuan</a>
+          </div>
           <p className="spec-label text-gray-400">&copy; 2026 Berlin 188 Garage</p>
         </div>
       </section>

@@ -8,6 +8,8 @@ import App from './App.tsx';
 import BlogListPage from './components/BlogListPage.tsx';
 import BlogPostPage from './components/BlogPostPage.tsx';
 import NotFoundPage from './components/NotFoundPage.tsx';
+import PrivacyPolicyPage from './components/PrivacyPolicyPage.tsx';
+import TermsPage from './components/TermsPage.tsx';
 import './index.css';
 
 initAnalytics();
@@ -21,6 +23,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<App />} />
           <Route path="/blog" element={<BlogListPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/privasi" element={<PrivacyPolicyPage />} />
+          <Route path="/syarat" element={<TermsPage />} />
           <Route path="/staff" element={<App entryMode="staff" />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

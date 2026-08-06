@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ShoppingCart, Trash, ChatCircle } from '@phosphor-icons/react';
+import { X, ShoppingCart, Trash, ChatCircle, ArrowSquareOut } from '@phosphor-icons/react';
 import { Product } from '../data/products';
 
 interface Props {
@@ -9,6 +9,8 @@ interface Props {
 }
 
 const fmt = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
+const SHOPEE_SHOP_ID = '1396592299';
+const shopeeUrl = (p: Product) => `https://shopee.co.id/product/${SHOPEE_SHOP_ID}/${p.code}`;
 
 export default function CartDrawer({ cart, onRemove, onClose }: Props) {
   const total = cart.reduce((s, p) => s + p.price, 0);
@@ -47,6 +49,14 @@ export default function CartDrawer({ cart, onRemove, onClose }: Props) {
                     <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{p.name}</p>
                     <p className="text-xs text-gray-400">{p.code}</p>
                     <p className="text-sm font-black text-berlin-navy dark:text-berlin-gold tabular-nums mt-0.5">{fmt(p.price)}</p>
+                    <a
+                      href={shopeeUrl(p)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold text-berlin-red hover:underline mt-1"
+                    >
+                      <ArrowSquareOut className="w-3 h-3" weight="bold" /> Lihat di Shopee
+                    </a>
                   </div>
                   <button onClick={() => onRemove(p.id)} className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center cursor-pointer transition-colors shrink-0">
                     <Trash className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" weight="duotone" />

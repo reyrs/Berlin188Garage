@@ -373,8 +373,8 @@ export default function ProductMarketplace() {
                 <X className="w-4 h-4 text-gray-600 dark:text-gray-400" weight="duotone" />
               </button>
             </div>
-            <div className="aspect-[4/3] bg-gray-50 dark:bg-[#22252c] overflow-hidden">
-              <img src={detail.fullImage || detail.image} alt={detail.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="aspect-[4/3] bg-gray-50 dark:bg-[#22252c] overflow-hidden p-4">
+              <img src={detail.fullImage || detail.image} alt={detail.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
             </div>
             <div className="p-5 space-y-4">
               <div>

@@ -155,6 +155,15 @@ export interface PortfolioItem {
   createdBy?: string;
 }
 
+export interface ErrorLog {
+  id: string;
+  message: string;
+  stack?: string;
+  source: string;
+  pageUrl?: string;
+  createdAt: string;
+}
+
 export interface BlogPost {
   id: string;
   title: string;

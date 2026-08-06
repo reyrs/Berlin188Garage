@@ -56,6 +56,7 @@ import { supabase } from './lib/supabase';
 import { usePresence } from './lib/usePresence';
 import { useNotifications } from './lib/notifications';
 import { trackPageView } from './lib/analytics';
+import { logReactError } from './lib/errorLogger';
 
 type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report' | 'audit_log' | 'settings';
 
@@ -123,6 +124,7 @@ class StaffChunkErrorBoundary extends React.Component<{ children: React.ReactNod
 
   componentDidCatch(error: Error) {
     console.error('Failed to load dashboard chunk:', error);
+    logReactError(error, 'StaffChunkErrorBoundary');
   }
 
   render() {

@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { Clipboard, CurrencyCircleDollar, Vault, MagnifyingGlass, ListBullets } from '@phosphor-icons/react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Clipboard, CurrencyCircleDollar, Vault, MagnifyingGlass, ListBullets, Bug } from '@phosphor-icons/react';
 import { Order, CashTransaction, CashClosing } from '../types';
+import { fetchErrorLogs } from '../lib/db';
 
 interface AuditLogPanelProps {
   orders: Order[];
@@ -8,7 +9,7 @@ interface AuditLogPanelProps {
   closings: CashClosing[];
 }
 
-type EntryKind = 'order' | 'transaksi' | 'kas';
+type EntryKind = 'order' | 'transaksi' | 'kas' | 'error';
 
 interface AuditEntry {
   id: string;
@@ -24,11 +25,25 @@ const KIND_CONFIG: Record<EntryKind, { label: string; icon: any; color: string }
   order: { label: 'Order', icon: Clipboard, color: 'text-berlin-navy dark:text-berlin-gold' },
   transaksi: { label: 'Transaksi', icon: CurrencyCircleDollar, color: 'text-emerald-600 dark:text-emerald-400' },
   kas: { label: 'Closing Kas', icon: Vault, color: 'text-amber-600 dark:text-amber-400' },
+  error: { label: 'Error', icon: Bug, color: 'text-red-600 dark:text-red-400' },
 };
 
 export default function AuditLogPanel({ orders, transactions, closings }: AuditLogPanelProps) {
   const [kindFilter, setKindFilter] = useState<EntryKind | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [errorEntries, setErrorEntries] = useState<AuditEntry[]>([]);
+
+  useEffect(() => {
+    fetchErrorLogs()
+      .then(logs => setErrorEntries(logs.map(e => ({
+        id: `error-${e.id}`,
+        timestamp: new Date(e.createdAt).getTime(),
+        actor: e.source,
+        message: `${e.message}${e.pageUrl ? ` — di ${e.pageUrl.replace(window.location.origin, '')}` : ''}`,
+        kind: 'error' as const,
+      }))))
+      .catch(err => console.error('Failed to load error logs:', err));
+  }, []);
 
   const entries = useMemo<AuditEntry[]>(() => {
     const orderEntries: AuditEntry[] = orders.flatMap(o =>
@@ -57,8 +72,8 @@ export default function AuditLogPanel({ orders, transactions, closings }: AuditL
       kind: 'kas' as const,
     }));
 
-    return [...orderEntries, ...txEntries, ...kasEntries].sort((a, b) => b.timestamp - a.timestamp);
-  }, [orders, transactions, closings]);
+    return [...orderEntries, ...txEntries, ...kasEntries, ...errorEntries].sort((a, b) => b.timestamp - a.timestamp);
+  }, [orders, transactions, closings, errorEntries]);
 
   const filtered = useMemo(() => {
     let list = entries;
@@ -75,6 +90,7 @@ export default function AuditLogPanel({ orders, transactions, closings }: AuditL
     order: entries.filter(e => e.kind === 'order').length,
     transaksi: entries.filter(e => e.kind === 'transaksi').length,
     kas: entries.filter(e => e.kind === 'kas').length,
+    error: entries.filter(e => e.kind === 'error').length,
   }), [entries]);
 
   return (
@@ -86,13 +102,13 @@ export default function AuditLogPanel({ orders, transactions, closings }: AuditL
           </span>
           <h3 className="text-lg font-bold text-[#1A1A1A] dark:text-white mt-2">Log Aktivitas Bengkel</h3>
           <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">
-            Gabungan riwayat order, transaksi kas, dan closing kas — siapa melakukan apa dan kapan.
+            Gabungan riwayat order, transaksi kas, closing kas, dan error yang tertangkap di website — siapa/apa terjadi dan kapan.
           </p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {(['all', 'order', 'transaksi', 'kas'] as const).map(k => (
+        {(['all', 'order', 'transaksi', 'kas', 'error'] as const).map(k => (
           <button
             key={k}
             onClick={() => setKindFilter(k)}

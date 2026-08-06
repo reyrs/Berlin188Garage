@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Order, CashTransaction, CashClosing, Expense, WarehouseStockItem, User, HeroContent, PortfolioItem, BlogPost } from '../types'
+import type { Order, CashTransaction, CashClosing, Expense, WarehouseStockItem, User, HeroContent, PortfolioItem, BlogPost, ErrorLog } from '../types'
 import { sanitizeBlogHtml } from './sanitize'
 
 const db = () => {
@@ -144,6 +144,15 @@ export async function fetchClosings(): Promise<CashClosing[]> {
 export async function createClosing(closing: CashClosing): Promise<void> {
   const { error } = await db().from('closings').insert({ id: closing.id, timestamp: closing.timestamp, system_cash: closing.systemCash, physical_cash: closing.physicalCash, discrepancy: closing.discrepancy, closed_by: closing.closedBy, notes: closing.notes })
   if (error) throw error
+}
+
+export async function fetchErrorLogs(): Promise<ErrorLog[]> {
+  const { data, error } = await db().from('error_logs').select('*').order('created_at', { ascending: false }).limit(100)
+  if (error) throw error
+  return (data || []).map((d: any) => ({
+    id: d.id, message: d.message, stack: d.stack || undefined, source: d.source,
+    pageUrl: d.page_url || undefined, createdAt: d.created_at,
+  }))
 }
 
 function mapClosing(data: any): CashClosing {

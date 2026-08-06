@@ -8,7 +8,9 @@ import {
 // Components — dipakai pengunjung publik (`/`), tetap static import
 import LandingPage from './components/LandingPage';
 import TrackingPortal from './components/TrackingPortal';
-import ProductMarketplace from './components/ProductMarketplace';
+// Lazy-loaded — the 1107-product catalog it pulls in is heavy, and most
+// visitors (landing page, order tracking) never open the marketplace.
+const ProductMarketplace = React.lazy(() => import('./components/ProductMarketplace'));
 import ThemeToggle from './components/ThemeToggle';
 import NotificationCenter from './components/NotificationCenter';
 import CommandPalette from './components/CommandPalette';
@@ -972,7 +974,9 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         )}
 
         {currentView === 'marketplace' && (
-          <ProductMarketplace />
+          <React.Suspense fallback={<StaffLoadingFallback />}>
+            <ProductMarketplace />
+          </React.Suspense>
         )}
 
         {currentView === 'tracking' && (

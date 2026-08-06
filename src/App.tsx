@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wrench, LogOut, Bell, ShieldAlert,
-  LayoutDashboard, FilePlus, ClipboardList, Package, Monitor, BookOpen, FileBarChart
+  LayoutDashboard, FilePlus, ClipboardList, Package, Monitor, BookOpen, FileBarChart,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 // Components — dipakai pengunjung publik (`/`), tetap static import
@@ -129,6 +130,11 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   const [activeStaffUser, setActiveStaffUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor_service' | 'monitor_tunggu' | 'marketplace' | 'staff_login'>(entryMode === 'staff' ? 'staff_login' : 'landing');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('staff_sidebar_collapsed') === 'true');
+  const toggleSidebar = () => setSidebarCollapsed(prev => {
+    localStorage.setItem('staff_sidebar_collapsed', String(!prev));
+    return !prev;
+  });
   const [trackingQuery, setTrackingQuery] = useState('');
   const [sandboxNotification, setSandboxNotification] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -998,16 +1004,24 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
 
             <div className="max-w-7xl mx-auto flex gap-6 p-4 sm:p-6 pb-24">
               {/* Sidebar nav — desktop only, from lg up */}
-              <aside className="hidden lg:block w-56 shrink-0">
+              <aside className={`hidden lg:block shrink-0 transition-all ${sidebarCollapsed ? 'w-14' : 'w-56'}`}>
                 <nav className="sticky top-24 space-y-1">
                   {getTabsForRole(activeStaffUser.role).map(tab => (
                     <button key={tab.id}
                       onClick={() => handleTabClick(tab)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all text-left ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                      title={sidebarCollapsed ? tab.label : undefined}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all text-left ${sidebarCollapsed ? 'justify-center' : ''} ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                       <tab.icon className="w-4 h-4 shrink-0" />
-                      {tab.label}
+                      {!sidebarCollapsed && tab.label}
                     </button>
                   ))}
+                  <button
+                    onClick={toggleSidebar}
+                    title={sidebarCollapsed ? 'Perlebar menu' : 'Ciutkan menu'}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all mt-2 border-t border-gray-100 pt-3 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+                    {sidebarCollapsed ? <ChevronRight className="w-4 h-4 shrink-0" /> : <ChevronLeft className="w-4 h-4 shrink-0" />}
+                    {!sidebarCollapsed && 'Ciutkan'}
+                  </button>
                 </nav>
               </aside>
 

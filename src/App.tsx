@@ -55,6 +55,7 @@ import { getSession, onAuthStateChange, signOutStaff } from './lib/auth';
 import { supabase } from './lib/supabase';
 import { usePresence } from './lib/usePresence';
 import { useNotifications } from './lib/notifications';
+import { trackPageView } from './lib/analytics';
 
 type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report' | 'audit_log' | 'settings';
 
@@ -166,6 +167,14 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   const [dbError, setDbError] = useState<string | null>(null);
   const onlineStaffIds = usePresence(activeStaffUser?.id);
   const { push: pushNotification } = useNotifications();
+
+  // Public-facing screens only — internal staff tool usage isn't ad-funnel
+  // signal and doesn't belong in the same GA4 property as customer traffic.
+  useEffect(() => {
+    if (['landing', 'marketplace', 'tracking'].includes(currentView)) {
+      trackPageView(currentView);
+    }
+  }, [currentView]);
 
   const showNotification = (msg: string) => {
     setSandboxNotification(msg);

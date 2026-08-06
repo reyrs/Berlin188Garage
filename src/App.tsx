@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wrench, LogOut, Bell, ShieldAlert,
   LayoutDashboard, FilePlus, ClipboardList, Package, Monitor, BookOpen, FileBarChart,
-  ChevronLeft, ChevronRight, Search, History
+  ChevronLeft, ChevronRight, Search, History, Settings
 } from 'lucide-react';
 
 // Components — dipakai pengunjung publik (`/`), tetap static import
@@ -27,6 +27,7 @@ const TechnicianPanel = React.lazy(() => import('./components/TechnicianPanel'))
 const ManagerPanel = React.lazy(() => import('./components/ManagerPanel'));
 const FinanceReportPanel = React.lazy(() => import('./components/FinanceReportPanel'));
 const AuditLogPanel = React.lazy(() => import('./components/AuditLogPanel'));
+const SettingsPanel = React.lazy(() => import('./components/SettingsPanel'));
 const MarketingPanel = React.lazy(() => import('./components/MarketingPanel'));
 
 // Types & Data
@@ -53,7 +54,23 @@ import { supabase } from './lib/supabase';
 import { usePresence } from './lib/usePresence';
 import { useNotifications } from './lib/notifications';
 
-type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report' | 'audit_log';
+type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report' | 'audit_log' | 'settings';
+
+const ALL_TABS: { id: ActiveTab; label: string; icon: any; roles: string[] }[] = [
+  { id: 'dashboard', label: 'Laporan', icon: LayoutDashboard, roles: ['owner', 'advisor'] },
+  { id: 'create_order', label: 'Buat WO', icon: FilePlus, roles: ['advisor', 'owner'] },
+  { id: 'track_dashboard', label: 'Kelola WO', icon: ClipboardList, roles: ['advisor', 'owner'] },
+  { id: 'gudang', label: 'Gudang', icon: Package, roles: ['gudang', 'owner', 'advisor'] },
+  { id: 'spk', label: 'Kerja Saya', icon: Wrench, roles: ['mekanik', 'advisor'] },
+  { id: 'manager_dashboard', label: 'Pantauan', icon: LayoutDashboard, roles: ['manager', 'advisor'] },
+  { id: 'marketing', label: 'Konten & Portofolio', icon: Monitor, roles: ['marketing', 'advisor'] },
+  { id: 'monitor_service', label: 'Monitor Service', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager', 'mekanik'] },
+  { id: 'monitor_tunggu', label: 'Monitor Tunggu', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager'] },
+  { id: 'accounting', label: 'Akunting', icon: BookOpen, roles: ['kasir', 'owner', 'advisor'] },
+  { id: 'finance_report', label: 'Laporan Keuangan', icon: FileBarChart, roles: ['accounting', 'owner', 'kasir', 'advisor'] },
+  { id: 'audit_log', label: 'Log Aktivitas', icon: History, roles: ['owner', 'manager'] },
+  { id: 'settings', label: 'Pengaturan', icon: Settings, roles: ['owner', 'manager'] },
+];
 
 // Kapan sebuah order mulai "ngantre nunggu bay" — dari jam SPK-nya
 // dikirim, bukan jam mobil check-in. Mobil yang lama didiagnosis (SPK
@@ -878,23 +895,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     return map[status];
   };
 
-  const getTabsForRole = (role: string) => {
-    const all: { id: ActiveTab; label: string; icon: any; roles: string[] }[] = [
-      { id: 'dashboard', label: 'Laporan', icon: LayoutDashboard, roles: ['owner', 'advisor'] },
-      { id: 'create_order', label: 'Buat WO', icon: FilePlus, roles: ['advisor', 'owner'] },
-      { id: 'track_dashboard', label: 'Kelola WO', icon: ClipboardList, roles: ['advisor', 'owner'] },
-      { id: 'gudang', label: 'Gudang', icon: Package, roles: ['gudang', 'owner', 'advisor'] },
-      { id: 'spk', label: 'Kerja Saya', icon: Wrench, roles: ['mekanik', 'advisor'] },
-      { id: 'manager_dashboard', label: 'Pantauan', icon: LayoutDashboard, roles: ['manager', 'advisor'] },
-      { id: 'marketing', label: 'Konten & Portofolio', icon: Monitor, roles: ['marketing', 'advisor'] },
-      { id: 'monitor_service', label: 'Monitor Service', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager', 'mekanik'] },
-      { id: 'monitor_tunggu', label: 'Monitor Tunggu', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager'] },
-      { id: 'accounting', label: 'Akunting', icon: BookOpen, roles: ['kasir', 'owner', 'advisor'] },
-      { id: 'finance_report', label: 'Laporan Keuangan', icon: FileBarChart, roles: ['accounting', 'owner', 'kasir', 'advisor'] },
-      { id: 'audit_log', label: 'Log Aktivitas', icon: History, roles: ['owner', 'manager'] },
-    ];
-    return all.filter(t => t.roles.includes(role));
-  };
+  const getTabsForRole = (role: string) => ALL_TABS.filter(t => t.roles.includes(role));
 
   const handleTabClick = (tab: { id: ActiveTab }) => {
     if (tab.id === 'monitor_service' || tab.id === 'monitor_tunggu') setCurrentView(tab.id);
@@ -1154,6 +1155,15 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
 
               {activeTab === 'audit_log' && (
                 <AuditLogPanel orders={orders} transactions={transactions} closings={closings} />
+              )}
+
+              {activeTab === 'settings' && activeStaffUser && (
+                <SettingsPanel
+                  staffUsers={staffDirectory}
+                  onlineStaffIds={onlineStaffIds}
+                  tabs={ALL_TABS}
+                  activeUser={activeStaffUser}
+                />
               )}
 
               {activeTab === 'spk' && (

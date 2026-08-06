@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wrench, LogOut, Bell, ShieldAlert,
   LayoutDashboard, FilePlus, ClipboardList, Package, Monitor, BookOpen, FileBarChart,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Search
 } from 'lucide-react';
 
 // Components — dipakai pengunjung publik (`/`), tetap static import
@@ -11,6 +11,7 @@ import TrackingPortal from './components/TrackingPortal';
 import ProductMarketplace from './components/ProductMarketplace';
 import ThemeToggle from './components/ThemeToggle';
 import NotificationCenter from './components/NotificationCenter';
+import CommandPalette from './components/CommandPalette';
 
 // Components — cuma dipakai lewat /staff. Lazy-load supaya kode ini tidak
 // pernah ikut ke-download pengunjung publik (lihat docs/superpowers/specs/
@@ -133,6 +134,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   const [activeStaffUser, setActiveStaffUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor_service' | 'monitor_tunggu' | 'marketplace' | 'staff_login'>(entryMode === 'staff' ? 'staff_login' : 'landing');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('staff_sidebar_collapsed') === 'true');
   const toggleSidebar = () => setSidebarCollapsed(prev => {
     localStorage.setItem('staff_sidebar_collapsed', String(!prev));
@@ -271,6 +273,20 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
       subscription.unsubscribe();
     };
   }, []);
+
+  // Cmd/Ctrl+K opens the command palette — only wired while a staff member
+  // is actually in the dashboard, not on the public marketplace/landing.
+  useEffect(() => {
+    if (currentView !== 'staff_portal') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [currentView]);
 
   // ---- ORDER HANDLERS ----
   const handleAddOrder = useCallback((newOrder: Order) => {
@@ -990,6 +1006,14 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => setCommandPaletteOpen(true)}
+                    className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-[#2a2d35] hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    Cari
+                    <kbd className="text-[10px] font-semibold border border-gray-200 dark:border-[#2a2d35] rounded px-1">⌘K</kbd>
+                  </button>
                   <NotificationCenter />
                   <ThemeToggle />
                   <button onClick={handleLogout}
@@ -1012,6 +1036,15 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                 ))}
               </div>
             </div>
+
+            <CommandPalette
+              open={commandPaletteOpen}
+              onClose={() => setCommandPaletteOpen(false)}
+              navItems={getTabsForRole(activeStaffUser.role)}
+              onNavigate={(id) => handleTabClick({ id: id as ActiveTab })}
+              orders={orders}
+              onSelectOrder={() => handleTabClick({ id: 'track_dashboard' })}
+            />
 
             <div className="max-w-7xl mx-auto flex gap-6 p-4 sm:p-6 pb-24">
               {/* Sidebar nav — desktop only, from lg up */}

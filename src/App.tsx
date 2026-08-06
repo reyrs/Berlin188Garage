@@ -57,6 +57,7 @@ import { usePresence } from './lib/usePresence';
 import { useNotifications } from './lib/notifications';
 import { trackPageView } from './lib/analytics';
 import { logReactError } from './lib/errorLogger';
+import { computeSlotBackfill } from './lib/slotAllocation';
 
 type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report' | 'audit_log' | 'settings';
 
@@ -75,34 +76,6 @@ const ALL_TABS: { id: ActiveTab; label: string; icon: any; roles: string[] }[] =
   { id: 'audit_log', label: 'Log Aktivitas', icon: History, roles: ['owner', 'manager'] },
   { id: 'settings', label: 'Pengaturan', icon: Settings, roles: ['owner', 'manager'] },
 ];
-
-// Kapan sebuah order mulai "ngantre nunggu bay" — dari jam SPK-nya
-// dikirim, bukan jam mobil check-in. Mobil yang lama didiagnosis (SPK
-// telat dikirim) nggak seharusnya nyerobot antrian slot dari mobil lain
-// yang SPK-nya udah lebih dulu terkirim meski check-in belakangan.
-function spkSentAt(order: Order): number {
-  const evt = order.timeline.find(t => t.title === 'SPK Dikirim ke Mekanik');
-  return evt ? new Date(evt.timestamp).getTime() : new Date(order.createdAt).getTime();
-}
-
-function findOldestWaitingForSlot(orders: Order[], excludeOrderId: string): Order | null {
-  const waiting = orders
-    .filter(o => o.id !== excludeOrderId && o.spkSent && o.status !== 'selesai' && !o.slotNumber)
-    .sort((a, b) => spkSentAt(a) - spkSentAt(b));
-  return waiting[0] || null;
-}
-
-// Dipanggil dari SETIAP titik yang bisa bikin order jadi 'selesai' —
-// bukan cuma handleUpdateOrderStatus, karena di pemakaian nyata jalur
-// yang beneran dipakai adalah handleConfirmPayment (pelunasan), bukan
-// handleUpdateOrderStatus dengan status 'selesai' (nggak ada tombol UI
-// yang manggil itu).
-function computeSlotBackfill(orders: Order[], finishingOrder: Order | undefined): { backfillOrderId: string; freedSlot: number } | null {
-  if (!finishingOrder?.slotNumber) return null;
-  const candidate = findOldestWaitingForSlot(orders, finishingOrder.id);
-  if (!candidate) return null;
-  return { backfillOrderId: candidate.id, freedSlot: finishingOrder.slotNumber };
-}
 
 function StaffLoadingFallback() {
   return (

@@ -62,6 +62,38 @@ export default function AdvisorDashboard({
   const [statusFilter, setStatusFilter] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<Order['status']>('dikerjakan');
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  // 'selesai' deliberately excluded — that transition goes through the
+  // payment-confirmation flow (records a transaction, backfills the freed
+  // slot), so bulk-setting it here would silently skip those side effects.
+  const BULK_STATUS_OPTIONS: { value: Order['status']; label: string }[] = [
+    { value: 'antre', label: STATUS_CONFIG.antre.label },
+    { value: 'dikerjakan', label: STATUS_CONFIG.dikerjakan.label },
+    { value: 'temuan_dilaporkan', label: STATUS_CONFIG.temuan_dilaporkan.label },
+    { value: 'menunggu_pembayaran', label: STATUS_CONFIG.menunggu_pembayaran.label },
+  ];
+
+  const applyBulkStatus = () => {
+    if (!onUpdateOrderStatus) return;
+    const label = STATUS_CONFIG[bulkStatus].label;
+    selectedIds.forEach(id => {
+      onUpdateOrderStatus(id, bulkStatus, `Diubah massal ke "${label}" oleh ${activeUser?.name || 'Advisor'}.`);
+    });
+    notify(`✅ ${selectedIds.size} WO diubah ke status "${label}".`);
+    clearSelection();
+  };
 
   // SA Workspace — add jasa/temuan, approve parts from gudang, send SPK
   // Temuan form state
@@ -968,12 +1000,50 @@ export default function AdvisorDashboard({
         </div>
       </div>
 
+      {/* Bulk action bar — shown only once orders are selected */}
+      {selectedIds.size > 0 && (
+        <div className="card p-3.5 flex flex-wrap items-center gap-3 border-berlin-navy/30 dark:border-berlin-gold/30">
+          <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+            {selectedIds.size} WO dipilih
+          </span>
+          <select
+            value={bulkStatus}
+            onChange={e => setBulkStatus(e.target.value as Order['status'])}
+            className="bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg text-xs font-semibold px-2.5 py-1.5 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-berlin-navy dark:focus:border-berlin-gold cursor-pointer"
+          >
+            {BULK_STATUS_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>Ubah ke: {opt.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={applyBulkStatus}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-berlin-navy hover:bg-berlin-navy-dark text-white transition-colors cursor-pointer"
+          >
+            Terapkan
+          </button>
+          <button
+            onClick={clearSelection}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#22252c] transition-colors cursor-pointer"
+          >
+            Batal
+          </button>
+        </div>
+      )}
+
       {/* Grid List of Car Progresses */}
       <div className="card overflow-hidden">
         <div className="p-4 border-b border-gray-100 dark:border-[#2a2d35] flex items-center justify-between bg-gray-50/50 dark:bg-[#22252c]">
-          <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">
-            MENAMPILKAN {filteredOrders.length} MOBIL AKTIF
-          </span>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={filteredOrders.length > 0 && selectedIds.size === filteredOrders.length}
+              onChange={e => setSelectedIds(e.target.checked ? new Set(filteredOrders.map(o => o.id)) : new Set())}
+              className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 cursor-pointer accent-berlin-navy"
+            />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">
+              MENAMPILKAN {filteredOrders.length} MOBIL AKTIF
+            </span>
+          </div>
           <span className="text-[10px] text-gray-400 dark:text-gray-500 font-sans">Real-time Sync</span>
         </div>
 
@@ -990,13 +1060,20 @@ export default function AdvisorDashboard({
               const hasAccRequest = pendingItemsCount > 0;
               
               return (
-                <div 
+                <div
                   key={order.id}
                   className="p-5 hover:bg-gray-50/60 dark:hover:bg-[#22252c] transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   <div className="space-y-2 flex-1">
                     {/* Top line metadata */}
                     <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(order.id)}
+                        onChange={() => toggleSelect(order.id)}
+                        onClick={e => e.stopPropagation()}
+                        className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 cursor-pointer accent-berlin-navy shrink-0"
+                      />
                       <span className="font-sans font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#22252c] border border-gray-200/80 dark:border-[#2a2d35] px-2 py-0.5 rounded">
                         {order.id}
                       </span>

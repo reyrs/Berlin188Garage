@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wrench, LogOut, Bell, ShieldAlert,
   LayoutDashboard, FilePlus, ClipboardList, Package, Monitor, BookOpen, FileBarChart,
-  ChevronLeft, ChevronRight, Search
+  ChevronLeft, ChevronRight, Search, History
 } from 'lucide-react';
 
 // Components — dipakai pengunjung publik (`/`), tetap static import
@@ -26,6 +26,7 @@ const SlotBoard = React.lazy(() => import('./components/SlotBoard'));
 const TechnicianPanel = React.lazy(() => import('./components/TechnicianPanel'));
 const ManagerPanel = React.lazy(() => import('./components/ManagerPanel'));
 const FinanceReportPanel = React.lazy(() => import('./components/FinanceReportPanel'));
+const AuditLogPanel = React.lazy(() => import('./components/AuditLogPanel'));
 const MarketingPanel = React.lazy(() => import('./components/MarketingPanel'));
 
 // Types & Data
@@ -52,7 +53,7 @@ import { supabase } from './lib/supabase';
 import { usePresence } from './lib/usePresence';
 import { useNotifications } from './lib/notifications';
 
-type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report';
+type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report' | 'audit_log';
 
 // Kapan sebuah order mulai "ngantre nunggu bay" — dari jam SPK-nya
 // dikirim, bukan jam mobil check-in. Mobil yang lama didiagnosis (SPK
@@ -890,6 +891,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
       { id: 'monitor_tunggu', label: 'Monitor Tunggu', icon: Monitor, roles: ['advisor', 'kasir', 'gudang', 'owner', 'manager'] },
       { id: 'accounting', label: 'Akunting', icon: BookOpen, roles: ['kasir', 'owner', 'advisor'] },
       { id: 'finance_report', label: 'Laporan Keuangan', icon: FileBarChart, roles: ['accounting', 'owner', 'kasir', 'advisor'] },
+      { id: 'audit_log', label: 'Log Aktivitas', icon: History, roles: ['owner', 'manager'] },
     ];
     return all.filter(t => t.roles.includes(role));
   };
@@ -1148,6 +1150,10 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
 
               {activeTab === 'finance_report' && (
                 <FinanceReportPanel transactions={transactions} expenses={expenses} />
+              )}
+
+              {activeTab === 'audit_log' && (
+                <AuditLogPanel orders={orders} transactions={transactions} closings={closings} />
               )}
 
               {activeTab === 'spk' && (

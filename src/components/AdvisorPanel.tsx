@@ -141,25 +141,25 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
     <div className="card p-6 space-y-6">
       
       {/* Advisor Header */}
-      <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+      <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#2a2d35] pb-4">
         <div>
-          <span className="text-[10px] bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full font-bold uppercase tracking-widest">
+          <span className="text-[10px] bg-gray-100 dark:bg-[#22252c] text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full font-bold uppercase tracking-widest">
             Service Advisor Board
           </span>
-          <h3 className="text-lg font-bold text-[#1A1A1A] mt-2">Buat Orderan Baru (Work Order)</h3>
-          <p className="text-gray-500 text-xs mt-0.5">Mendaftarkan pelanggan baru dan detail problem kendaraannya.</p>
+          <h3 className="text-lg font-bold text-[#1A1A1A] dark:text-white mt-2">Buat Orderan Baru (Work Order)</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Mendaftarkan pelanggan baru dan detail problem kendaraannya.</p>
         </div>
       </div>
 
       {success ? (
-        <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200 space-y-5">
-          <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center mx-auto text-2xl font-bold">
-            <CheckCircle className="w-8 h-8 text-emerald-600" weight="duotone" />
+        <div className="p-8 text-center bg-gray-50 dark:bg-[#22252c] rounded-xl border border-gray-200 dark:border-[#2a2d35] space-y-5">
+          <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center mx-auto text-2xl font-bold">
+            <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" weight="duotone" />
           </div>
           <div className="space-y-1">
-            <h4 className="text-md font-bold text-black">Work Order Berhasil Dibuat!</h4>
-            <p className="text-gray-500 text-xs leading-relaxed max-w-md mx-auto">
-              Pesanan dengan kode <span className="text-black font-sans font-bold">{lastOrderId}</span> telah berhasil disimpan di server. Mekanik yang ditugaskan akan langsung melihat orderan ini di papan kerja mereka.
+            <h4 className="text-md font-bold text-black dark:text-white">Work Order Berhasil Dibuat!</h4>
+            <p className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed max-w-md mx-auto">
+              Pesanan dengan kode <span className="text-black dark:text-white font-sans font-bold">{lastOrderId}</span> telah berhasil disimpan di server. Mekanik yang ditugaskan akan langsung melihat orderan ini di papan kerja mereka.
             </p>
           </div>
           <div className="flex justify-center gap-3">
@@ -174,7 +174,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
       ) : (
         <div className="space-y-6">
           {/* Form Step Tracker */}
-          <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-150">
+          <div className="flex justify-between items-center bg-gray-50 dark:bg-[#22252c] p-3 rounded-xl border border-gray-150 dark:border-[#2a2d35]">
             {[
               { s: 1, label: 'Pelanggan', icon: UserPlus },
               { s: 2, label: 'Kendaraan', icon: Car },
@@ -189,15 +189,15 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
                 <div key={st.s} className="flex items-center gap-2">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs transition-all ${
                     isActive ? 'bg-berlin-navy text-white' :
-                    isDone ? 'bg-gray-200 text-black border border-gray-300' :
-                    'bg-white text-gray-400 border border-gray-200'
+                    isDone ? 'bg-gray-200 dark:bg-gray-700 text-black dark:text-white border border-gray-300 dark:border-gray-600' :
+                    'bg-white dark:bg-[#1a1d23] text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-[#2a2d35]'
                   }`}>
                     {isDone ? '' : st.s}
                   </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider hidden md:block ${isActive ? 'text-black' : 'text-gray-400'}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider hidden md:block ${isActive ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
                     {st.label}
                   </span>
-                  {idx < 5 && <CaretRight className="w-3.5 h-3.5 text-gray-300 hidden md:block" weight="duotone" />}
+                  {idx < 5 && <CaretRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 hidden md:block" weight="duotone" />}
                 </div>
               );
             })}
@@ -206,44 +206,44 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
           {/* STEP 1: Pelanggan */}
           {step === 1 && (
             <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-150">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Siapa pelanggannya?</h4>
-                <p className="text-[10px] text-gray-400 leading-normal">
+              <div className="bg-gray-50 dark:bg-[#22252c] p-4 rounded-xl border border-gray-150 dark:border-[#2a2d35]">
+                <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Siapa pelanggannya?</h4>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-normal">
                   Masukkan data pelanggan dengan lengkap, termasuk nomor telepon WhatsApp dan alamat untuk memudahkan komunikasi dan administrasi.
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">NO. HP PELANGGAN (WA)</label>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">NO. HP PELANGGAN (WA)</label>
                   <input
                     type="tel"
                     placeholder="Contoh: 085156010707"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
+                    className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 font-sans transition-colors"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">NAMA LENGKAP PELANGGAN</label>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">NAMA LENGKAP PELANGGAN</label>
                   <input
                     type="text"
                     placeholder="Contoh: Arya Veda Setyanindito"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black transition-colors"
+                    className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 transition-colors"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">ALAMAT PELANGGAN</label>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">ALAMAT PELANGGAN</label>
                   <textarea
                     placeholder="Contoh: Jl. Sudirman No. 123, Jakarta Selatan"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     rows={2}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black resize-none transition-colors"
+                    className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 resize-none transition-colors"
                   />
                 </div>
               </div>
@@ -253,20 +253,20 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
           {/* STEP 2: Kendaraan */}
           {step === 2 && (
             <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-150">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Data Kendaraan Pemilik</h4>
-                <p className="text-[10px] text-gray-400 leading-normal">
+              <div className="bg-gray-50 dark:bg-[#22252c] p-4 rounded-xl border border-gray-150 dark:border-[#2a2d35]">
+                <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Data Kendaraan Pemilik</h4>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-normal">
                   Pilih merek mobil Eropa spesialisasi kami dan input seri model, plat nomor aktif, nomor rangka (VIN), tipe spesifik, tahun pembuatan, dan kode engine.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">MEREK MOBIL</label>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">MEREK MOBIL</label>
                   <select
                     value={brand}
                     onChange={(e) => setBrand(e.target.value as any)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black transition-colors"
+                    className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 transition-colors"
                   >
                     <option value="Mercedes-Benz">Mercedes-Benz</option>
                     <option value="BMW">BMW</option>
@@ -279,73 +279,73 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">SERI / MODEL</label>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">SERI / MODEL</label>
                   <input
                     type="text"
                     placeholder="Contoh: C300 atau E250 Avantgarde"
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black transition-colors"
+                    className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 transition-colors"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">PLAT NOMOR (NO. POLISI)</label>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">PLAT NOMOR (NO. POLISI)</label>
                   <input
                     type="text"
                     placeholder="Contoh: B 1234 AE"
                     value={plate}
                     onChange={(e) => setPlate(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black uppercase font-sans transition-colors"
+                    className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 uppercase font-sans transition-colors"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">TYPE / VARIAN</label>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">TYPE / VARIAN</label>
                   <input
                     type="text"
                     placeholder="Contoh: W204, LCI, Coupe"
                     value={carType}
                     onChange={(e) => setCarType(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black transition-colors"
+                    className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 transition-colors"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">TAHUN PEMBUATAN</label>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">TAHUN PEMBUATAN</label>
                   <input
                     type="text"
                     placeholder="Contoh: 2018"
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
+                    className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 font-sans transition-colors"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">KODE ENGINE</label>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">KODE ENGINE</label>
                   <input
                     type="text"
                     placeholder="Contoh: M271, N20, EA888"
                     value={engineCode}
                     onChange={(e) => setEngineCode(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black uppercase font-sans transition-colors"
+                    className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 uppercase font-sans transition-colors"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">NOMOR RANGKA (VIN NUMBER)</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">NOMOR RANGKA (VIN NUMBER)</label>
                 <input
                   type="text"
                   placeholder="Contoh: WDD2040491F123456"
                   value={vin}
                   onChange={(e) => setVin(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black uppercase font-sans transition-colors"
+                  className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 uppercase font-sans transition-colors"
                 />
               </div>
             </div>
@@ -354,15 +354,15 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
           {/* STEP 3: Layanan & Keluhan */}
           {step === 3 && (
             <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-150">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Layanan & Keluhan Utama</h4>
-                <p className="text-[10px] text-gray-400 leading-normal">
+              <div className="bg-gray-50 dark:bg-[#22252c] p-4 rounded-xl border border-gray-150 dark:border-[#2a2d35]">
+                <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Layanan & Keluhan Utama</h4>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-normal">
                   Pilih kategori pengerjaan utama serta catat keluhan langsung pemilik kendaraan dengan detail.
                 </p>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">TIPE LAYANAN UTAMA</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">TIPE LAYANAN UTAMA</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {(['Servis Rutin', 'Perbaikan Mesin', 'Kelistrikan', 'Kaki-Kaki', 'Restorasi'] as Order['serviceType'][]).map((type) => (
                     <button
@@ -370,9 +370,9 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
                       type="button"
                       onClick={() => setServiceType(type)}
                       className={`py-2 px-3.5 text-center text-xs rounded-lg font-bold border transition-colors cursor-pointer ${
-                        serviceType === type 
-                          ? 'bg-berlin-navy text-white border-berlin-navy' 
-                          : 'bg-white border-gray-200 hover:border-gray-300 text-gray-500'
+                        serviceType === type
+                          ? 'bg-berlin-navy text-white border-berlin-navy'
+                          : 'bg-white dark:bg-[#22252c] border-gray-200 dark:border-[#2a2d35] hover:border-gray-300 dark:hover:border-gray-600 text-gray-500 dark:text-gray-400'
                       }`}
                     >
                       {type}
@@ -382,13 +382,13 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">DETAIL KELUHAN AWAL</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">DETAIL KELUHAN AWAL</label>
                 <textarea
                   placeholder="Contoh: Mesin sering mati mendadak saat berjalan lambat, rem belakang bunyi berdecit keras..."
                   value={complaint}
                   onChange={(e) => setComplaint(e.target.value)}
                   rows={4}
-                  className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-black resize-none transition-colors"
+                  className="w-full bg-white dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 resize-none transition-colors"
                 />
               </div>
             </div>
@@ -397,28 +397,28 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
           {/* STEP 4: Teknisi */}
           {step === 4 && (
             <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-150">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Penugasan Mekanik Utama</h4>
-                <p className="text-[10px] text-gray-400 leading-normal">
+              <div className="bg-gray-50 dark:bg-[#22252c] p-4 rounded-xl border border-gray-150 dark:border-[#2a2d35]">
+                <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Penugasan Mekanik Utama</h4>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-normal">
                   Pilih mekanik spesialis yang sedang bertugas untuk menangani langsung pengerjaan diagnosis kendaraan ini.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">MEKANIK BERTUGAS</label>
-                <p className="text-[10px] text-gray-400">Ketik atau pilih dari saran nama mekanik yang sedang stand-by untuk mulai diagnosis kendaraan ini.</p>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">MEKANIK BERTUGAS</label>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500">Ketik atau pilih dari saran nama mekanik yang sedang stand-by untuk mulai diagnosis kendaraan ini.</p>
                 <input
                   type="text"
                   list="mechanic-suggestions"
                   value={mechanicName}
                   onChange={e => setMechanicName(e.target.value)}
                   placeholder="Ketik nama mekanik..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400 bg-white text-gray-800"
+                  className="w-full border border-gray-200 dark:border-[#2a2d35] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-gray-400 dark:focus:border-gray-500 bg-white dark:bg-[#22252c] text-gray-800 dark:text-gray-100"
                 />
                 <datalist id="mechanic-suggestions">
                   {mechanics.map(m => <option key={m.id} value={m.name} />)}
                 </datalist>
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+                <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 text-xs text-amber-700 dark:text-amber-400">
                   Mekanik yang dipilih bisa diganti nanti saat SPK dikirim dari Papan Kerja Advisor.
                 </div>
               </div>
@@ -428,61 +428,61 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
           {/* STEP 5: Tinjau & Simpan */}
           {step === 5 && (
             <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-150">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Tinjau Rincian Work Order</h4>
-                <p className="text-[10px] text-gray-400 leading-normal">
+              <div className="bg-gray-50 dark:bg-[#22252c] p-4 rounded-xl border border-gray-150 dark:border-[#2a2d35]">
+                <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Tinjau Rincian Work Order</h4>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-normal">
                   Pastikan semua rincian data pelanggan dan kendaraan di bawah ini sudah akurat sebelum didaftarkan ke server bengkel.
                 </p>
               </div>
 
-              <div className="bg-gray-50 rounded-xl border border-gray-150 p-4 space-y-4 text-xs">
-                <div className="grid grid-cols-2 gap-4 pb-3 border-b border-gray-200/80">
+              <div className="bg-gray-50 dark:bg-[#22252c] rounded-xl border border-gray-150 dark:border-[#2a2d35] p-4 space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-4 pb-3 border-b border-gray-200/80 dark:border-[#2a2d35]">
                   <div className="space-y-1">
-                    <span className="text-gray-400 block leading-tight font-semibold">PELANGGAN</span>
-                    <span className="font-bold text-gray-850 block">{name}</span>
-                    <span className="text-gray-500 block font-sans">{phone}</span>
-                    <span className="text-gray-400 block mt-1 font-semibold">ALAMAT:</span>
-                    <span className="text-gray-600 block bg-white p-1.5 rounded border border-gray-100 italic">{address || '-'}</span>
+                    <span className="text-gray-400 dark:text-gray-500 block leading-tight font-semibold">PELANGGAN</span>
+                    <span className="font-bold text-gray-850 dark:text-white block">{name}</span>
+                    <span className="text-gray-500 dark:text-gray-400 block font-sans">{phone}</span>
+                    <span className="text-gray-400 dark:text-gray-500 block mt-1 font-semibold">ALAMAT:</span>
+                    <span className="text-gray-600 dark:text-gray-300 block bg-white dark:bg-[#1a1d23] p-1.5 rounded border border-gray-100 dark:border-[#2a2d35] italic">{address || '-'}</span>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-gray-400 block leading-tight font-semibold">KENDARAAN</span>
-                    <span className="font-bold text-gray-850 block">{brand} {model}</span>
-                    <span className="text-gray-500 block font-sans uppercase">{plate}</span>
-                    <div className="grid grid-cols-2 gap-1.5 pt-1.5 text-[10px] bg-white p-2 rounded border border-gray-100 mt-1">
+                    <span className="text-gray-400 dark:text-gray-500 block leading-tight font-semibold">KENDARAAN</span>
+                    <span className="font-bold text-gray-850 dark:text-white block">{brand} {model}</span>
+                    <span className="text-gray-500 dark:text-gray-400 block font-sans uppercase">{plate}</span>
+                    <div className="grid grid-cols-2 gap-1.5 pt-1.5 text-[10px] bg-white dark:bg-[#1a1d23] p-2 rounded border border-gray-100 dark:border-[#2a2d35] mt-1">
                       <div>
-                        <span className="text-gray-400 block">TYPE:</span>
-                        <span className="font-semibold text-gray-700">{carType || '-'}</span>
+                        <span className="text-gray-400 dark:text-gray-500 block">TYPE:</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">{carType || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400 block">TAHUN:</span>
-                        <span className="font-semibold text-gray-700">{year || '-'}</span>
+                        <span className="text-gray-400 dark:text-gray-500 block">TAHUN:</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">{year || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400 block">ENGINE:</span>
-                        <span className="font-semibold text-gray-700 uppercase">{engineCode || '-'}</span>
+                        <span className="text-gray-400 dark:text-gray-500 block">ENGINE:</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300 uppercase">{engineCode || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400 block">VIN:</span>
-                        <span className="font-semibold text-gray-700 uppercase font-sans">{vin || '-'}</span>
+                        <span className="text-gray-400 dark:text-gray-500 block">VIN:</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300 uppercase font-sans">{vin || '-'}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pb-3 border-b border-gray-200/80">
+                <div className="grid grid-cols-2 gap-4 pb-3 border-b border-gray-200/80 dark:border-[#2a2d35]">
                   <div>
-                    <span className="text-gray-400 block leading-tight font-semibold">KATEGORI LAYANAN</span>
-                    <span className="font-bold text-black mt-1 block">{serviceType}</span>
+                    <span className="text-gray-400 dark:text-gray-500 block leading-tight font-semibold">KATEGORI LAYANAN</span>
+                    <span className="font-bold text-black dark:text-white mt-1 block">{serviceType}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400 block leading-tight font-semibold">MEKANIK BERTUGAS</span>
-                    <span className="font-bold text-gray-850 mt-1 block">{mechanicName.trim() || 'Belum ditentukan'}</span>
+                    <span className="text-gray-400 dark:text-gray-500 block leading-tight font-semibold">MEKANIK BERTUGAS</span>
+                    <span className="font-bold text-gray-850 dark:text-white mt-1 block">{mechanicName.trim() || 'Belum ditentukan'}</span>
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-gray-400 block leading-tight font-semibold font-bold">DETAIL KELUHAN AWAL</span>
-                  <span className="font-semibold text-gray-700 mt-1 block italic bg-white p-2.5 rounded-lg border border-gray-200">
+                  <span className="text-gray-400 dark:text-gray-500 block leading-tight font-semibold font-bold">DETAIL KELUHAN AWAL</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300 mt-1 block italic bg-white dark:bg-[#1a1d23] p-2.5 rounded-lg border border-gray-200 dark:border-[#2a2d35]">
                     "{complaint}"
                   </span>
                 </div>
@@ -491,14 +491,14 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
           )}
 
           {/* Navigation Controls */}
-          <div className="flex items-center justify-between border-t border-gray-100 pt-5">
+          <div className="flex items-center justify-between border-t border-gray-100 dark:border-[#2a2d35] pt-5">
             <button
               onClick={handleBack}
               disabled={step === 1}
               className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all ${
-                step === 1 
-                  ? 'border-gray-150 text-gray-300 cursor-not-allowed' 
-                  : 'border-gray-200 text-gray-500 hover:text-black hover:bg-gray-50 cursor-pointer shadow-xs'
+                step === 1
+                  ? 'border-gray-150 dark:border-[#2a2d35] text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                  : 'border-gray-200 dark:border-[#2a2d35] text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-[#22252c] cursor-pointer shadow-xs'
               }`}
             >
               KEMBALI
@@ -511,7 +511,7 @@ export default function AdvisorPanel({ onAddOrder, activeUser, staffUsers }: Adv
                 className={`px-5 py-2 rounded-lg text-xs font-bold tracking-wider flex items-center gap-1 transition-all ${
                   canProceed()
                     ? 'bg-berlin-navy hover:bg-berlin-navy-dark text-white cursor-pointer shadow-sm'
-                    : 'bg-gray-50 border border-gray-200 text-gray-300 cursor-not-allowed'
+                    : 'bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] text-gray-300 dark:text-gray-600 cursor-not-allowed'
                 }`}
               >
                 LANJUT

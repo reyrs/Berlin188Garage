@@ -9,6 +9,7 @@ import {
 import LandingPage from './components/LandingPage';
 import TrackingPortal from './components/TrackingPortal';
 import ProductMarketplace from './components/ProductMarketplace';
+import ThemeToggle from './components/ThemeToggle';
 
 // Components — cuma dipakai lewat /staff. Lazy-load supaya kode ini tidak
 // pernah ikut ke-download pengunjung publik (lihat docs/superpowers/specs/
@@ -80,7 +81,7 @@ function computeSlotBackfill(orders: Order[], finishingOrder: Order | undefined)
 
 function StaffLoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-400 text-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 text-gray-400 dark:text-gray-500 text-sm">
       Memuat...
     </div>
   );
@@ -103,7 +104,7 @@ class StaffChunkErrorBoundary extends React.Component<{ children: React.ReactNod
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gray-50 text-gray-500 text-sm">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-400 text-sm">
           <p>Gagal memuat halaman. Coba muat ulang.</p>
           <button
             onClick={() => window.location.reload()}
@@ -965,8 +966,8 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         )}
 
         {currentView === 'staff_portal' && activeStaffUser && (
-          <div className="min-h-screen bg-gray-50">
-            <div className="border-b border-gray-200 bg-white py-3 px-6 shadow-sm sticky top-0 z-40">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+            <div className="border-b border-gray-200 dark:border-[#2a2d35] bg-white dark:bg-[#1a1d23] py-3 px-6 shadow-sm sticky top-0 z-40">
               <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <img
@@ -975,18 +976,21 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                     className="h-8 object-contain rounded-lg"
                   />
                   <div>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest leading-none">Berlin188 Garage</p>
-                    <p className="text-sm font-bold text-gray-900 leading-tight mt-0.5">
-                      {activeStaffUser.name} <span className="text-gray-400 font-normal">· {activeStaffUser.role}</span>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold tracking-widest leading-none">Berlin188 Garage</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight mt-0.5">
+                      {activeStaffUser.name} <span className="text-gray-400 dark:text-gray-500 font-normal">· {activeStaffUser.role}</span>
                     </p>
                   </div>
                 </div>
 
-                <button onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all shrink-0">
-                  <LogOut className="w-3.5 h-3.5" />
-                  Keluar
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <ThemeToggle />
+                  <button onClick={handleLogout}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all shrink-0">
+                    <LogOut className="w-3.5 h-3.5" />
+                    Keluar
+                  </button>
+                </div>
               </div>
 
               {/* Tab nav — horizontal scroller on mobile/tablet, hidden from lg up (sidebar takes over) */}
@@ -994,7 +998,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                 {getTabsForRole(activeStaffUser.role).map(tab => (
                   <button key={tab.id}
                     onClick={() => handleTabClick(tab)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'bg-gray-100 dark:bg-[#22252c] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}>
                     <tab.icon className="w-3.5 h-3.5" />
                     {tab.label}
                   </button>
@@ -1010,7 +1014,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                     <button key={tab.id}
                       onClick={() => handleTabClick(tab)}
                       title={sidebarCollapsed ? tab.label : undefined}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all text-left ${sidebarCollapsed ? 'justify-center' : ''} ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all text-left ${sidebarCollapsed ? 'justify-center' : ''} ${activeTab === tab.id ? 'bg-berlin-navy text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
                       <tab.icon className="w-4 h-4 shrink-0" />
                       {!sidebarCollapsed && tab.label}
                     </button>
@@ -1018,7 +1022,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                   <button
                     onClick={toggleSidebar}
                     title={sidebarCollapsed ? 'Perlebar menu' : 'Ciutkan menu'}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all mt-2 border-t border-gray-100 pt-3 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-all mt-2 border-t border-gray-100 dark:border-[#2a2d35] pt-3 ${sidebarCollapsed ? 'justify-center' : ''}`}>
                     {sidebarCollapsed ? <ChevronRight className="w-4 h-4 shrink-0" /> : <ChevronLeft className="w-4 h-4 shrink-0" />}
                     {!sidebarCollapsed && 'Ciutkan'}
                   </button>
@@ -1131,9 +1135,9 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
               )}
 
               {!getTabsForRole(activeStaffUser.role).find(t => t.id === activeTab) && (
-                <div className="bg-white border border-gray-200 p-10 rounded-2xl text-center">
-                  <ShieldAlert className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">Pilih menu di atas untuk memulai.</p>
+                <div className="bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] p-10 rounded-2xl text-center">
+                  <ShieldAlert className="w-10 h-10 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">Pilih menu di atas untuk memulai.</p>
                 </div>
               )}
               </React.Suspense>

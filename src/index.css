@@ -94,15 +94,15 @@ body {
   @apply btn bg-berlin-red text-white hover:bg-berlin-red/90;
 }
 .btn-outline {
-  @apply btn bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300;
+  @apply btn bg-white dark:bg-[#1a1d23] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-[#2a2d35] hover:bg-gray-50 dark:hover:bg-[#22252c] hover:border-gray-300 dark:hover:border-gray-600;
 }
 .btn-ghost {
-  @apply btn bg-transparent text-gray-600 hover:bg-gray-100;
+  @apply btn bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800;
 }
 
 /* Card base */
 @utility card {
-  @apply bg-white border border-gray-150 rounded-md;
+  @apply bg-white dark:bg-[#1a1d23] border border-gray-150 dark:border-[#2a2d35] rounded-md;
 }
 .card-padded {
   @apply card p-5;
@@ -110,7 +110,7 @@ body {
 
 /* Tier 1 — KPI tiles: tinted shadow, no border, used only by <KpiTile>. */
 @utility card-instrument {
-  @apply bg-white rounded-lg;
+  @apply bg-white dark:bg-[#1a1d23] rounded-lg;
   box-shadow: var(--shadow-instrument);
 }
 

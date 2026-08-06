@@ -1,11 +1,11 @@
 import type { Order } from '../types';
 
 export const STATUS_CONFIG: Record<Order['status'], { label: string; bg: string; text: string; border: string }> = {
-  antre:               { label: 'Antre',               bg: 'bg-gray-100',      text: 'text-gray-700',      border: 'border-gray-200' },
-  dikerjakan:           { label: 'Dikerjakan',          bg: 'bg-info-50',       text: 'text-info-600',      border: 'border-info-100' },
-  temuan_dilaporkan:    { label: 'Menunggu Konfirmasi', bg: 'bg-warning-50',    text: 'text-warning-700',   border: 'border-warning-100' },
-  menunggu_pembayaran:  { label: 'Menunggu Pembayaran', bg: 'bg-berlin-gold/10', text: 'text-berlin-gold',  border: 'border-berlin-gold/30' },
-  selesai:              { label: 'Selesai',             bg: 'bg-success-50',    text: 'text-success-700',   border: 'border-success-100' },
+  antre:               { label: 'Antre',               bg: 'bg-gray-100 dark:bg-gray-800',       text: 'text-gray-700 dark:text-gray-300',      border: 'border-gray-200 dark:border-gray-700' },
+  dikerjakan:           { label: 'Dikerjakan',          bg: 'bg-info-50 dark:bg-info-500/10',     text: 'text-info-600 dark:text-info-500',      border: 'border-info-100 dark:border-info-500/20' },
+  temuan_dilaporkan:    { label: 'Menunggu Konfirmasi', bg: 'bg-warning-50 dark:bg-warning-500/10', text: 'text-warning-700 dark:text-warning-500', border: 'border-warning-100 dark:border-warning-500/20' },
+  menunggu_pembayaran:  { label: 'Menunggu Pembayaran', bg: 'bg-berlin-gold/10',                  text: 'text-berlin-gold',                       border: 'border-berlin-gold/30' },
+  selesai:              { label: 'Selesai',             bg: 'bg-success-50 dark:bg-success-500/10', text: 'text-success-700 dark:text-success-500', border: 'border-success-100 dark:border-success-500/20' },
 };
 
 // Solid fill tier of the same tokens — for bar charts / dots where a light
@@ -45,9 +45,9 @@ export function formatRupiah(num: number): string {
 export type KpiTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
 export const KPI_TONE: Record<KpiTone, { bg: string; text: string; border: string }> = {
-  success: { bg: 'bg-success-50', text: 'text-success-700', border: 'border-success-100' },
-  warning: { bg: 'bg-warning-50', text: 'text-warning-700', border: 'border-warning-100' },
-  danger:  { bg: 'bg-danger-50',  text: 'text-danger-600',  border: 'border-danger-100' },
-  info:    { bg: 'bg-info-50',    text: 'text-info-600',    border: 'border-info-100' },
-  neutral: { bg: 'bg-gray-100',   text: 'text-gray-700',    border: 'border-gray-200' },
+  success: { bg: 'bg-success-50 dark:bg-success-500/10', text: 'text-success-700 dark:text-success-500', border: 'border-success-100 dark:border-success-500/20' },
+  warning: { bg: 'bg-warning-50 dark:bg-warning-500/10', text: 'text-warning-700 dark:text-warning-500', border: 'border-warning-100 dark:border-warning-500/20' },
+  danger:  { bg: 'bg-danger-50 dark:bg-danger-500/10',   text: 'text-danger-600 dark:text-danger-500',   border: 'border-danger-100 dark:border-danger-500/20' },
+  info:    { bg: 'bg-info-50 dark:bg-info-500/10',       text: 'text-info-600 dark:text-info-500',       border: 'border-info-100 dark:border-info-500/20' },
+  neutral: { bg: 'bg-gray-100 dark:bg-gray-800',         text: 'text-gray-700 dark:text-gray-300',       border: 'border-gray-200 dark:border-gray-700' },
 };

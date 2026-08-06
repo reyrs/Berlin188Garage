@@ -267,10 +267,10 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <span className="text-[10px] bg-berlin-red/10 text-berlin-red px-2.5 py-1 rounded-full font-bold uppercase tracking-widest border border-berlin-red/20">MARKETING & KOMUNIKASI</span>
-            <h3 className="text-xl font-bold text-[#1A1A1A] mt-2">Konten & Portofolio</h3>
-            <p className="text-gray-500 text-xs mt-0.5">Data foto, temuan, dan pengerjaan untuk konten media sosial dan portofolio bengkel.</p>
+            <h3 className="text-xl font-bold text-[#1A1A1A] dark:text-white mt-2">Konten & Portofolio</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Data foto, temuan, dan pengerjaan untuk konten media sosial dan portofolio bengkel.</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 border border-gray-200 px-4 py-2.5 rounded-xl">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] px-4 py-2.5 rounded-xl">
             <Image className="w-4 h-4" weight="duotone" />
             <span className="font-semibold">{allPhotos.length} foto tersedia</span>
           </div>
@@ -278,7 +278,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1.5 bg-gray-100 dark:bg-[#22252c] p-1 rounded-xl w-fit">
         {([
           { id: 'galeri' as const, label: 'Galeri & Portofolio', icon: Image },
           { id: 'portofolio' as const, label: 'Portofolio Beranda', icon: Star },
@@ -286,7 +286,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
         ]).map(t => (
           <button key={t.id} onClick={() => setPanelTab(t.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              panelTab === t.id ? 'bg-white text-berlin-navy shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              panelTab === t.id ? 'bg-white dark:bg-[#1a1d23] text-berlin-navy shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}>
             <t.icon className="w-3.5 h-3.5" /> {t.label}
           </button>
@@ -296,51 +296,51 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       {panelTab === 'portofolio' && (
         <div className="grid lg:grid-cols-2 gap-6">
           <div className="card-padded space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Tambah Portofolio</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Tambah Portofolio</h4>
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Merek</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Merek</label>
                 <select
                   value={pfBrand}
                   onChange={e => setPfBrand(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-berlin-navy transition-colors"
                 >
                   {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Model</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Model</label>
                 <input
                   type="text"
                   value={pfModel}
                   onChange={e => setPfModel(e.target.value)}
                   placeholder="Cth: C-Class W205"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-berlin-navy transition-colors"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Tipe Servis</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Tipe Servis</label>
                 <select
                   value={pfServiceType}
                   onChange={e => setPfServiceType(e.target.value as PortfolioItem['serviceType'])}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors"
+                  className="w-full bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-berlin-navy transition-colors"
                 >
                   {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Deskripsi Kerjaan</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Deskripsi Kerjaan</label>
                 <textarea
                   value={pfDescription}
                   onChange={e => setPfDescription(e.target.value)}
                   rows={2}
                   placeholder="Cth: Overhaul mesin + ganti timing chain"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors resize-none"
+                  className="w-full bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-berlin-navy transition-colors resize-none"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Foto Hasil Kerja</label>
-                <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-lg py-4 cursor-pointer hover:bg-gray-50 transition-colors text-xs text-gray-500 font-semibold">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Foto Hasil Kerja</label>
+                <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#22252c] transition-colors text-xs text-gray-500 dark:text-gray-400 font-semibold">
                   <UploadSimple className="w-4 h-4" weight="duotone" /> {pfImageFile ? pfImageFile.name : 'Pilih Foto (wajib)'}
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handlePortfolioImagePick(f); }} />
@@ -358,13 +358,13 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
           </div>
 
           <div className="card-padded space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Portofolio Aktif ({portfolioItems.length})</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Portofolio Aktif ({portfolioItems.length})</h4>
             {portfolioItems.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-8">Belum ada portofolio yang ditambahkan.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-8">Belum ada portofolio yang ditambahkan.</p>
             ) : (
               <div className="grid grid-cols-2 gap-3 max-h-[520px] overflow-y-auto pr-1">
                 {portfolioItems.map(item => (
-                  <div key={item.id} className="group relative rounded-xl overflow-hidden border border-gray-200 aspect-[4/3] bg-gray-100">
+                  <div key={item.id} className="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-[#2a2d35] aspect-[4/3] bg-gray-100 dark:bg-[#22252c]">
                     <img src={item.imageUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 p-2.5">
@@ -373,7 +373,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
                     </div>
                     <button
                       onClick={() => handleDeletePortfolio(item.id)}
-                      className="absolute top-2 right-2 bg-white/90 hover:bg-white text-berlin-red p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      className="absolute top-2 right-2 bg-white/90 dark:bg-[#1a1d23] hover:bg-white text-berlin-red p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                       title="Hapus"
                     >
                       <Trash className="w-3.5 h-3.5" weight="duotone" />
@@ -389,47 +389,47 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       {panelTab === 'blog' && (
         <div className="grid lg:grid-cols-2 gap-6 items-start">
           <div className="card-padded space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
               {editingBlogId ? 'Edit Artikel' : 'Tulis Artikel Baru'}
             </h4>
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Judul</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Judul</label>
                 <input type="text" value={blogTitle} onChange={e => setBlogTitle(e.target.value)}
                   placeholder="Cth: 5 Tanda Timing Belt Perlu Diganti"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors" />
+                  className="w-full bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-berlin-navy transition-colors" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Kategori</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Kategori</label>
                 <select value={blogCategory} onChange={e => setBlogCategory(e.target.value as BlogPost['category'])}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors">
+                  className="w-full bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-berlin-navy transition-colors">
                   {BLOG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Ringkasan</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Ringkasan</label>
                 <textarea value={blogExcerpt} onChange={e => setBlogExcerpt(e.target.value)} rows={2}
                   placeholder="1-2 kalimat buat card & preview link"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3.5 text-xs text-gray-800 focus:outline-none focus:border-berlin-navy transition-colors resize-none" />
+                  className="w-full bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2.5 px-3.5 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-berlin-navy transition-colors resize-none" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Cover Image</label>
-                <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 rounded-lg py-4 cursor-pointer hover:bg-gray-50 transition-colors text-xs text-gray-500 font-semibold">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Cover Image</label>
+                <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#22252c] transition-colors text-xs text-gray-500 dark:text-gray-400 font-semibold">
                   <UploadSimple className="w-4 h-4" weight="duotone" /> {blogCoverFile ? blogCoverFile.name : existingCoverUrl ? 'Ganti cover (opsional)' : 'Pilih Cover (wajib)'}
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleBlogCoverPick(f); }} />
                 </label>
                 {(blogCoverPreview || existingCoverUrl) && (
-                  <img src={blogCoverPreview || existingCoverUrl!} alt="" className="mt-2 w-full aspect-[16/9] object-cover rounded-lg border border-gray-200" />
+                  <img src={blogCoverPreview || existingCoverUrl!} alt="" className="mt-2 w-full aspect-[16/9] object-cover rounded-lg border border-gray-200 dark:border-[#2a2d35]" />
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Isi Artikel</label>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">Isi Artikel</label>
                 <BlogEditor key={blogEditorKey} content={blogContent} onChange={setBlogContent} onUploadImage={handleUploadBlogInlineImage} onNotify={onNotify} />
               </div>
               <div className="flex gap-2">
                 <button onClick={() => handleSaveBlog(false)} disabled={isSavingBlog}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all">
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 dark:bg-[#22252c] hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-60 text-gray-700 dark:text-gray-300 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all">
                   {isSavingBlog ? <CircleNotch className="w-3.5 h-3.5 animate-spin" /> : <FloppyDisk className="w-3.5 h-3.5" weight="duotone" />}
                   Simpan Draft
                 </button>
@@ -440,7 +440,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
                 </button>
               </div>
               {editingBlogId && (
-                <button onClick={resetBlogForm} className="w-full text-[10px] text-gray-400 hover:text-gray-600 cursor-pointer">
+                <button onClick={resetBlogForm} className="w-full text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer">
                   Batal edit, tulis artikel baru
                 </button>
               )}
@@ -448,32 +448,32 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
           </div>
 
           <div className="card-padded space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Semua Artikel ({blogPosts.length})</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Semua Artikel ({blogPosts.length})</h4>
             {isLoadingBlog ? (
-              <p className="text-xs text-gray-400 text-center py-8">Memuat...</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-8">Memuat...</p>
             ) : blogPosts.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-8">Belum ada artikel.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-8">Belum ada artikel.</p>
             ) : (
               <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                 {blogPosts.map(post => (
-                  <div key={post.id} className="flex items-center gap-3 border border-gray-150 rounded-xl p-3 hover:border-gray-300 transition-colors">
-                    <img src={post.coverImageUrl} alt="" className="w-14 h-14 rounded-lg object-cover border border-gray-200 shrink-0" />
+                  <div key={post.id} className="flex items-center gap-3 border border-gray-150 dark:border-[#2a2d35] rounded-xl p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                    <img src={post.coverImageUrl} alt="" className="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-[#2a2d35] shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                          post.status === 'published' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500 border border-gray-200'
+                          post.status === 'published' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' : 'bg-gray-100 dark:bg-[#22252c] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#2a2d35]'
                         }`}>{post.status === 'published' ? 'Published' : 'Draft'}</span>
-                        <span className="text-[9px] text-gray-400">{post.category}</span>
+                        <span className="text-[9px] text-gray-400 dark:text-gray-500">{post.category}</span>
                       </div>
-                      <p className="font-bold text-xs text-gray-900 truncate mt-0.5">{post.title}</p>
+                      <p className="font-bold text-xs text-gray-900 dark:text-white truncate mt-0.5">{post.title}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => handleTogglePublish(post)} title={post.status === 'published' ? 'Jadikan draft' : 'Publish'}
-                        className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 cursor-pointer transition-colors">
+                        className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors">
                         {post.status === 'published' ? <EyeSlash className="w-3.5 h-3.5" weight="duotone" /> : <Eye className="w-3.5 h-3.5" weight="duotone" />}
                       </button>
                       <button onClick={() => startEditBlog(post)} title="Edit"
-                        className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 cursor-pointer transition-colors">
+                        className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors">
                         <PencilSimple className="w-3.5 h-3.5" weight="duotone" />
                       </button>
                       <button onClick={() => handleDeleteBlog(post.id)} title="Hapus"
@@ -494,13 +494,13 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'WO Selesai', value: completedOrders.length, color: 'text-emerald-600' },
-          { label: 'Foto Pengerjaan', value: allPhotos.filter(p => p.type === 'Bukti Pengerjaan').length, color: 'text-blue-600' },
-          { label: 'Foto Temuan', value: allPhotos.filter(p => p.type === 'Temuan Diagnosis').length, color: 'text-purple-600' },
+          { label: 'WO Selesai', value: completedOrders.length, color: 'text-emerald-600 dark:text-emerald-400' },
+          { label: 'Foto Pengerjaan', value: allPhotos.filter(p => p.type === 'Bukti Pengerjaan').length, color: 'text-blue-600 dark:text-blue-400' },
+          { label: 'Foto Temuan', value: allPhotos.filter(p => p.type === 'Temuan Diagnosis').length, color: 'text-purple-600 dark:text-purple-400' },
         ].map(s => (
           <div key={s.label} className="card p-4 text-center">
             <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mt-1">{s.label}</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-bold mt-1">{s.label}</p>
           </div>
         ))}
       </div>
@@ -508,12 +508,12 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       {/* Gallery foto */}
       {allPhotos.length > 0 && (
         <div className="card-padded space-y-4">
-          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 flex items-center gap-2">
             <Camera className="w-4 h-4" weight="duotone" /> Galeri Foto Pengerjaan & Temuan
           </h4>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {allPhotos.map((photo, idx) => (
-              <div key={idx} className="group relative rounded-xl overflow-hidden border border-gray-200 aspect-square bg-gray-100">
+              <div key={idx} className="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-[#2a2d35] aspect-square bg-gray-100 dark:bg-[#22252c]">
                 <img
                   src={photo.url}
                   alt={photo.caption}
@@ -538,14 +538,14 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
       {/* Portofolio order selesai */}
       <div className="card-padded space-y-4">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 flex items-center gap-2">
             <Star className="w-4 h-4" weight="duotone" /> Portofolio Kendaraan Selesai
           </h4>
           <div className="flex gap-1.5 flex-wrap">
             {brands.map(b => (
               <button key={b} onClick={() => setSelectedBrand(b)}
                 className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                  selectedBrand === b ? 'bg-berlin-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  selectedBrand === b ? 'bg-berlin-navy text-white' : 'bg-gray-100 dark:bg-[#22252c] text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}>{b}</button>
             ))}
           </div>
@@ -558,27 +558,27 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
               ...o.serviceItems.filter(i => i.photoUrl).map(i => i.photoUrl!)
             ];
             return (
-              <div key={o.id} className="border border-gray-150 rounded-xl p-4 space-y-3 hover:border-gray-300 transition-colors">
+              <div key={o.id} className="border border-gray-150 dark:border-[#2a2d35] rounded-xl p-4 space-y-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-sans text-[10px] font-bold text-gray-500">{o.id}</span>
-                      <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-bold uppercase">SELESAI</span>
+                      <span className="font-sans text-[10px] font-bold text-gray-500 dark:text-gray-400">{o.id}</span>
+                      <span className="text-[9px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 px-1.5 py-0.5 rounded font-bold uppercase">SELESAI</span>
                     </div>
-                    <h5 className="font-bold text-gray-900 text-sm">{o.carBrand} {o.carModel}</h5>
-                    <p className="text-[10px] text-gray-500">{o.serviceType} · {o.plateNumber}</p>
-                    <p className="text-[11px] text-gray-600 italic">"{o.complaint}"</p>
+                    <h5 className="font-bold text-gray-900 dark:text-white text-sm">{o.carBrand} {o.carModel}</h5>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">{o.serviceType} · {o.plateNumber}</p>
+                    <p className="text-[11px] text-gray-600 dark:text-gray-400 italic">"{o.complaint}"</p>
                   </div>
-                  <span className="text-[9px] text-gray-400 font-sans shrink-0">{new Date(o.createdAt).toLocaleDateString('id-ID')}</span>
+                  <span className="text-[9px] text-gray-400 dark:text-gray-500 font-sans shrink-0">{new Date(o.createdAt).toLocaleDateString('id-ID')}</span>
                 </div>
 
                 {/* Temuan */}
                 {o.findings.filter(f => f.status === 'approved').length > 0 && (
                   <div className="space-y-1">
-                    <span className="text-[9px] uppercase font-extrabold tracking-wider text-gray-400">Temuan:</span>
+                    <span className="text-[9px] uppercase font-extrabold tracking-wider text-gray-400 dark:text-gray-500">Temuan:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {o.findings.filter(f => f.status === 'approved').map(f => (
-                        <span key={f.id} className="text-[10px] bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded-full font-semibold">{f.description.split(',')[0]}</span>
+                        <span key={f.id} className="text-[10px] bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20 px-2 py-0.5 rounded-full font-semibold">{f.description.split(',')[0]}</span>
                       ))}
                     </div>
                   </div>
@@ -588,10 +588,10 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
                 {photos.length > 0 && (
                   <div className="flex gap-2 flex-wrap">
                     {photos.slice(0, 5).map((url, idx) => (
-                      <img key={idx} src={url} alt="Foto pengerjaan" className="w-14 h-14 rounded-lg object-cover border border-gray-200" referrerPolicy="no-referrer" />
+                      <img key={idx} src={url} alt="Foto pengerjaan" className="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-[#2a2d35]" referrerPolicy="no-referrer" />
                     ))}
                     {photos.length > 5 && (
-                      <div className="w-14 h-14 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-400">
+                      <div className="w-14 h-14 rounded-lg bg-gray-100 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] flex items-center justify-center text-xs font-bold text-gray-400 dark:text-gray-500">
                         +{photos.length - 5}
                       </div>
                     )}
@@ -599,7 +599,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
                 )}
 
                 {photos.length === 0 && (
-                  <p className="text-[10px] text-gray-400 italic">Belum ada foto pengerjaan untuk order ini.</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 italic">Belum ada foto pengerjaan untuk order ini.</p>
                 )}
               </div>
             );
@@ -607,7 +607,7 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
 
           {filtered.length === 0 && (
             <div className="text-center py-10">
-              <p className="text-xs text-gray-400">Belum ada order selesai untuk ditampilkan.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Belum ada order selesai untuk ditampilkan.</p>
             </div>
           )}
         </div>

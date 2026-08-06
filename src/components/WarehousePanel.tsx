@@ -20,13 +20,13 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
     <div 
       className={`border p-3.5 rounded-xl flex flex-col justify-between gap-3.5 transition-all ${
         isOutOfStock 
-          ? 'bg-gray-50 border-gray-150 opacity-60' 
-          : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-xs'
+          ? 'bg-gray-50 dark:bg-[#22252c] border-gray-150 dark:border-[#2a2d35] opacity-60' 
+          : 'bg-white dark:bg-[#1a1d23] border-gray-200 dark:border-[#2a2d35] hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-xs'
       }`}
     >
       <div className="space-y-1.5">
         <div className="flex justify-between items-start gap-1">
-          <span className="font-sans text-[9px] font-bold text-gray-400 tracking-wider">
+          <span className="font-sans text-[9px] font-bold text-gray-400 dark:text-gray-500 tracking-wider">
             {stockItem.code}
           </span>
           
@@ -37,7 +37,7 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
           </div>
         </div>
 
-        <div className="font-bold text-xs text-gray-800 leading-tight">
+        <div className="font-bold text-xs text-gray-800 dark:text-gray-100 leading-tight">
           {stockItem.name}
         </div>
 
@@ -46,7 +46,7 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
             {formatRupiah(stockItem.price)}
           </span>
           <span className={`text-[10px] font-bold ${
-            stockItem.stock <= 2 ? 'text-red-600 animate-pulse' : 'text-gray-500'
+            stockItem.stock <= 2 ? 'text-red-600 dark:text-red-400 animate-pulse' : 'text-gray-500 dark:text-gray-400'
           }`}>
             Stok: {stockItem.stock} unit
           </span>
@@ -54,24 +54,24 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
       </div>
 
       {/* Assignment controls */}
-      <div className="border-t border-gray-100 pt-3 flex items-center gap-2">
-        <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50 overflow-hidden h-8">
+      <div className="border-t border-gray-100 dark:border-[#2a2d35] pt-3 flex items-center gap-2">
+        <div className="flex items-center border border-gray-200 dark:border-[#2a2d35] rounded-lg bg-gray-50 dark:bg-[#22252c] overflow-hidden h-8">
           <button
             type="button"
             disabled={qtyToAssign <= 1 || isOutOfStock}
             onClick={() => setQtyToAssign(q => Math.max(1, q - 1))}
-            className="px-2 text-xs font-bold hover:bg-gray-100 text-gray-500 disabled:opacity-40 cursor-pointer h-full"
+            className="px-2 text-xs font-bold hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 disabled:opacity-40 cursor-pointer h-full"
           >
             -
           </button>
-          <span className="px-2.5 text-xs font-sans font-bold text-gray-800 select-none">
+          <span className="px-2.5 text-xs font-sans font-bold text-gray-800 dark:text-gray-100 select-none">
             {qtyToAssign}
           </span>
           <button
             type="button"
             disabled={qtyToAssign >= stockItem.stock || isOutOfStock}
             onClick={() => setQtyToAssign(q => Math.min(stockItem.stock, q + 1))}
-            className="px-2 text-xs font-bold hover:bg-gray-100 text-gray-500 disabled:opacity-40 cursor-pointer h-full"
+            className="px-2 text-xs font-bold hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 disabled:opacity-40 cursor-pointer h-full"
           >
             +
           </button>
@@ -86,7 +86,7 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
           }}
           className={`flex-1 h-8 text-[11px] font-black tracking-wider uppercase rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
             isOutOfStock 
-              ? 'bg-gray-200 border border-gray-200 text-gray-400 cursor-not-allowed' 
+              ? 'bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-[#2a2d35] text-gray-400 dark:text-gray-500 cursor-not-allowed' 
               : 'bg-berlin-navy text-white hover:bg-berlin-navy-dark'
           }`}
         >
@@ -547,11 +547,11 @@ export default function WarehousePanel({
 
       {/* Left Side: Active Orders List */}
       <div className="md:col-span-4 card-padded space-y-4">
-        <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-          <ClipboardText className="w-5 h-5 text-black" weight="duotone" />
+        <div className="flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-[#2a2d35]">
+          <ClipboardText className="w-5 h-5 text-black dark:text-white" weight="duotone" />
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">Order Antrean Sparepart</h3>
-            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Gudang: {activeUser.name}</span>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Order Antrean Sparepart</h3>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider block">Gudang: {activeUser.name}</span>
           </div>
         </div>
 
@@ -567,17 +567,17 @@ export default function WarehousePanel({
                 className={`w-full text-left p-3.5 rounded-xl border transition-all cursor-pointer block relative overflow-hidden ${
                   isCurrent 
                     ? 'bg-berlin-navy text-white border-berlin-navy shadow-md scale-[1.01]' 
-                    : 'bg-gray-50/50 hover:bg-gray-50 border-gray-150 text-gray-800'
+                    : 'bg-gray-50/50 dark:bg-[#22252c] hover:bg-gray-50 dark:hover:bg-[#22252c] border-gray-150 dark:border-[#2a2d35] text-gray-800 dark:text-gray-100'
                 }`}
               >
                 <div className="flex justify-between items-start">
                   <div>
                     <span className={`font-sans text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      isCurrent ? 'bg-zinc-800 text-zinc-100' : 'bg-gray-100 text-gray-700'
+                      isCurrent ? 'bg-zinc-800 text-zinc-100' : 'bg-gray-100 dark:bg-[#22252c] text-gray-700 dark:text-gray-300'
                     }`}>
                       {o.id}
                     </span>
-                    <span className={`text-[10px] ml-2 font-semibold ${isCurrent ? 'text-gray-300' : 'text-gray-400'}`}>
+                    <span className={`text-[10px] ml-2 font-semibold ${isCurrent ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-gray-500'}`}>
                       {o.plateNumber}
                     </span>
                   </div>
@@ -588,13 +588,13 @@ export default function WarehousePanel({
 
                 <div className="mt-2.5">
                   <p className="text-xs font-black truncate">{o.carBrand} {o.carModel}</p>
-                  <p className={`text-[11px] truncate mt-0.5 ${isCurrent ? 'text-gray-300' : 'text-gray-400'}`}>
+                  <p className={`text-[11px] truncate mt-0.5 ${isCurrent ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-gray-500'}`}>
                     Cust: {o.customerName}
                   </p>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-gray-200/20 flex justify-between items-center text-[10px]">
-                  <span className={isCurrent ? 'text-zinc-400' : 'text-gray-400'}>
+                <div className="mt-3 pt-2.5 border-t border-gray-200/20 dark:border-[#2a2d35] flex justify-between items-center text-[10px]">
+                  <span className={isCurrent ? 'text-zinc-400' : 'text-gray-400 dark:text-gray-500'}>
                     Sparepart terpasang:
                   </span>
                   <span className={`font-bold ${isCurrent ? 'text-berlin-gold' : 'text-berlin-navy'}`}>
@@ -606,8 +606,8 @@ export default function WarehousePanel({
           })}
 
           {activeOrders.length === 0 && (
-            <div className="text-center p-8 text-gray-400 space-y-2">
-              <Package className="w-8 h-8 text-gray-300 mx-auto" weight="duotone" />
+            <div className="text-center p-8 text-gray-400 dark:text-gray-500 space-y-2">
+              <Package className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto" weight="duotone" />
               <p className="text-xs font-semibold">Tidak ada antrean kendaraan aktif.</p>
             </div>
           )}
@@ -621,39 +621,39 @@ export default function WarehousePanel({
             
             {/* Header: Vehicle & Client details */}
             <div className="card-padded space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-150 dark:border-[#2a2d35] pb-3">
                 <div>
                   <span className="text-[10px] bg-berlin-navy text-white px-2 py-0.5 rounded font-sans font-bold">{selectedOrder.id}</span>
                   <h3 className="text-base font-black text-berlin-navy mt-1.5">{selectedOrder.carBrand} {selectedOrder.carModel}</h3>
-                  <p className="text-[11px] text-gray-400 font-sans mt-0.5">No. Polisi: {selectedOrder.plateNumber} • Keluhan: "{selectedOrder.complaint}"</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 font-sans mt-0.5">No. Polisi: {selectedOrder.plateNumber} • Keluhan: "{selectedOrder.complaint}"</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-[9px] text-gray-400 uppercase font-black tracking-wider block">Pelanggan</span>
-                  <span className="text-xs font-bold text-gray-800 block">{selectedOrder.customerName}</span>
-                  <span className="text-[10px] text-gray-500 font-sans">{selectedOrder.customerPhone}</span>
+                  <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-wider block">Pelanggan</span>
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-100 block">{selectedOrder.customerName}</span>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 font-sans">{selectedOrder.customerPhone}</span>
                 </div>
               </div>
 
               {/* Current parts list on this order */}
               <div className="space-y-3">
-                <span className="text-[10px] uppercase font-extrabold tracking-wider text-gray-400 block">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider text-gray-400 dark:text-gray-500 block">
                   Daftar Sparepart Terpasang & Estimasi Saat Ini:
                 </span>
 
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                   {selectedOrder.serviceItems.filter(item => item.type === 'part').map((item) => (
-                    <div key={item.id} className="bg-amber-50/40 border border-amber-200/50 p-3 rounded-xl flex items-center justify-between text-xs hover:border-amber-200 transition-colors">
+                    <div key={item.id} className="bg-amber-50/40 dark:bg-amber-500/10 border border-amber-200/50 dark:border-amber-500/20 p-3 rounded-xl flex items-center justify-between text-xs hover:border-amber-200 dark:hover:border-amber-500/30 transition-colors">
                       <div className="flex items-start gap-2.5">
-                        <Package className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" weight="duotone" />
+                        <Package className="w-4 h-4 text-amber-700 dark:text-amber-400 mt-0.5 shrink-0" weight="duotone" />
                         <div>
-                          <div className="font-bold text-gray-800">{item.name}</div>
-                          <div className="text-[9px] text-amber-800 font-bold tracking-wide uppercase mt-0.5 flex items-center gap-1.5">
+                          <div className="font-bold text-gray-800 dark:text-gray-100">{item.name}</div>
+                          <div className="text-[9px] text-amber-800 dark:text-amber-400 font-bold tracking-wide uppercase mt-0.5 flex items-center gap-1.5">
                             <span>Estimasi: {formatRupiah(item.price)} x {item.qty}</span>
                             <span>•</span>
                             <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold ${
-                              item.status === 'approved' ? 'bg-emerald-100 text-emerald-800' :
-                              item.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                              'bg-amber-100 text-amber-800'
+                              item.status === 'approved' ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-400' :
+                              item.status === 'rejected' ? 'bg-red-100 dark:bg-red-500/15 text-red-800 dark:text-red-400' :
+                              'bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-400'
                             }`}>
                               {item.status === 'approved' ? 'ACC Disetujui' : 
                                item.status === 'rejected' ? 'Ditolak' : 'Menunggu ACC SA'}
@@ -663,11 +663,11 @@ export default function WarehousePanel({
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <div className="text-right font-sans text-gray-800 font-bold tabular-nums">{formatRupiah(item.price * item.qty)}</div>
+                        <div className="text-right font-sans text-gray-800 dark:text-gray-100 font-bold tabular-nums">{formatRupiah(item.price * item.qty)}</div>
                         <button
                           type="button"
                           onClick={() => handleRemovePart(item.id, item.name, item.qty)}
-                          className="p-1 rounded bg-white hover:bg-red-50 text-gray-400 hover:text-red-600 border border-gray-200 hover:border-red-200 transition-all cursor-pointer"
+                          className="p-1 rounded bg-white dark:bg-[#1a1d23] hover:bg-red-50 text-gray-400 dark:text-gray-500 hover:text-red-600 border border-gray-200 dark:border-[#2a2d35] hover:border-red-200 transition-all cursor-pointer"
                           title="Hapus Part"
                         >
                           <Trash className="w-3.5 h-3.5" weight="duotone" />
@@ -677,13 +677,13 @@ export default function WarehousePanel({
                   ))}
 
                   {selectedOrder.serviceItems.filter(item => item.type === 'part').length === 0 && (
-                    <div className="text-center py-4 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
-                      <p className="text-[11px] text-gray-400 italic">Belum ada sparepart yang dicatatkan pada Work Order ini.</p>
+                    <div className="text-center py-4 bg-gray-50 dark:bg-[#22252c] border border-dashed border-gray-200 dark:border-[#2a2d35] rounded-xl">
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 italic">Belum ada sparepart yang dicatatkan pada Work Order ini.</p>
                     </div>
                   )}
 
                   {selectedOrder.serviceItems.filter(item => item.type === 'part' && item.status === 'pending').length > 0 && (
-                    <div className="pt-3.5 border-t border-gray-100 flex justify-end">
+                    <div className="pt-3.5 border-t border-gray-100 dark:border-[#2a2d35] flex justify-end">
                       <button
                         type="button"
                         onClick={() => {
@@ -707,8 +707,8 @@ export default function WarehousePanel({
 
             {/* DIAGNOSIS TEMUAN MEKANIK & TINDAKAN GUDANG */}
             <div className="card-padded space-y-4">
-              <div className="flex items-center gap-2 border-b border-gray-150 pb-3">
-                <span className="text-gray-600 font-bold text-xs uppercase tracking-wider bg-gray-100 px-2.5 py-0.5 rounded">Resolusi Temuan</span>
+              <div className="flex items-center gap-2 border-b border-gray-150 dark:border-[#2a2d35] pb-3">
+                <span className="text-gray-600 dark:text-gray-400 font-bold text-xs uppercase tracking-wider bg-gray-100 dark:bg-[#22252c] px-2.5 py-0.5 rounded">Resolusi Temuan</span>
                 <h4 className="text-xs sm:text-sm font-bold text-berlin-navy">Penyelesaian Temuan Kerusakan Mekanik</h4>
               </div>
 
@@ -720,13 +720,13 @@ export default function WarehousePanel({
                 {selectedOrder.findings.map((finding) => {
                   const resolved = finding.warehouseResolved || finding.resolvedPartName;
                   return (
-                    <div key={finding.id} className="bg-gray-50 border border-gray-150 p-4 rounded-xl space-y-3">
-                      <div className="flex justify-between items-center text-[10px] text-gray-400 font-sans">
+                    <div key={finding.id} className="bg-gray-50 dark:bg-[#22252c] border border-gray-150 dark:border-[#2a2d35] p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500 font-sans">
                         <span>TEMUAN MEKANIK</span>
                         <span>{new Date(finding.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
 
-                      <div className="text-xs font-bold text-gray-800 italic">
+                      <div className="text-xs font-bold text-gray-800 dark:text-gray-100 italic">
                         "{finding.description}"
                       </div>
 
@@ -734,23 +734,23 @@ export default function WarehousePanel({
                         <button
                           type="button"
                           onClick={() => setZoomedImage(finding.imageUrl!)}
-                          className="block rounded-lg overflow-hidden border border-gray-200 max-h-32 bg-gray-100 max-w-xs cursor-zoom-in hover:opacity-90 transition-opacity"
+                          className="block rounded-lg overflow-hidden border border-gray-200 dark:border-[#2a2d35] max-h-32 bg-gray-100 dark:bg-[#22252c] max-w-xs cursor-zoom-in hover:opacity-90 transition-opacity"
                         >
                           <img src={finding.imageUrl} alt="Bukti Kerusakan" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         </button>
                       )}
 
                       {resolved ? (
-                        <div className="bg-emerald-50 border border-emerald-150 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-800">
+                        <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-150 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-400">
                           <div>
                             <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-500 block">Sourcing Selesai:</span>
                             <span className="font-bold text-sm">{finding.resolvedPartName}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase tracking-wider ${
-                              finding.resolvedPartSource === 'gudang_stock' ? 'bg-emerald-100 text-emerald-900 border border-emerald-200' :
-                              finding.resolvedPartSource === 'bawa_sendiri' ? 'bg-amber-100 text-amber-900 border border-amber-200' :
-                              'bg-gray-150 text-gray-700 border border-gray-250'
+                              finding.resolvedPartSource === 'gudang_stock' ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20' :
+                              finding.resolvedPartSource === 'bawa_sendiri' ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20' :
+                              'bg-gray-150 dark:bg-[#22252c] text-gray-700 dark:text-gray-300 border border-gray-250 dark:border-gray-600'
                             }`}>
                               {finding.resolvedPartSource === 'gudang_stock' ? 'Stok Gudang' :
                                finding.resolvedPartSource === 'bawa_sendiri' ? 'Bawa Sendiri' : 'Tanpa Sparepart'}
@@ -758,7 +758,7 @@ export default function WarehousePanel({
                             <button
                               type="button"
                               onClick={() => handleResetResolution(finding.id, finding.description)}
-                              className="p-1.5 rounded-lg bg-white hover:bg-red-50 text-gray-500 hover:text-red-600 border border-gray-200 hover:border-red-200 cursor-pointer transition-all flex items-center gap-1 text-[10px] font-bold shadow-xs"
+                              className="p-1.5 rounded-lg bg-white dark:bg-[#1a1d23] hover:bg-red-50 text-gray-500 dark:text-gray-400 hover:text-red-600 border border-gray-200 dark:border-[#2a2d35] hover:border-red-200 cursor-pointer transition-all flex items-center gap-1 text-[10px] font-bold shadow-xs"
                               title="Reset / Ubah Sourcing"
                             >
                               <ArrowCounterClockwise className="w-3.5 h-3.5" weight="duotone" />
@@ -767,31 +767,31 @@ export default function WarehousePanel({
                           </div>
                         </div>
                       ) : (
-                        <div className="pt-2 border-t border-gray-200/50 space-y-3">
+                        <div className="pt-2 border-t border-gray-200/50 dark:border-[#2a2d35] space-y-3">
                           {/* List of currently allocated parts for this finding */}
                           {finding.resolvedParts && finding.resolvedParts.length > 0 && (
-                            <div className="bg-white p-3 rounded-xl border border-gray-250/80 space-y-2">
-                              <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-wider">
+                            <div className="bg-white dark:bg-[#1a1d23] p-3 rounded-xl border border-gray-250/80 dark:border-gray-600 space-y-2">
+                              <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider">
                                 Sparepart Terpilih Untuk Temuan Ini:
                               </span>
                               <div className="space-y-1.5">
                                 {finding.resolvedParts.map((part) => (
-                                  <div key={part.id} className="flex justify-between items-center text-xs bg-gray-50/70 p-2.5 rounded-lg border border-gray-150">
+                                  <div key={part.id} className="flex justify-between items-center text-xs bg-gray-50/70 dark:bg-[#22252c] p-2.5 rounded-lg border border-gray-150 dark:border-[#2a2d35]">
                                     <div className="flex items-center gap-2">
                                       <span className={`w-2 h-2 rounded-full ${part.source === 'gudang_stock' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                                      <span className="font-bold text-gray-800">{part.name}</span>
-                                      <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">
+                                      <span className="font-bold text-gray-800 dark:text-gray-100">{part.name}</span>
+                                      <span className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                                         ({part.source === 'gudang_stock' ? 'Gudang' : 'Bawa Sendiri'})
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2.5">
-                                      <span className="font-sans text-gray-800 font-bold">
+                                      <span className="font-sans text-gray-800 dark:text-gray-100 font-bold">
                                         {part.price > 0 ? formatRupiah(part.price) : 'Rp 0'}
                                       </span>
                                       <button
                                         type="button"
                                         onClick={() => handleRemovePartFromFinding(finding.id, part.id, part.name, part.source)}
-                                        className="text-gray-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 border border-transparent hover:border-red-100 cursor-pointer"
+                                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 p-1 rounded-md hover:bg-red-50 border border-transparent hover:border-red-100 cursor-pointer"
                                         title="Hapus dari temuan"
                                       >
                                         <X className="w-3.5 h-3.5" weight="duotone" />
@@ -805,13 +805,13 @@ export default function WarehousePanel({
 
                           <div className="grid sm:grid-cols-3 gap-2.5">
                             {/* Option 1: Use Stock */}
-                            <div className="space-y-2 bg-white p-3.5 rounded-xl border border-gray-150 flex flex-col justify-between">
+                            <div className="space-y-2 bg-white dark:bg-[#1a1d23] p-3.5 rounded-xl border border-gray-150 dark:border-[#2a2d35] flex flex-col justify-between">
                               <div className="space-y-1.5">
-                                <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-wider">Metode A: Alokasikan Stok</span>
+                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider">Metode A: Alokasikan Stok</span>
                                 <select
                                   value={selectedFindingStockMap[finding.id] || ''}
                                   onChange={(e) => setSelectedFindingStockMap(prev => ({ ...prev, [finding.id]: e.target.value }))}
-                                  className="w-full bg-white border border-gray-200 rounded-lg py-1.5 px-2 text-[11px] text-gray-800 focus:outline-none focus:border-black"
+                                  className="w-full bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-1.5 px-2 text-[11px] text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500"
                                 >
                                   <option value="">-- Pilih Barang Stok --</option>
                                   {warehouseStock.filter(s => s.stock > 0).map(s => (
@@ -831,10 +831,10 @@ export default function WarehousePanel({
                             </div>
 
                             {/* Option 2: Customer brings own part */}
-                            <div className="space-y-2 bg-white p-3.5 rounded-xl border border-gray-150 flex flex-col justify-between">
+                            <div className="space-y-2 bg-white dark:bg-[#1a1d23] p-3.5 rounded-xl border border-gray-150 dark:border-[#2a2d35] flex flex-col justify-between">
                               <div>
-                                <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-wider">Metode B: Pelanggan Bawa</span>
-                                <p className="text-[10px] text-gray-500 mt-1 leading-normal">
+                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider">Metode B: Pelanggan Bawa</span>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-normal">
                                   Catat pengerjaan dengan sparepart bawaan pelanggan sendiri (Biaya Rp 0).
                                 </p>
                               </div>
@@ -848,10 +848,10 @@ export default function WarehousePanel({
                             </div>
 
                             {/* Option 3: No sparepart needed */}
-                            <div className="space-y-2 bg-white p-3.5 rounded-xl border border-gray-150 flex flex-col justify-between">
+                            <div className="space-y-2 bg-white dark:bg-[#1a1d23] p-3.5 rounded-xl border border-gray-150 dark:border-[#2a2d35] flex flex-col justify-between">
                               <div>
-                                <span className="text-[9px] font-bold text-gray-400 block uppercase tracking-wider text-blue-500">Metode C: Tanpa Sparepart</span>
-                                <p className="text-[10px] text-gray-500 mt-1 leading-normal">
+                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 block uppercase tracking-wider text-blue-500">Metode C: Tanpa Sparepart</span>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-normal">
                                   Tandai pengerjaan ini tidak memerlukan sparepart tambahan sama sekali.
                                 </p>
                               </div>
@@ -867,7 +867,7 @@ export default function WarehousePanel({
 
                           {/* Lock Resolution button (visible if there are added parts) */}
                           {finding.resolvedParts && finding.resolvedParts.length > 0 && (
-                            <div className="pt-2 border-t border-dashed border-gray-200 flex justify-end">
+                            <div className="pt-2 border-t border-dashed border-gray-200 dark:border-[#2a2d35] flex justify-end">
                               <button
                                 type="button"
                                 onClick={() => handleLockResolution(finding.id, finding.description)}
@@ -885,7 +885,7 @@ export default function WarehousePanel({
                 })}
 
                 {selectedOrder.findings.length === 0 && (
-                  <p className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 italic text-center py-4 bg-gray-50 dark:bg-[#22252c] rounded-lg border border-dashed border-gray-200 dark:border-[#2a2d35]">
                     Tidak ada temuan diagnosis mekanik untuk dicarikan sparepart pada WO ini.
                   </p>
                 )}
@@ -894,18 +894,18 @@ export default function WarehousePanel({
 
             {/* Warehouse Stock Selection & Locator (Stock Opname) */}
             <div className="card p-6 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-[#2a2d35] pb-3.5">
                 <div className="flex items-center gap-2">
                   <Compass className="w-5 h-5 text-[#E6C687] shrink-0" weight="duotone" />
                   <div>
-                    <h4 className="text-xs uppercase tracking-widest text-gray-400 font-extrabold leading-none">STOCK OPNAME GUDANG</h4>
-                    <span className="text-xs font-bold text-gray-800 mt-1 block">Pilih Barang & Ambil Sesuai Lokasi Rak</span>
+                    <h4 className="text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500 font-extrabold leading-none">STOCK OPNAME GUDANG</h4>
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-100 mt-1 block">Pilih Barang & Ambil Sesuai Lokasi Rak</span>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setShowCustomForm(!showCustomForm)}
-                  className="bg-white hover:bg-gray-50 border border-gray-250 hover:border-gray-350 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors shrink-0"
+                  className="bg-white dark:bg-[#1a1d23] hover:bg-gray-50 dark:hover:bg-[#22252c] border border-gray-250 dark:border-gray-600 hover:border-gray-350 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors shrink-0"
                 >
                   <Package className="w-4 h-4 text-berlin-gold" weight="duotone" />
                   {showCustomForm ? 'Batal Tambah' : '+ Barang Tidak Ada Di Gudang'}
@@ -914,59 +914,59 @@ export default function WarehousePanel({
 
               {/* Custom Non-Stock Form */}
               {showCustomForm && (
-                <form onSubmit={handleAddCustomPart} className="bg-amber-50/40 border border-amber-200/60 p-4 rounded-xl space-y-3.5 animate-fadeIn">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800">
+                <form onSubmit={handleAddCustomPart} className="bg-amber-50/40 dark:bg-amber-500/10 border border-amber-200/60 dark:border-amber-500/20 p-4 rounded-xl space-y-3.5 animate-fadeIn">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-400">
                     <Package className="w-4 h-4" weight="duotone" />
                     <span>FORM PENAMBAHAN BARANG NON-STOCK (TIDAK ADA DI GUDANG)</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400">NAMA BARANG SPAREPART</label>
+                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">NAMA BARANG SPAREPART</label>
                       <input
                         type="text"
                         placeholder="Contoh: Modul ECU BMW F30 LCI Original"
                         value={customName}
                         onChange={(e) => setCustomName(e.target.value)}
                         required
-                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black transition-colors"
+                        className="w-full bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2 px-3 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 transition-colors"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400">KODE BARANG (OPSIONAL)</label>
+                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">KODE BARANG (OPSIONAL)</label>
                       <input
                         type="text"
                         placeholder="Contoh: PART-OUT-BMW-02"
                         value={customCode}
                         onChange={(e) => setCustomCode(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
+                        className="w-full bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2 px-3 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 font-sans transition-colors"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-2 space-y-1">
-                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400">ESTIMASI HARGA (RP)</label>
+                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">ESTIMASI HARGA (RP)</label>
                       <input
                         type="number"
                         placeholder="Contoh: 1250000"
                         value={customPrice === 0 ? '' : customPrice}
                         onChange={(e) => setCustomPrice(Number(e.target.value))}
                         required
-                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
+                        className="w-full bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2 px-3 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 font-sans transition-colors"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400">QTY</label>
+                      <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">QTY</label>
                       <input
                         type="number"
                         min="1"
                         value={customQty}
                         onChange={(e) => setCustomQty(Number(e.target.value))}
                         required
-                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-xs text-gray-800 focus:outline-none focus:border-black font-sans transition-colors"
+                        className="w-full bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2 px-3 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 font-sans transition-colors"
                       />
                     </div>
                   </div>
@@ -988,9 +988,9 @@ export default function WarehousePanel({
                   placeholder="Cari sparepart berdasarkan nama, kode, atau lokasi rak..."
                   value={searchStockQuery}
                   onChange={(e) => setSearchStockQuery(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-250 focus:border-black rounded-xl py-2.5 pl-9 pr-4 text-xs text-gray-800 placeholder-gray-400 focus:outline-none transition-all"
+                  className="w-full bg-gray-50 dark:bg-[#22252c] border border-gray-250 dark:border-gray-600 focus:border-black dark:focus:border-gray-500 rounded-xl py-2.5 pl-9 pr-4 text-xs text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none transition-all"
                 />
-                <MagnifyingGlass className="absolute left-3 top-3 w-4 h-4 text-gray-400" weight="duotone" />
+                <MagnifyingGlass className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" weight="duotone" />
               </div>
 
               {/* Stock Opname Items Listing with Locator (Rack Location) */}
@@ -1006,8 +1006,8 @@ export default function WarehousePanel({
                 ))}
 
                 {filteredStock.length === 0 && (
-                  <div className="col-span-full text-center py-8 text-gray-400">
-                    <WarningCircle className="w-6 h-6 text-gray-300 mx-auto mb-1" weight="duotone" />
+                  <div className="col-span-full text-center py-8 text-gray-400 dark:text-gray-500">
+                    <WarningCircle className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-1" weight="duotone" />
                     <p className="text-xs font-semibold">Tidak ada barang stock opname yang cocok.</p>
                   </div>
                 )}
@@ -1017,10 +1017,10 @@ export default function WarehousePanel({
           </div>
         ) : (
           <div className="card p-16 text-center space-y-4">
-            <Package className="w-12 h-12 text-gray-300 mx-auto" weight="duotone" />
+            <Package className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto" weight="duotone" />
             <div>
-              <h4 className="text-sm font-bold text-[#1A1A1A]">Pilih Antrean Sparepart Mobil</h4>
-              <p className="text-gray-400 text-xs mt-1">Pilih nomor Work Order aktif di antrean kiri untuk memasangkan sparepart dari Stock Opname Gudang.</p>
+              <h4 className="text-sm font-bold text-[#1A1A1A] dark:text-white">Pilih Antrean Sparepart Mobil</h4>
+              <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Pilih nomor Work Order aktif di antrean kiri untuk memasangkan sparepart dari Stock Opname Gudang.</p>
             </div>
           </div>
         )}

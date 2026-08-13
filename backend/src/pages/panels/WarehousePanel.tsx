@@ -311,39 +311,27 @@ export default function WarehousePanel({
     onUpdateServiceItems(selectedOrder.id, updatedItems);
   };
 
-  // Add custom non-stock item — masuk warehouse_stock DULU (jadi inventaris
-  // beneran), baru langsung dialokasikan penuh ke WO ini (revisi manager
-  // 2026-08-13, "Gudang #2"). Sebelumnya ini langsung jadi ServiceItem
-  // ad-hoc yang gak pernah ke-track sebagai stok gudang.
+  // Add custom non-stock item — masuk warehouse_stock DOANG (jadi inventaris
+  // beneran, langsung nongol di dropdown "Metode A: Alokasikan Stok"),
+  // TIDAK langsung dialokasikan ke WO manapun. Alokasi ke WO tetap lewat
+  // jalur normal (Metode A) — dua langkah terpisah, bukan sekali klik
+  // (revisi manager 2026-08-13, "Gudang #2", dikoreksi lagi 2026-08-14:
+  // awalnya kedua langkah ini digabung jadi satu, gudang mau dipisah).
   const handleAddCustomPart = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrder || !customName || customPrice <= 0 || customQty <= 0 || !onCreateStockItem) return;
+    if (!customName || customPrice <= 0 || customQty <= 0 || !onCreateStockItem) return;
 
     const codeStr = customCode.trim() || `SP-NEW-${Date.now().toString().slice(-6)}`;
 
     try {
-      const newStockItem = await onCreateStockItem({
+      await onCreateStockItem({
         name: customName,
         code: codeStr,
         price: customPrice,
         stock: customQty,
         rackLocation: 'Belum Ditempatkan',
       });
-
-      // Seluruh qty yang baru masuk langsung dipakai buat WO ini (barang
-      // ini didatangkan khusus buat kebutuhan WO ini) — stok gudang jadi 0.
-      onUpdateStock?.(newStockItem.id, 0);
-
-      const newItem: ServiceItem = {
-        id: genId('part'),
-        name: `${newStockItem.name} (${newStockItem.code})`,
-        type: 'part',
-        price: newStockItem.price,
-        qty: customQty,
-        status: 'pending' // Needs approval (ACC)
-      };
-      onUpdateServiceItems(selectedOrder.id, [...selectedOrder.serviceItems, newItem]);
-      notify(`✅ ${customName} ditambahkan ke stok gudang & dialokasikan ke WO ini.`);
+      notify(`✅ ${customName} ditambahkan ke stok gudang. Alokasikan ke WO lewat "Metode A: Alokasikan Stok".`);
     } catch (err) {
       console.error('Failed to create warehouse stock item:', err);
       notify('❌ Gagal menambahkan barang baru ke stok gudang. Coba lagi.');

@@ -32,6 +32,8 @@ export default function AdvisorDashboard() {
       onSendSPK={store.getState().sendSPK}
       onIssueInvoice={(orderId: string) => store.getState().issueInvoice(orderId, activeUser?.name)}
       onDeleteOrder={store.getState().deleteOrder}
+      onReturnFindingToGudang={(orderId: string, findingId: string) =>
+        store.getState().returnFindingToGudang(orderId, findingId, activeUser?.name)}
       onNotify={showNotification}
     />
   );

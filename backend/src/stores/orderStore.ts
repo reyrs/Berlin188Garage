@@ -21,6 +21,7 @@ interface OrderState {
   updateOrderStatus: (orderId: string, status: Order['status'], description: string, actorName?: string) => void;
   addFinding: (orderId: string, finding: any) => void;
   approveFinding: (orderId: string, findingId: string, actorName?: string) => void;
+  returnFindingToGudang: (orderId: string, findingId: string, actorName?: string) => void;
   rejectFinding: (orderId: string, findingId: string, actorName?: string) => void;
   approveServiceItem: (orderId: string, itemId: string, actorName?: string) => void;
   rejectServiceItem: (orderId: string, itemId: string, actorName?: string) => void;
@@ -250,6 +251,55 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     });
   },
 
+  // Revisi alur manager 2026-08-13: bagian yang TIDAK disetujui pelanggan
+  // nggak langsung dead-end 'rejected' — dikembalikan ke gudang buat
+  // dibuatkan ulang jasa pengerjaan & sparepart (atau gudang yang akhirnya
+  // memutuskan "tidak perlu dilanjutkan" lewat "Tidak Perlu Sparepart").
+  // Ini strip semua serviceItems (part+jasa) punya temuan itu dan reset
+  // status resolusinya, jadi balik muncul di WarehousePanel sebagai belum
+  // di-estimasi. Nggak nge-restock warehouse_stock di sini (di luar akses
+  // orderStore) — kalau part yang dibalikin sempat motong stok gudang,
+  // gudang perlu cek manual pas bikin estimasi ulang.
+  returnFindingToGudang: (orderId, findingId, actorName = 'Service Advisor') => {
+    const { orders } = get();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
+    const finding = order.findings.find((f) => f.id === findingId);
+    if (!finding) return;
+    const updatedItems = order.serviceItems.filter((i) => i.findingId !== findingId);
+    const updatedFindings = order.findings.map((f) => f.id === findingId ? {
+      ...f,
+      status: 'pending' as const,
+      approvedBy: undefined,
+      offeredAt: undefined,
+      warehouseResolved: false,
+      resolvedPartName: undefined,
+      resolvedPartSource: undefined,
+      resolvedParts: [],
+    } : f);
+    const now = new Date().toISOString();
+    const timelineEvent = {
+      id: genId('t-return-gudang'), status: order.status,
+      timestamp: now, title: 'Estimasi Dikembalikan ke Gudang',
+      description: `${actorName} mengembalikan temuan "${finding.description}" ke gudang untuk dibuatkan ulang jasa pengerjaan & sparepart (estimasi sebelumnya tidak disetujui pelanggan).`,
+      actor: actorName,
+    };
+    const updatedTimeline = [...order.timeline, timelineEvent];
+
+    set((state) => ({
+      orders: state.orders.map((o) => o.id === orderId
+        ? { ...o, serviceItems: updatedItems, findings: updatedFindings, timeline: updatedTimeline }
+        : o),
+    }));
+
+    updateOrder(orderId, { serviceItems: updatedItems, findings: updatedFindings, timeline: updatedTimeline }).catch((err) => {
+      console.error('Failed to return finding to gudang:', err);
+      set((state) => ({
+        orders: state.orders.map((o) => o.id === orderId ? { ...o, serviceItems: order.serviceItems, findings: order.findings, timeline: order.timeline } : o),
+      }));
+    });
+  },
+
   approveServiceItem: (orderId, itemId, actorName = 'Service Advisor') => {
     const { orders } = get();
     const order = orders.find((o) => o.id === orderId);
@@ -350,6 +400,12 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     const now = new Date().toISOString();
     const { orders } = get();
     const existingOrder = orders.find((o) => o.id === orderId);
+    // Revisi alur manager 2026-08-13: invoice (buat DP/pelunasan) diterbitkan
+    // BARENG pas SPK dikirim, bukan nunggu pengerjaan kelar — jadi kasir bisa
+    // langsung tagih DP begitu SPK jalan. invoicedAt cuma disetel kalau
+    // belum ada (order lama yang udah pernah di-invoice manual nggak
+    // ke-reset timestamp-nya).
+    const invoicedAt = existingOrder?.invoicedAt ?? now;
 
     // Order ini mungkin udah punya bay (SPK terkirim sebelumnya, dipanggil
     // ulang) — kalau udah, jangan pindahin ke slot baru. Kalau belum, cari
@@ -374,12 +430,18 @@ export const useOrderStore = create<OrderState>((set, get) => ({
               spkSent: true,
               status: 'dikerjakan',
               slotNumber: assignedSlot,
+              invoicedAt,
               timeline: [...o.timeline, {
                 id: genId('t-spk'), status: 'dikerjakan' as const,
                 timestamp: now, title: 'SPK Dikirim ke Mekanik',
                 description: `SPK dikirim ke ${mechanicName}${assignedSlot ? ` — Bay ${assignedSlot}` : ' — semua slot penuh, nunggu bay kosong.'}`,
                 actor: 'Service Advisor',
-              }],
+              }, ...(existingOrder?.invoicedAt ? [] : [{
+                id: genId('t-invoice'), status: 'dikerjakan' as const,
+                timestamp: now, title: 'Invoice Diterbitkan',
+                description: 'Invoice diterbitkan bersamaan SPK — siap diproses DP atau pelunasan.',
+                actor: 'Service Advisor',
+              }]),],
             }
           : o
       ),
@@ -391,6 +453,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       spkSent: true,
       status: 'dikerjakan',
       slotNumber: assignedSlot,
+      invoicedAt,
     }).catch((err) => {
       console.error('Failed to send SPK:', err);
     });

@@ -43,6 +43,16 @@ export async function createOrder(order: Order): Promise<void> {
 
 export async function updateOrder(id: string, fields: Partial<Order>): Promise<void> {
   const dbFields: Record<string, any> = {}
+  // findings/serviceItems/timeline used to be silently dropped here (this
+  // function only ever mapped scalar columns) — every caller that passed
+  // them through generic updateOrder() (WarehousePanel's finding-resolution
+  // handlers, AdvisorDashboard's penawaran tracking) updated local Zustand
+  // state fine but never actually persisted to Postgres. updateOrderJsonb()
+  // covers the single-column case; this covers callers that update several
+  // of these at once alongside scalar fields in one atomic call.
+  if (fields.findings !== undefined) dbFields.findings = JSON.stringify(fields.findings)
+  if (fields.serviceItems !== undefined) dbFields.service_items = JSON.stringify(fields.serviceItems)
+  if (fields.timeline !== undefined) dbFields.timeline = JSON.stringify(fields.timeline)
   if (fields.customerName !== undefined) dbFields.customer_name = fields.customerName
   if (fields.customerPhone !== undefined) dbFields.customer_phone = fields.customerPhone
   if (fields.customerAddress !== undefined) dbFields.customer_address = fields.customerAddress

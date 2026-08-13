@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Wrench, CheckCircle, CaretRight, Warning, MagnifyingGlass,
   ArrowLeft, Check, X, Car, DeviceMobile,
-  Camera, UploadSimple, Trash, WarningCircle, Plus, PaperPlaneTilt, WhatsappLogo, Printer
+  Camera, UploadSimple, Trash, WarningCircle, Plus, PaperPlaneTilt, WhatsappLogo, Printer, ArrowCounterClockwise
 } from '@phosphor-icons/react';
 import { Order, User as StaffUser, DiagnosticFinding } from '@shared/types';
 import { STATUS_CONFIG } from '@shared/design';
@@ -37,6 +37,7 @@ interface AdvisorDashboardProps {
   onSendSPK?: (orderId: string, mechanicId: string | undefined, mechanicName: string) => void;
   onIssueInvoice?: (orderId: string) => void;
   onDeleteOrder?: (orderId: string) => void;
+  onReturnFindingToGudang?: (orderId: string, findingId: string) => void;
   onNotify?: (message: string) => void;
   activeUser?: StaffUser;
 }
@@ -59,6 +60,7 @@ export default function AdvisorDashboard({
   onSendSPK,
   onIssueInvoice,
   onDeleteOrder,
+  onReturnFindingToGudang,
   onNotify,
   activeUser
 }: AdvisorDashboardProps) {
@@ -581,6 +583,7 @@ export default function AdvisorDashboard({
                 ) : selectedOrder.findings.map(finding => {
                   const findingItems = selectedOrder.serviceItems.filter(i => i.findingId === finding.id);
                   const hasPendingEstimate = findingItems.some(i => i.status === 'pending');
+                  const hasRejectedEstimate = findingItems.some(i => i.status === 'rejected') || finding.status === 'rejected';
                   return (
                     <div key={finding.id} className="border border-gray-200 dark:border-[#2a2d35] rounded-2xl p-5 space-y-4">
                       {/* Finding header */}
@@ -646,6 +649,15 @@ export default function AdvisorDashboard({
                         )}
                         {hasPendingEstimate && (
                           <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-2 font-semibold">⚠ Masih ada item pending — ACC/Tolak dulu di Portal Tracking di bawah sebelum SPK bisa dikirim.</p>
+                        )}
+                        {hasRejectedEstimate && onReturnFindingToGudang && (
+                          <button
+                            type="button"
+                            onClick={() => onReturnFindingToGudang(selectedOrder.id, finding.id)}
+                            className="w-full mt-2 border border-dashed border-amber-300 dark:border-amber-500/30 rounded-xl py-2.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <ArrowCounterClockwise className="w-3.5 h-3.5" weight="duotone" /> Kembalikan ke Gudang untuk Direvisi
+                          </button>
                         )}
                       </div>
                     </div>

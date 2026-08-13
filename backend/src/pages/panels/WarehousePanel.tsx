@@ -826,7 +826,14 @@ export default function WarehousePanel({
                 <div>
                   <span className="text-[10px] bg-berlin-navy text-white px-2 py-0.5 rounded font-sans font-bold">{selectedOrder.id}</span>
                   <h3 className="text-base font-black text-berlin-navy mt-1.5">{selectedOrder.carBrand} {selectedOrder.carModel}</h3>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 font-sans mt-0.5">No. Polisi: {selectedOrder.plateNumber} • Keluhan: {selectedOrder.complaints.map(c => `"${c}"`).join(', ')}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 font-sans mt-0.5 flex flex-wrap gap-x-2.5 gap-y-0.5">
+                    <span>Plat: <strong className="text-gray-700 dark:text-gray-300 uppercase">{selectedOrder.plateNumber}</strong></span>
+                    {selectedOrder.carType && <span>Tipe: <strong className="text-gray-700 dark:text-gray-300">{selectedOrder.carType}</strong></span>}
+                    {selectedOrder.carYear && <span>Tahun: <strong className="text-gray-700 dark:text-gray-300">{selectedOrder.carYear}</strong></span>}
+                    {selectedOrder.carEngineCode && <span>Engine: <strong className="text-gray-700 dark:text-gray-300 uppercase">{selectedOrder.carEngineCode}</strong></span>}
+                    {selectedOrder.carVin && <span>VIN: <strong className="text-gray-700 dark:text-gray-300 uppercase">{selectedOrder.carVin}</strong></span>}
+                  </p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 font-sans mt-0.5">Keluhan: {selectedOrder.complaints.map(c => `"${c}"`).join(', ')}</p>
                 </div>
                 <div className="text-right">
                   <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-wider block">Pelanggan</span>
@@ -1197,7 +1204,7 @@ export default function WarehousePanel({
                     className="w-full bg-berlin-navy hover:bg-berlin-navy-dark text-white py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
                   >
                     <Plus className="w-4 h-4 text-white" weight="duotone" />
-                    Tambahkan Barang Non-Stock ke WO
+                    Tambahkan Barang Non-Stock ke Stock Gudang
                   </button>
                 </form>
               )}

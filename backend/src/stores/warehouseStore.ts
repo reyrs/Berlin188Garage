@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { WarehouseStockItem, HeroContent, PortfolioItem } from '@shared/types';
 import { genId } from '@shared/id';
 import {
-  fetchWarehouseStock, adjustWarehouseStock, updateWarehouseStockMarketplaceLink,
+  fetchWarehouseStock, adjustWarehouseStock, updateWarehouseStockMarketplaceLink, createWarehouseStockItem,
   fetchHeroContent, fetchPortfolioItems,
   createPortfolioItem, deletePortfolioItem,
 } from '@shared/db';
@@ -14,6 +14,7 @@ interface WarehouseState {
   setStock: (items: WarehouseStockItem[]) => void;
   adjustStock: (itemId: string, newStock: number) => void;
   updateMarketplaceLink: (itemId: string, productId: string | null) => void;
+  createStockItem: (item: Omit<WarehouseStockItem, 'id'>) => Promise<WarehouseStockItem>;
   loadStock: () => Promise<void>;
 }
 
@@ -62,6 +63,12 @@ export const useWarehouseStore = create<WarehouseState>((set, get) => ({
     updateWarehouseStockMarketplaceLink(itemId, productId).catch((err) => {
       console.error('Failed to update marketplace link:', err);
     });
+  },
+
+  createStockItem: async (item) => {
+    const created = await createWarehouseStockItem(item);
+    set((state) => ({ stock: [...state.stock, created] }));
+    return created;
   },
 
   loadStock: async () => {

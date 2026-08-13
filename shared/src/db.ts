@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import type { Order, CashTransaction, CashClosing, Expense, WarehouseStockItem, User, HeroContent, PromoPopup, PortfolioItem, BlogPost, ErrorLog } from './types'
 import { sanitizeBlogHtml } from './sanitize'
+import { genId } from './id'
 
 const db = () => {
   if (!supabase) throw new Error('DB_UNAVAILABLE')
@@ -140,12 +141,35 @@ export async function fetchTransactions(): Promise<CashTransaction[]> {
 }
 
 export async function createTransaction(tx: CashTransaction): Promise<void> {
-  const { error } = await db().from('transactions').insert({ id: tx.id, order_id: tx.orderId, customer_name: tx.customerName, amount: tx.amount, type: tx.type, method: tx.method, category: tx.category, description: tx.description, timestamp: tx.timestamp, created_by: tx.createdBy })
+  const { error } = await db().from('transactions').insert({ id: tx.id, order_id: tx.orderId, customer_name: tx.customerName, amount: tx.amount, type: tx.type, method: tx.method, category: tx.category, description: tx.description, timestamp: tx.timestamp, created_by: tx.createdBy, proof_url: tx.proofUrl })
   if (error) throw error
 }
 
 function mapTransaction(data: any): CashTransaction {
-  return { id: data.id, orderId: data.order_id || undefined, customerName: data.customer_name || undefined, amount: Number(data.amount), type: data.type, method: data.method, category: data.category, description: data.description, timestamp: data.timestamp, createdBy: data.created_by || undefined }
+  return { id: data.id, orderId: data.order_id || undefined, customerName: data.customer_name || undefined, amount: Number(data.amount), type: data.type, method: data.method, category: data.category, description: data.description, timestamp: data.timestamp, createdBy: data.created_by || undefined, proofUrl: data.proof_url || undefined }
+}
+
+// Bukti pembayaran (screenshot QRIS/transfer dari customer) — bucket privat,
+// bukan `landing-assets` (yang public), karena bisa kejebak info rekening/
+// nominal customer. RLS: cuma owner/kasir/advisor yang bisa insert/baca
+// (lihat migration payment_proof). Beda dari uploadLandingAsset: bucket
+// privat nggak punya public URL yang beneran bisa diakses (getPublicUrl
+// tetap ngembaliin string tapi request ke situ selalu 400 kalau bucket-nya
+// private) — jadi yang disimpan di transactions.proof_url adalah STORAGE
+// PATH, bukan URL, dan buat nampilin gambarnya lagi harus lewat
+// getPaymentProofSignedUrl (URL sementara, expire).
+export async function uploadPaymentProof(file: File): Promise<string> {
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `proof-${Date.now()}.${ext}`
+  const { error } = await db().storage.from('payment-proofs').upload(path, file, { upsert: true })
+  if (error) throw error
+  return path
+}
+
+export async function getPaymentProofSignedUrl(path: string): Promise<string> {
+  const { data, error } = await db().storage.from('payment-proofs').createSignedUrl(path, 3600)
+  if (error) throw error
+  return data.signedUrl
 }
 
 // ============================================================
@@ -225,6 +249,18 @@ export async function updateWarehouseStockMarketplaceLink(id: string, marketplac
 
 function mapStockItem(data: any): WarehouseStockItem {
   return { id: data.id, name: data.name, code: data.code, price: Number(data.price), stock: data.stock, rackLocation: data.rack_location, marketplaceProductId: data.marketplace_product_id ?? undefined }
+}
+
+// Revisi manager 2026-08-13, "Gudang #2": barang non-stock yang ditambahkan
+// gudang ke WO harus masuk warehouse_stock DULU (jadi inventaris beneran
+// ke depannya), baru dialokasikan — bukan langsung jadi line-item WO ad-hoc
+// yang gak pernah ke-track. Insert langsung (bukan RPC) karena caller-nya
+// selalu gudang/owner, yang sudah diizinkan RLS warehouse_stock_role_based.
+export async function createWarehouseStockItem(item: Omit<WarehouseStockItem, 'id'>): Promise<WarehouseStockItem> {
+  const id = genId('stock')
+  const { error } = await db().from('warehouse_stock').insert({ id, name: item.name, code: item.code, price: item.price, stock: item.stock, rack_location: item.rackLocation })
+  if (error) throw error
+  return { ...item, id }
 }
 
 export async function seedWarehouseStock(items: WarehouseStockItem[]): Promise<void> {

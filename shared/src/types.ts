@@ -124,6 +124,10 @@ export interface CashTransaction {
   description: string;
   timestamp: string;
   createdBy?: string;
+  // Wajib diisi kalau method 'qris'/'transfer' (revisi manager 2026-08-13) —
+  // screenshot bukti transfer/pembayaran dari customer, di-upload ke bucket
+  // Storage privat `payment-proofs`.
+  proofUrl?: string;
 }
 
 export interface CashClosing {

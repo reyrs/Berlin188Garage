@@ -24,8 +24,6 @@ const MOCK_PROOFS = [
 interface AdvisorDashboardProps {
   orders: Order[];
   users?: StaffUser[];
-  onApproveFinding: (orderId: string, findingId: string) => void;
-  onRejectFinding: (orderId: string, findingId: string) => void;
   onApproveServiceItem: (orderId: string, itemId: string) => void;
   onRejectServiceItem: (orderId: string, itemId: string) => void;
   onConfirmPayment: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', bankDest: string) => void;
@@ -47,8 +45,6 @@ type FilterType = 'all' | 'pending_acc' | 'antre' | 'dikerjakan' | 'temuan_dilap
 export default function AdvisorDashboard({
   orders,
   users = [],
-  onApproveFinding,
-  onRejectFinding,
   onApproveServiceItem,
   onRejectServiceItem,
   onConfirmPayment,
@@ -583,13 +579,17 @@ export default function AdvisorDashboard({
                 ) : selectedOrder.findings.map(finding => {
                   const findingItems = selectedOrder.serviceItems.filter(i => i.findingId === finding.id);
                   const hasPendingEstimate = findingItems.some(i => i.status === 'pending');
-                  const hasRejectedEstimate = findingItems.some(i => i.status === 'rejected') || finding.status === 'rejected';
+                  const hasRejectedEstimate = findingItems.some(i => i.status === 'rejected');
+                  // Dot: hijau kalau estimasi ada & semuanya udah di-ACC, merah
+                  // kalau ada yang ditolak (nunggu dibalikin ke gudang), kuning
+                  // buat sisanya (belum ada estimasi / masih ada yang pending).
+                  const isFullyApproved = findingItems.length > 0 && findingItems.every(i => i.status === 'approved');
                   return (
                     <div key={finding.id} className="border border-gray-200 dark:border-[#2a2d35] rounded-2xl p-5 space-y-4">
                       {/* Finding header */}
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <span className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${finding.status === 'approved' ? 'bg-emerald-500' : finding.status === 'rejected' ? 'bg-red-400' : 'bg-amber-400'}`} />
+                          <span className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${isFullyApproved ? 'bg-emerald-500' : hasRejectedEstimate ? 'bg-red-400' : 'bg-amber-400'}`} />
                           <div className="min-w-0">
                             <div className="font-bold text-gray-900 dark:text-white leading-snug">{finding.description}</div>
                             {finding.offeredAt && (
@@ -669,20 +669,27 @@ export default function AdvisorDashboard({
                     lagi 'pending'. Ini gerbang persetujuan pelanggan yang
                     sesungguhnya: sebelum ini, SPK belum boleh terbit. */}
                 {(() => {
-                  const hasAnyEstimate = selectedOrder.serviceItems.length > 0;
-                  const hasPendingFindings = selectedOrder.findings.some(f => f.status === 'pending');
+                  // Sumber kebenaran "temuan siap" sekarang serviceItems, BUKAN
+                  // finding.status — sejak kartu approve/reject per-temuan mentah
+                  // dihapus (revisi 2026-08-13), gak ada lagi apa pun yang
+                  // mengubah finding.status dari 'pending', jadi gerbang ini WAJIB
+                  // derive dari estimasi (serviceItems) biar SPK gak kekunci permanen.
+                  const findingsWithoutEstimate = selectedOrder.findings.filter(
+                    f => !selectedOrder.serviceItems.some(i => i.findingId === f.id)
+                  );
+                  const hasUnestimatedFindings = findingsWithoutEstimate.length > 0;
                   const hasPendingItems = selectedOrder.serviceItems.some(i => i.status === 'pending');
                   // Sudah kekirim — jangan tampilin lagi dropdown+tombol kirim,
                   // banner "SPK sudah dikirim" di bawah sudah cukup. Tanpa ini,
                   // klik ulang bisa nge-assign order ke slot baru padahal
                   // mobilnya masih di bay yang sama (lihat handleSendSPK).
                   if (selectedOrder.spkSent) return null;
-                  const readyToSend = hasAnyEstimate && !hasPendingFindings && !hasPendingItems;
+                  const readyToSend = selectedOrder.findings.length > 0 && !hasUnestimatedFindings && !hasPendingItems;
                   return (
                     <div className={`border rounded-2xl p-4 space-y-3 ${readyToSend ? 'border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10' : 'border-gray-200 dark:border-[#2a2d35] bg-gray-50 dark:bg-[#22252c]'}`}>
                       <p className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${readyToSend ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                        {!hasAnyEstimate ? '⚠ Menunggu estimasi gudang (sparepart + jasa pasang)'
-                          : (hasPendingFindings || hasPendingItems) ? '⚠ Menunggu ACC/Tolak pelanggan atas semua temuan & estimasi'
+                        {selectedOrder.findings.length === 0 || hasUnestimatedFindings ? '⚠ Menunggu estimasi gudang (sparepart + jasa pasang)'
+                          : hasPendingItems ? '⚠ Menunggu ACC/Tolak pelanggan atas semua estimasi'
                           : 'Semua sudah di-ACC pelanggan — kirim SPK ke mekanik'}
                       </p>
                       {readyToSend && (
@@ -727,14 +734,11 @@ export default function AdvisorDashboard({
             key={selectedOrder.id}
             orders={orders}
             onBack={() => setSelectedOrderId(null)}
-            onApproveFinding={onApproveFinding}
-            onRejectFinding={onRejectFinding}
             onApproveServiceItem={onApproveServiceItem}
             onRejectServiceItem={onRejectServiceItem}
             onConfirmPayment={onConfirmPayment}
             onConfirmDPPayment={onConfirmDPPayment}
             onUpdateFindingCost={onUpdateFindingCost}
-            onUpdateOrder={onUpdateOrder}
             onIssueInvoice={onIssueInvoice}
             onNotify={onNotify}
             initialSearchQuery={selectedOrder.id}

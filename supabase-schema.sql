@@ -67,7 +67,11 @@ CREATE TABLE transactions (
   category TEXT NOT NULL CHECK (category IN ('pendapatan_jasa','pendapatan_part','operasional','pembelian_part','gaji','lainnya')),
   description TEXT NOT NULL,
   timestamp TIMESTAMPTZ DEFAULT now(),
-  created_by TEXT
+  created_by TEXT,
+  -- Bukti pembayaran (screenshot QRIS/transfer dari customer), wajib diisi
+  -- di UI kalau method qris/transfer. Path di bucket privat `payment-proofs`,
+  -- bukan URL public — lihat getPaymentProofSignedUrl di shared/src/db.ts.
+  proof_url TEXT
 );
 
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;

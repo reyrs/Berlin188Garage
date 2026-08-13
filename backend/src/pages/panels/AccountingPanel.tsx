@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
   CurrencyDollar, TrendDown, TrendUp, PlusCircle, FileText, X,
-  ShoppingCart, Lightning, Users, DotsThree, CheckCircle, WarningCircle
+  ShoppingCart, Lightning, Users, DotsThree, CheckCircle, WarningCircle, UploadSimple
 } from '@phosphor-icons/react';
 import KpiTile from '@shared/components/KpiTile';
 import RupiahInput from '@shared/components/RupiahInput';
 import { CashTransaction, CashClosing, Order, Expense, User } from '@shared/types';
 import { KpiTone } from '@shared/design';
+import { uploadPaymentProof } from '@shared/db';
 import InvoicePrint from '../../components/InvoicePrint';
 
 interface AccountingPanelProps {
@@ -17,8 +18,8 @@ interface AccountingPanelProps {
   staffUser: User;
   onAddExpense: (exp: Omit<Expense, 'id'>) => void;
   onCashClosing: (closing: Omit<CashClosing, 'id'>) => void;
-  onProcessPayment: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dest: string) => void;
-  onConfirmDPPayment?: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dpAmount: number, dest: string) => void;
+  onProcessPayment: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dest: string, proofUrl?: string) => void;
+  onConfirmDPPayment?: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dpAmount: number, dest: string, proofUrl?: string) => void;
   onIssueInvoice: (orderId: string) => void;
 }
 
@@ -61,6 +62,24 @@ export default function AccountingPanel({
   const [isDP, setIsDP] = useState(false);
   const [dpAmount, setDpAmount] = useState('');
   const [cashReceived, setCashReceived] = useState('');
+  // Bukti pembayaran — wajib buat QRIS/transfer (revisi manager 2026-08-13).
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+
+  const resetProof = () => {
+    if (proofPreviewUrl) URL.revokeObjectURL(proofPreviewUrl);
+    setProofFile(null);
+    setProofPreviewUrl(null);
+  };
+
+  const handleProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (proofPreviewUrl) URL.revokeObjectURL(proofPreviewUrl);
+    setProofFile(file);
+    setProofPreviewUrl(URL.createObjectURL(file));
+  };
 
   // Closing form
   const [physicalCash, setPhysicalCash] = useState('');
@@ -96,13 +115,6 @@ export default function AccountingPanel({
     });
     setExpForm({ date: new Date().toISOString().split('T')[0], description: '', amount: '', category: 'operasional', method: 'tunai' });
     setShowExpenseForm(false);
-  };
-
-  const handlePayment = () => {
-    if (!showPaymentModal) return;
-    onProcessPayment(showPaymentModal.id, payMethod, payDest);
-    setShowPaymentModal(null);
-    setCashReceived('');
   };
 
   const handleClosing = () => {
@@ -489,12 +501,41 @@ export default function AccountingPanel({
         const kembalian = Math.max(0, cashReceivedNum - sisaTagihan);
         const dpAmountNum = parseInt(dpAmount) || 0;
         const isDpAmountValid = dpAmountNum > 0 && dpAmountNum <= sisaTagihan;
+        const requiresProof = payMethod === 'qris' || payMethod === 'transfer';
+        const handleConfirmClick = async () => {
+          let proofUrl: string | undefined;
+          if (requiresProof && proofFile) {
+            setUploadingProof(true);
+            try {
+              proofUrl = await uploadPaymentProof(proofFile);
+            } catch (err) {
+              console.error('Failed to upload payment proof:', err);
+              setUploadingProof(false);
+              alert('❌ Gagal upload bukti pembayaran. Coba lagi.');
+              return;
+            }
+            setUploadingProof(false);
+          }
+          if (isDP && showPaymentModal && onConfirmDPPayment) {
+            onConfirmDPPayment(showPaymentModal.id, payMethod, dpAmountNum, payDest, proofUrl);
+            setShowPaymentModal(null);
+            setIsDP(false);
+            setDpAmount('');
+            setCashReceived('');
+            resetProof();
+          } else if (showPaymentModal) {
+            onProcessPayment(showPaymentModal.id, payMethod, payDest, proofUrl);
+            setShowPaymentModal(null);
+            setCashReceived('');
+            resetProof();
+          }
+        };
         return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-gray-900 dark:text-white">Proses Pembayaran</h3>
-              <button onClick={() => { setShowPaymentModal(null); setCashReceived(''); }}><X className="w-5 h-5 text-gray-400 dark:text-gray-500" weight="duotone" /></button>
+              <button onClick={() => { setShowPaymentModal(null); setCashReceived(''); resetProof(); }}><X className="w-5 h-5 text-gray-400 dark:text-gray-500" weight="duotone" /></button>
             </div>
             <div className="bg-gray-50 dark:bg-[#22252c] rounded-xl p-4 mb-4 space-y-1.5">
               <p className="text-sm font-medium text-gray-900 dark:text-white">{showPaymentModal.id} — {showPaymentModal.customerName}</p>
@@ -599,25 +640,36 @@ export default function AccountingPanel({
                   )}
                 </div>
               )}
+              {requiresProof && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                    Bukti Pembayaran (Screenshot) <span className="text-red-500">*</span>
+                  </label>
+                  {proofPreviewUrl ? (
+                    <div className="relative">
+                      <img src={proofPreviewUrl} alt="Bukti pembayaran" className="w-full max-h-40 object-cover rounded-xl border border-gray-200 dark:border-[#2a2d35]" />
+                      <button type="button" onClick={resetProof}
+                        className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80">
+                        <X className="w-3.5 h-3.5" weight="duotone" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center gap-1.5 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#22252c] transition-colors text-xs text-gray-500 dark:text-gray-400 font-semibold">
+                      <UploadSimple className="w-4 h-4" weight="duotone" /> Upload screenshot dari customer
+                      <input type="file" accept="image/*" className="hidden" onChange={handleProofFileChange} />
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => { setShowPaymentModal(null); setCashReceived(''); }}
+              <button onClick={() => { setShowPaymentModal(null); setCashReceived(''); resetProof(); }}
                 className="flex-1 border border-gray-200 dark:border-[#2a2d35] py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#22252c]">Batal</button>
               <button
-                disabled={(payMethod === 'tunai' && !isDP && cashReceivedNum < sisaTagihan) || (isDP && !isDpAmountValid)}
-                onClick={() => {
-                  if (isDP && showPaymentModal && onConfirmDPPayment) {
-                    onConfirmDPPayment(showPaymentModal.id, payMethod, dpAmountNum, payDest);
-                    setShowPaymentModal(null);
-                    setIsDP(false);
-                    setDpAmount('');
-                    setCashReceived('');
-                  } else {
-                    handlePayment();
-                  }
-                }}
+                disabled={(payMethod === 'tunai' && !isDP && cashReceivedNum < sisaTagihan) || (isDP && !isDpAmountValid) || (requiresProof && !proofFile) || uploadingProof}
+                onClick={handleConfirmClick}
                 className="flex-1 bg-berlin-navy text-white py-2.5 rounded-xl text-sm font-medium hover:bg-berlin-navy-dark disabled:opacity-40 disabled:cursor-not-allowed">
-                {isDP ? 'Konfirmasi DP' : 'Konfirmasi Lunas'}
+                {uploadingProof ? 'Mengupload bukti...' : isDP ? 'Konfirmasi DP' : 'Konfirmasi Lunas'}
               </button>
             </div>
           </div>

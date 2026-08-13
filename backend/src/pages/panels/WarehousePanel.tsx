@@ -204,6 +204,7 @@ interface WarehousePanelProps {
   onUpdateOrder: (orderId: string, updatedFields: Partial<Order>) => void;
   onUpdateStock?: (itemId: string, newStock: number) => void;
   onUpdateMarketplaceLink?: (itemId: string, marketplaceProductId: string | null) => void;
+  onCreateStockItem?: (item: Omit<WarehouseStockItem, 'id'>) => Promise<WarehouseStockItem>;
   onNotify?: (message: string) => void;
   activeUser: StaffUser;
 }
@@ -216,6 +217,7 @@ export default function WarehousePanel({
   onUpdateOrder,
   onUpdateStock,
   onUpdateMarketplaceLink,
+  onCreateStockItem,
   onNotify,
   activeUser
 }: WarehousePanelProps) {
@@ -309,24 +311,44 @@ export default function WarehousePanel({
     onUpdateServiceItems(selectedOrder.id, updatedItems);
   };
 
-  // Add custom non-stock item to order
-  const handleAddCustomPart = (e: React.FormEvent) => {
+  // Add custom non-stock item — masuk warehouse_stock DULU (jadi inventaris
+  // beneran), baru langsung dialokasikan penuh ke WO ini (revisi manager
+  // 2026-08-13, "Gudang #2"). Sebelumnya ini langsung jadi ServiceItem
+  // ad-hoc yang gak pernah ke-track sebagai stok gudang.
+  const handleAddCustomPart = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOrder || !customName || customPrice <= 0 || customQty <= 0) return;
+    if (!selectedOrder || !customName || customPrice <= 0 || customQty <= 0 || !onCreateStockItem) return;
 
-    const codeStr = customCode.trim() || `PART-OUT-${Date.now().toString().slice(-4)}`;
-    
-    const newItem: ServiceItem = {
-      id: genId('part-custom'),
-      name: `${customName} [Non-Stock] (${codeStr})`,
-      type: 'part',
-      price: customPrice,
-      qty: customQty,
-      status: 'pending' // Needs approval (ACC)
-    };
+    const codeStr = customCode.trim() || `SP-NEW-${Date.now().toString().slice(-6)}`;
 
-    const updatedItems = [...selectedOrder.serviceItems, newItem];
-    onUpdateServiceItems(selectedOrder.id, updatedItems);
+    try {
+      const newStockItem = await onCreateStockItem({
+        name: customName,
+        code: codeStr,
+        price: customPrice,
+        stock: customQty,
+        rackLocation: 'Belum Ditempatkan',
+      });
+
+      // Seluruh qty yang baru masuk langsung dipakai buat WO ini (barang
+      // ini didatangkan khusus buat kebutuhan WO ini) — stok gudang jadi 0.
+      onUpdateStock?.(newStockItem.id, 0);
+
+      const newItem: ServiceItem = {
+        id: genId('part'),
+        name: `${newStockItem.name} (${newStockItem.code})`,
+        type: 'part',
+        price: newStockItem.price,
+        qty: customQty,
+        status: 'pending' // Needs approval (ACC)
+      };
+      onUpdateServiceItems(selectedOrder.id, [...selectedOrder.serviceItems, newItem]);
+      notify(`✅ ${customName} ditambahkan ke stok gudang & dialokasikan ke WO ini.`);
+    } catch (err) {
+      console.error('Failed to create warehouse stock item:', err);
+      notify('❌ Gagal menambahkan barang baru ke stok gudang. Coba lagi.');
+      return;
+    }
 
     // Reset Form
     setCustomName('');
@@ -1143,7 +1165,7 @@ export default function WarehousePanel({
                       <label className="text-[9px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500">KODE BARANG (OPSIONAL)</label>
                       <input
                         type="text"
-                        placeholder="Contoh: PART-OUT-BMW-02"
+                        placeholder="Contoh: SP-BMW-02"
                         value={customCode}
                         onChange={(e) => setCustomCode(e.target.value)}
                         className="w-full bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] rounded-lg py-2 px-3 text-xs text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500 font-sans transition-colors"

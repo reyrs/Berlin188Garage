@@ -1,26 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Calendar, Clock, AlertTriangle, FileText, ChevronRight, User, ArrowLeft, Printer, Share2, DollarSign, Check, X, Camera, CreditCard, MessageCircle, Plus } from 'lucide-react';
-import { Order, DiagnosticFinding, ServiceItem } from '@shared/types';
+import { Search, Calendar, AlertTriangle, FileText, ChevronRight, User, ArrowLeft, Printer, Share2, DollarSign, Check, X, Camera, CreditCard, MessageCircle } from 'lucide-react';
+import { Order, DiagnosticFinding } from '@shared/types';
 import { CAR_BRAND_LOGOS } from '../data/mockData';
 import CurveAccent from '@shared/components/CurveAccent';
 import ImageLightbox from '@shared/components/ImageLightbox';
 import RupiahInput from '@shared/components/RupiahInput';
-import { trackOrdersByPhone, customerSetFindingStatus, customerSetServiceItemStatus } from '@shared/db';
-import { genId } from '@shared/id';
-import { COMMON_JASA_NAMES } from '../data/jasaCatalog';
+import { trackOrdersByPhone, customerSetServiceItemStatus } from '@shared/db';
 import { buildWhatsAppLink, buildTrackingLink } from '@shared/whatsapp';
 
 interface TrackingPortalProps {
   orders: Order[];
   onBack: () => void;
-  onApproveFinding: (orderId: string, findingId: string) => void;
-  onRejectFinding: (orderId: string, findingId: string) => void;
   onApproveServiceItem: (orderId: string, itemId: string) => void;
   onRejectServiceItem: (orderId: string, itemId: string) => void;
   onConfirmPayment?: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', bankDest: string) => void;
   onConfirmDPPayment?: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dpAmount: number, dest: string) => void;
   onUpdateFindingCost?: (orderId: string, findingId: string, cost: number) => void;
-  onUpdateOrder?: (orderId: string, fields: Partial<Order>) => void;
   onNotify?: (message: string) => void;
   initialSearchQuery?: string;
   isStaffView?: boolean;
@@ -30,14 +25,11 @@ interface TrackingPortalProps {
 export default function TrackingPortal({
   orders,
   onBack,
-  onApproveFinding,
-  onRejectFinding,
   onApproveServiceItem,
   onRejectServiceItem,
   onConfirmPayment,
   onConfirmDPPayment,
   onUpdateFindingCost,
-  onUpdateOrder,
   onNotify,
   initialSearchQuery = '',
   isStaffView = false
@@ -46,14 +38,6 @@ export default function TrackingPortal({
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [searched, setSearched] = useState(initialSearchQuery !== '');
-  // Staff-only — input harga jasa buat temuan yang udah di-ACC. Sengaja
-  // nggak dibatasi status order (lihat AdvisorDashboard.tsx's antre-only
-  // "SA Workspace" — itu buat diagnosis awal sebelum SPK; ini buat temuan
-  // yang muncul PAS pengerjaan berjalan, jalur yang sebelumnya buntu).
-  const [activeFindingJasaId, setActiveFindingJasaId] = useState<string | null>(null);
-  const [jasaName, setJasaName] = useState('');
-  const [jasaPrice, setJasaPrice] = useState('');
-  const [jasaQty, setJasaQty] = useState('1');
   const [activeOrder, setActiveOrder] = useState<Order | null>(() => {
     if (!initialSearchQuery || !isStaffView) return null; // customer lookup resolves async below
     return orders.find(o => o.id === initialSearchQuery || o.customerPhone === initialSearchQuery) || null;
@@ -105,126 +89,9 @@ export default function TrackingPortal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAddJasaToFinding = (findingId: string) => {
-    if (!currentOrder || !onUpdateOrder || !jasaName.trim() || !jasaPrice) return;
-    const newItem: ServiceItem = {
-      id: genId('item'),
-      name: jasaName.trim(),
-      type: 'jasa',
-      price: Number(jasaPrice) || 0,
-      qty: Number(jasaQty) || 1,
-      status: 'approved',
-      findingId
-    };
-    onUpdateOrder(currentOrder.id, { serviceItems: [...currentOrder.serviceItems, newItem] });
-    setJasaName(''); setJasaPrice(''); setJasaQty('1');
-    setActiveFindingJasaId(null);
-  };
-
-  const handleRemoveJasaItem = (itemId: string) => {
-    if (!currentOrder || !onUpdateOrder) return;
-    onUpdateOrder(currentOrder.id, { serviceItems: currentOrder.serviceItems.filter(i => i.id !== itemId) });
-  };
-
-  const handleApproveFindingService = (findingId: string, srvId: string) => {
-    if (!currentOrder || !onUpdateOrder) return;
-
-    // 1. Mark the service as approved in the finding's services list
-    const updatedFindings = currentOrder.findings.map(f => {
-      if (f.id === findingId) {
-        const updatedServices = (f.services || []).map(s => {
-          if (s.id === srvId) {
-            return { ...s, status: 'approved' as const };
-          }
-          return s;
-        });
-        return { ...f, services: updatedServices };
-      }
-      return f;
-    });
-
-    // 2. Also copy it into order.serviceItems as an approved service item!
-    const targetFinding = currentOrder.findings.find(f => f.id === findingId);
-    const targetService = targetFinding?.services?.find(s => s.id === srvId);
-    
-    if (targetService) {
-      const newServiceItem = {
-        id: `find-srv-${targetService.id}`, // prefix to ensure unique id
-        name: `${targetService.name} (Temuan: ${targetFinding?.description})`,
-        type: 'jasa' as const,
-        price: targetService.price,
-        qty: targetService.qty,
-        status: 'approved' as const,
-        completed: false
-      };
-
-      const newTimelineEvent = {
-        id: genId('t-appr-find-srv'),
-        status: currentOrder.status,
-        timestamp: new Date().toISOString(),
-        title: 'Jasa Temuan Disetujui',
-        description: `Service Advisor menyetujui jasa pengerjaan temuan: "${targetService.name}" senilai Rp ${targetService.price.toLocaleString('id-ID')}.`,
-        actor: 'Service Advisor'
-      };
-
-      onUpdateOrder(currentOrder.id, {
-        findings: updatedFindings,
-        serviceItems: [...currentOrder.serviceItems, newServiceItem],
-        timeline: [...currentOrder.timeline, newTimelineEvent]
-      });
-    }
-  };
-
-  const handleRejectFindingService = (findingId: string, srvId: string) => {
-    if (!currentOrder || !onUpdateOrder) return;
-
-    // Mark the service as rejected in the finding's services list
-    const updatedFindings = currentOrder.findings.map(f => {
-      if (f.id === findingId) {
-        const updatedServices = (f.services || []).map(s => {
-          if (s.id === srvId) {
-            return { ...s, status: 'rejected' as const };
-          }
-          return s;
-        });
-        return { ...f, services: updatedServices };
-      }
-      return f;
-    });
-
-    const targetFinding = currentOrder.findings.find(f => f.id === findingId);
-    const targetService = targetFinding?.services?.find(s => s.id === srvId);
-
-    const newTimelineEvent = {
-      id: genId('t-rej-find-srv'),
-      status: currentOrder.status,
-      timestamp: new Date().toISOString(),
-      title: 'Jasa Temuan Ditolak',
-      description: `Service Advisor menolak jasa pengerjaan temuan: "${targetService?.name}".`,
-      actor: 'Service Advisor'
-    };
-
-    onUpdateOrder(currentOrder.id, {
-      findings: updatedFindings,
-      timeline: [...currentOrder.timeline, newTimelineEvent]
-    });
-  };
-
-  // Customer ACC on their own findings/service items — goes through the
-  // phone-scoped RPCs (see lib/db.ts), not the staff onApprove*/onReject*
-  // props, since anon has no direct write access to `orders` anymore.
-  const handleCustomerFindingDecision = async (findingId: string, status: 'approved' | 'rejected') => {
-    if (!currentOrder) return;
-    try {
-      const updated = await customerSetFindingStatus(currentOrder.id, customerPhone, findingId, status);
-      if (updated) setActiveOrder(updated);
-      else notify('❌ Gagal menyimpan keputusan Anda. Coba cari ulang pesanan Anda.');
-    } catch (err) {
-      console.error('Failed to set finding status as customer:', err);
-      notify('❌ Gagal menyimpan keputusan Anda. Coba lagi.');
-    }
-  };
-
+  // Customer ACC on their own service items — goes through the phone-scoped
+  // RPC (see lib/db.ts), not a staff onApprove*/onReject* prop, since anon
+  // has no direct write access to `orders` anymore.
   const handleCustomerServiceItemDecision = async (itemId: string, status: 'approved' | 'rejected') => {
     if (!currentOrder) return;
     try {
@@ -549,7 +416,13 @@ export default function TrackingPortal({
                         fields), so this component no longer has an isStaffView
                         work-command control at all. */}
 
-                    {/* Findings notification (Informational) */}
+                    {/* Temuan (read-only) — persetujuan terjadi di level estimasi
+                        jasa+sparepart di kartu "Persetujuan Jasa & Sparepart"
+                        di bawah, bukan di sini. Dulu ada ACC/Tolak per-temuan
+                        mentah + sistem finding.services[] legacy di kartu ini,
+                        dihapus 2026-08-13 (nggak sinkron sama alur estimasi
+                        gudang yang sekarang — temuan mentah belum punya harga,
+                        jadi belum ada yang bisa di-ACC di level ini). */}
                     <div className="bg-white border border-gray-200/80 p-5 rounded-2xl space-y-4 shadow-xs">
                       <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                         <div className="flex items-center gap-2">
@@ -562,121 +435,33 @@ export default function TrackingPortal({
                       </div>
 
                       {currentOrder.findings.length === 0 ? (
-                        <p className="text-gray-400 text-xs py-2 text-center">Belum ada temuan kerusakan tambahan yang dilaporkan mekanik.</p>
+                        <p className="text-gray-400 text-xs py-2 text-center">Belum ada temuan kerusakan tambahan yang dilaporkan.</p>
                       ) : (
                         <div className="space-y-4">
                           {currentOrder.findings.map((finding) => (
                             <div key={finding.id} className="bg-gray-50 border border-gray-150 p-4 rounded-xl space-y-3">
-                              <div className="flex items-center justify-between text-[10px] text-gray-400 font-sans">
-                                <span>Dilaporkan oleh Mekanik</span>
-                                <span>{new Date(finding.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                              <div className="flex items-center justify-end text-[10px] text-gray-400 font-sans">
+                                <span>{new Date(finding.timestamp).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}, {new Date(finding.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
 
                               <p className="text-xs sm:text-sm text-gray-800 font-medium leading-relaxed">{finding.description}</p>
 
-                              {/* Display Finding's Services & Parts added - Only shows if approved */}
-                              {finding.status === 'approved' && (
-                                <div className="bg-white/95 border border-gray-150 rounded-xl p-3.5 space-y-3 shadow-xs">
-                                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Rincian Jasa & Part Pengerjaan (Mekanik)</span>
-                                    <span className="text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.2 rounded font-extrabold">APPROVED (ACC)</span>
-                                  </div>
-
-                                  {/* List Services added to finding */}
-                                  <div className="space-y-2">
-                                    {finding.services && finding.services.length > 0 ? (
-                                      finding.services.map((srv) => (
-                                        <div key={srv.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs py-1.5 px-2 bg-gray-50 rounded-lg border border-gray-100">
-                                          <div className="text-gray-700 flex flex-wrap items-center gap-1.5 pl-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                                            <span className="font-semibold">{srv.name}</span>
-                                            {srv.qty > 1 && <span className="text-[10px] text-gray-400 font-sans">x{srv.qty}</span>}
-                                            
-                                            {/* Status Badge in SA/Customer View */}
-                                            {srv.status === 'pending' && (
-                                              <span className="text-[8px] bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded font-bold">BUTUH PERSETUJUAN SA</span>
-                                            )}
-                                            {srv.status === 'approved' && (
-                                              <span className="text-[8px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded font-extrabold">ACC</span>
-                                            )}
-                                            {srv.status === 'rejected' && (
-                                              <span className="text-[8px] bg-red-50 text-red-800 border border-red-200 px-1.5 py-0.5 rounded font-extrabold">DITOLAK</span>
-                                            )}
-                                            {(!srv.status || srv.status === 'draft') && (
-                                              <span className="text-[8px] bg-gray-100 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded font-extrabold">DRAFT</span>
-                                            )}
-                                            {(srv as any).completed && (
-                                              <span className="text-[8px] bg-indigo-50 text-indigo-850 border border-indigo-200 font-extrabold px-1.5 py-0.5 rounded">Selesai</span>
-                                            )}
-                                          </div>
-                                          
-                                          <div className="flex items-center justify-between sm:justify-end gap-3 font-sans font-bold text-gray-800 self-stretch sm:self-auto border-t sm:border-t-0 pt-1 sm:pt-0 border-gray-100">
-                                            <span className="text-[10px] sm:text-xs text-gray-500 font-normal sm:hidden">Biaya:</span>
-                                            <div className="flex items-center gap-3">
-                                              <span>{formatRupiah(srv.price * srv.qty)}</span>
-                                              
-                                              {/* Approve/Reject Action Buttons for SA */}
-                                              {isStaffView && srv.status === 'pending' && (
-                                                <div className="flex items-center gap-1.5">
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => handleApproveFindingService(finding.id, srv.id)}
-                                                    className="p-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 hover:border-emerald-300 transition-colors cursor-pointer"
-                                                    title="Setujui Jasa"
-                                                  >
-                                                    <Check className="w-3.5 h-3.5" />
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => handleRejectFindingService(finding.id, srv.id)}
-                                                    className="p-1 rounded bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 transition-colors cursor-pointer"
-                                                    title="Tolak Jasa"
-                                                  >
-                                                    <X className="w-3.5 h-3.5" />
-                                                  </button>
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ))
-                                    ) : (
-                                      <p className="text-[10px] text-gray-400 italic py-0.5">Mekanik belum memasukkan rincian jasa pengerjaan untuk temuan ini.</p>
-                                    )}
-                                  </div>
-
-                                  {/* List Resolved Parts added to finding */}
-                                  {finding.resolvedParts && finding.resolvedParts.length > 0 && (
-                                    <div className="pt-2 border-t border-gray-100 space-y-1.5">
-                                      <span className="text-[9px] uppercase font-extrabold tracking-wider text-emerald-800 block">Alokasi Sparepart Gudang:</span>
-                                      {finding.resolvedParts.map((part) => (
-                                        <div key={part.id} className="flex items-center justify-between text-xs">
-                                          <div className="text-emerald-900 flex items-center gap-1.5 font-medium">
-                                            <span className="w-1 h-1 rounded-full bg-emerald-600"></span>
-                                            <span>{part.name}</span>
-                                            <span className="text-[10px] font-sans text-emerald-700">x{part.qty}</span>
-                                          </div>
-                                          <span className="font-sans font-bold text-emerald-800 tabular-nums">{formatRupiah(part.price * part.qty)}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  {/* Subtotal calculated dynamically */}
-                                  {(() => {
-                                    const srvTotal = (finding.services || []).reduce((sum, s) => sum + (s.price * s.qty), 0);
-                                    const partTotal = (finding.resolvedParts || []).reduce((sum, p) => sum + (p.price * p.qty), 0);
-                                    const total = srvTotal + partTotal;
-                                    return (
-                                      <div className="pt-2.5 border-t border-gray-150 flex justify-between items-center text-xs font-black">
-                                        <span className="text-gray-600 uppercase tracking-wider text-[9px]">Subtotal Biaya Temuan</span>
-                                        <span className="font-sans text-berlin-navy text-sm tabular-nums">{formatRupiah(total)}</span>
+                              {finding.resolvedParts && finding.resolvedParts.length > 0 && (
+                                <div className="bg-white/95 border border-gray-150 rounded-xl p-3.5 space-y-1.5">
+                                  <span className="text-[9px] uppercase font-extrabold tracking-wider text-emerald-800 block">Alokasi Sparepart Gudang:</span>
+                                  {finding.resolvedParts.map((part) => (
+                                    <div key={part.id} className="flex items-center justify-between text-xs">
+                                      <div className="text-emerald-900 flex items-center gap-1.5 font-medium">
+                                        <span className="w-1 h-1 rounded-full bg-emerald-600"></span>
+                                        <span>{part.name}</span>
+                                        <span className="text-[10px] font-sans text-emerald-700">x{part.qty}</span>
                                       </div>
-                                    );
-                                  })()}
+                                      <span className="font-sans font-bold text-emerald-800 tabular-nums">{formatRupiah(part.price * part.qty)}</span>
+                                    </div>
+                                  ))}
                                 </div>
                               )}
-                              
+
                               {finding.imageUrl && (
                                 <button
                                   type="button"
@@ -685,13 +470,13 @@ export default function TrackingPortal({
                                 >
                                   <img
                                     src={finding.imageUrl}
-                                    alt="Temuan Mekanik"
+                                    alt="Bukti temuan"
                                     className="w-full h-full object-cover opacity-90 group-hover:scale-102 transition-transform duration-300"
                                     referrerPolicy="no-referrer"
                                   />
                                   <div className="print:hidden absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[9px] px-2 py-0.5 rounded flex items-center gap-1">
                                     <Camera className="w-3.5 h-3.5" />
-                                    <span>Foto Bukti Langsung — Klik untuk perbesar</span>
+                                    <span>Foto Bukti — Klik untuk perbesar</span>
                                   </div>
                                 </button>
                               )}
@@ -705,109 +490,6 @@ export default function TrackingPortal({
                                   <MessageCircle className="w-3.5 h-3.5" /> Kirim ke WA Customer
                                 </button>
                               )}
-
-                              {finding.status === 'pending' ? (
-                                <div className="flex justify-between items-center border-t border-gray-200/60 pt-3 mt-1.5">
-                                  <span className="text-[10px] text-amber-800 font-bold uppercase flex items-center gap-1.5">
-                                    <Clock className="w-3.5 h-3.5 animate-spin" />
-                                    Menunggu Persetujuan Anda
-                                  </span>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => isStaffView ? onRejectFinding(currentOrder.id, finding.id) : handleCustomerFindingDecision(finding.id, 'rejected')}
-                                      className="bg-white hover:bg-red-50 border border-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-xs"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                      Tolak Temuan
-                                    </button>
-                                    <button
-                                      onClick={() => isStaffView ? onApproveFinding(currentOrder.id, finding.id) : handleCustomerFindingDecision(finding.id, 'approved')}
-                                      className="bg-berlin-navy hover:bg-berlin-navy/90 text-white border border-berlin-gold/30 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                                    >
-                                      <Check className="w-3.5 h-3.5" />
-                                      Berikan ACC
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex justify-between items-center border-t border-gray-200/60 pt-2.5 mt-1.5 text-xs">
-                                  <span className="text-gray-400 font-bold uppercase text-[9px]">Status Temuan:</span>
-                                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${
-                                    finding.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200'
-                                  }`}>
-                                    {finding.status === 'approved' ? 'DISETUJUI' : 'DITOLAK'}
-                                  </span>
-                                </div>
-                              )}
-
-                              {isStaffView && finding.status === 'approved' && (() => {
-                                const findingJasa = currentOrder.serviceItems.filter(i => i.type === 'jasa' && i.findingId === finding.id);
-                                const isAddingJasa = activeFindingJasaId === finding.id;
-                                return (
-                                  <div className="print:hidden border-t border-gray-200/60 pt-3 mt-1.5 space-y-2.5">
-                                    <div className="text-[9px] font-bold uppercase tracking-widest text-gray-400">JASA PENGERJAAN TEMUAN INI:</div>
-                                    {findingJasa.length === 0 ? (
-                                      <p className="text-xs text-gray-400 italic">Belum ada jasa pengerjaan yang dimasukkan.</p>
-                                    ) : (
-                                      <div className="space-y-1.5">
-                                        {findingJasa.map(item => (
-                                          <div key={item.id} className="flex items-center justify-between py-2 px-3 bg-blue-50 border border-blue-100 rounded-xl text-xs">
-                                            <span className="font-semibold text-blue-900">{item.name}</span>
-                                            <div className="flex items-center gap-3 shrink-0">
-                                              <span className="text-blue-600 tabular-nums">{formatRupiah(item.price)} × {item.qty}</span>
-                                              <button onClick={() => handleRemoveJasaItem(item.id)} className="text-gray-300 hover:text-red-500 transition-colors cursor-pointer">
-                                                <X className="w-3.5 h-3.5" />
-                                              </button>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    {isAddingJasa ? (
-                                      <div className="border border-gray-200 rounded-xl p-3.5 space-y-2.5 bg-gray-50/50">
-                                        <div className="grid grid-cols-3 gap-2">
-                                          <div className="col-span-1 space-y-1">
-                                            <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">NAMA JASA</label>
-                                            <input value={jasaName} onChange={e => setJasaName(e.target.value)}
-                                              list="jasa-catalog-suggestions"
-                                              placeholder="Contoh: Bongkar Pasang"
-                                              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-black bg-white text-gray-800" />
-                                            <datalist id="jasa-catalog-suggestions">
-                                              {COMMON_JASA_NAMES.map(name => <option key={name} value={name} />)}
-                                            </datalist>
-                                          </div>
-                                          <div className="space-y-1">
-                                            <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">BIAYA (RP)</label>
-                                            <RupiahInput value={jasaPrice} onChange={setJasaPrice}
-                                              placeholder="150.000"
-                                              className="w-full border border-gray-200 rounded-lg pr-2.5 py-1.5 text-xs focus:outline-none focus:border-black bg-white text-gray-800" />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">QTY</label>
-                                            <input value={jasaQty} onChange={e => setJasaQty(e.target.value)} type="number" min="1"
-                                              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-black bg-white text-gray-800" />
-                                          </div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                          <button onClick={() => handleAddJasaToFinding(finding.id)}
-                                            className="bg-berlin-navy text-white px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:bg-berlin-navy/90 transition-colors">
-                                            Tambah
-                                          </button>
-                                          <button onClick={() => setActiveFindingJasaId(null)}
-                                            className="text-gray-500 text-xs px-3 py-1.5 cursor-pointer hover:text-gray-700">Batal</button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        onClick={() => { setActiveFindingJasaId(finding.id); setJasaName(''); setJasaPrice(''); setJasaQty('1'); }}
-                                        className="w-full border border-dashed border-gray-300 rounded-xl py-2.5 text-[10px] font-bold text-blue-600 hover:border-blue-300 hover:bg-blue-50/50 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
-                                        <Plus className="w-3.5 h-3.5" /> TAMBAH JASA & BIAYA
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })()}
                             </div>
                           ))}
                         </div>

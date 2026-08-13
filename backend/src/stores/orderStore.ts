@@ -20,17 +20,15 @@ interface OrderState {
   deleteOrder: (orderId: string) => void;
   updateOrderStatus: (orderId: string, status: Order['status'], description: string, actorName?: string) => void;
   addFinding: (orderId: string, finding: any) => void;
-  approveFinding: (orderId: string, findingId: string, actorName?: string) => void;
   returnFindingToGudang: (orderId: string, findingId: string, actorName?: string) => void;
-  rejectFinding: (orderId: string, findingId: string, actorName?: string) => void;
   approveServiceItem: (orderId: string, itemId: string, actorName?: string) => void;
   rejectServiceItem: (orderId: string, itemId: string, actorName?: string) => void;
   updateServiceItems: (orderId: string, items: ServiceItem[]) => void;
   updateOrder: (orderId: string, fields: Partial<Order>) => void;
   sendSPK: (orderId: string, mechanicId: string | undefined, mechanicName: string) => void;
   issueInvoice: (orderId: string, actorName?: string) => void;
-  confirmPayment: (orderId: string, method: Order['paymentMethod'], destination?: string) => void;
-  confirmDPPayment: (orderId: string, method: Order['paymentMethod'], dpAmount: number, destination?: string) => void;
+  confirmPayment: (orderId: string, method: Order['paymentMethod'], destination?: string, proofUrl?: string) => void;
+  confirmDPPayment: (orderId: string, method: Order['paymentMethod'], dpAmount: number, destination?: string, proofUrl?: string) => void;
   loadOrders: () => Promise<void>;
 }
 
@@ -181,74 +179,6 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         console.error('Failed to update status after finding:', err);
       });
     }
-  },
-
-  approveFinding: (orderId, findingId, actorName = 'Service Advisor') => {
-    const { orders } = get();
-    const order = orders.find((o) => o.id === orderId);
-    if (!order) return;
-    const finding = order.findings.find((f) => f.id === findingId);
-    const updatedFindings = order.findings.map((f) =>
-      f.id === findingId ? { ...f, status: 'approved' as const, approvedBy: 'advisor' as const } : f
-    );
-
-    set((state) => ({
-      orders: state.orders.map((o) => {
-        if (o.id !== orderId) return o;
-        return {
-          ...o,
-          findings: updatedFindings,
-          timeline: [...o.timeline, {
-            id: genId('t-approve'), status: o.status,
-            timestamp: new Date().toISOString(),
-            title: 'Temuan Disetujui (dicatat SA)',
-            description: `${actorName} mencatat persetujuan pelanggan atas temuan: "${finding?.description}". Pengerjaan dilanjutkan.`,
-            actor: actorName,
-          }],
-        };
-      }),
-    }));
-
-    updateOrderJsonb(orderId, 'findings', updatedFindings).catch((err) => {
-      console.error('Failed to approve finding:', err);
-      set((state) => ({
-        orders: state.orders.map((o) => o.id === orderId ? { ...o, findings: order.findings } : o),
-      }));
-    });
-  },
-
-  rejectFinding: (orderId, findingId, actorName = 'Service Advisor') => {
-    const { orders } = get();
-    const order = orders.find((o) => o.id === orderId);
-    if (!order) return;
-    const finding = order.findings.find((f) => f.id === findingId);
-    const updatedFindings = order.findings.map((f) =>
-      f.id === findingId ? { ...f, status: 'rejected' as const, approvedBy: 'advisor' as const } : f
-    );
-
-    set((state) => ({
-      orders: state.orders.map((o) => {
-        if (o.id !== orderId) return o;
-        return {
-          ...o,
-          findings: updatedFindings,
-          timeline: [...o.timeline, {
-            id: genId('t-reject'), status: o.status,
-            timestamp: new Date().toISOString(),
-            title: 'Temuan Ditolak (dicatat SA)',
-            description: `${actorName} mencatat penolakan pelanggan atas tindakan: "${finding?.description}". Pekerjaan dilewati.`,
-            actor: actorName,
-          }],
-        };
-      }),
-    }));
-
-    updateOrderJsonb(orderId, 'findings', updatedFindings).catch((err) => {
-      console.error('Failed to reject finding:', err);
-      set((state) => ({
-        orders: state.orders.map((o) => o.id === orderId ? { ...o, findings: order.findings } : o),
-      }));
-    });
   },
 
   // Revisi alur manager 2026-08-13: bagian yang TIDAK disetujui pelanggan
@@ -492,7 +422,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     });
   },
 
-  confirmPayment: (orderId, method, destination) => {
+  confirmPayment: (orderId, method, destination, proofUrl) => {
     const now = new Date().toISOString();
     const { orders } = get();
     const target = orders.find((o) => o.id === orderId);
@@ -538,6 +468,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       category: 'pendapatan_jasa',
       description: `Pembayaran ${orderId} — ${target.carBrand} ${target.carModel}`,
       timestamp: now,
+      proofUrl,
     };
     useFinanceStore.getState().addTransaction(tx);
 
@@ -547,7 +478,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     }
   },
 
-  confirmDPPayment: (orderId, method, dpAmount, destination) => {
+  confirmDPPayment: (orderId, method, dpAmount, destination, proofUrl) => {
     const now = new Date().toISOString();
     const { orders } = get();
     const target = orders.find((o) => o.id === orderId);
@@ -584,6 +515,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       category: 'pendapatan_jasa',
       description: `DP ${orderId} — Rp ${dpAmount.toLocaleString('id-ID')} (${target.carBrand} ${target.carModel})`,
       timestamp: now,
+      proofUrl,
     };
     useFinanceStore.getState().addTransaction(tx);
 

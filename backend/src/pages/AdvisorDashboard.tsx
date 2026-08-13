@@ -15,10 +15,6 @@ export default function AdvisorDashboard() {
       orders={orders}
       users={users}
       activeUser={activeUser!}
-      onApproveFinding={(orderId: string, findingId: string) =>
-        store.getState().approveFinding(orderId, findingId, activeUser?.name)}
-      onRejectFinding={(orderId: string, findingId: string) =>
-        store.getState().rejectFinding(orderId, findingId, activeUser?.name)}
       onApproveServiceItem={(orderId: string, itemId: string) =>
         store.getState().approveServiceItem(orderId, itemId, activeUser?.name)}
       onRejectServiceItem={(orderId: string, itemId: string) =>

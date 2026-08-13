@@ -14,6 +14,7 @@ export default function WarehousePanel() {
   const updateOrder = useOrderStore((s) => s.updateOrder);
   const adjustStock = useWarehouseStore((s) => s.adjustStock);
   const updateMarketplaceLink = useWarehouseStore((s) => s.updateMarketplaceLink);
+  const createStockItem = useWarehouseStore((s) => s.createStockItem);
   return (
     <WarehousePanelInner
       orders={orders}
@@ -24,6 +25,7 @@ export default function WarehousePanel() {
       onUpdateOrder={updateOrder}
       onUpdateStock={adjustStock}
       onUpdateMarketplaceLink={updateMarketplaceLink}
+      onCreateStockItem={createStockItem}
       onNotify={showNotification}
     />
   );

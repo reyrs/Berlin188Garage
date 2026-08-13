@@ -83,8 +83,6 @@ export default function App() {
         <TrackingPortal
           orders={[]}
           onBack={() => setCurrentView('landing')}
-          onApproveFinding={() => {}}
-          onRejectFinding={() => {}}
           onApproveServiceItem={() => {}}
           onRejectServiceItem={() => {}}
           onNotify={showNotification}

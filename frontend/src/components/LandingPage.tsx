@@ -412,8 +412,19 @@ export default function LandingPage({ onCheckOrder, onOpenMarketplace, heroConte
               <Clock className="w-3.5 h-3.5 text-berlin-navy" />
               <p className="spec-label text-gray-400">Jam Buka</p>
             </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300">Senin – Sabtu</p>
-            <p className="text-sm text-gray-700 dark:text-gray-300 font-sans">08.30 – 17.00 WIB</p>
+            <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+              <div className="flex items-baseline justify-between gap-4">
+                <span>Senin – Sabtu</span>
+                <span className="font-sans font-semibold">08.00 – 18.00</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <span>Minggu</span>
+                <span className="font-sans font-semibold text-gray-400">Tutup</span>
+              </div>
+            </div>
+            <div className="mt-3 inline-flex items-center gap-1.5 bg-berlin-red/10 text-berlin-red text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full">
+              <Phone className="w-3 h-3" /> Servis Darurat 24 Jam
+            </div>
           </div>
         </div>
 
@@ -438,8 +449,9 @@ export default function LandingPage({ onCheckOrder, onOpenMarketplace, heroConte
 
         <div className="bg-gradient-to-br from-berlin-navy-light to-berlin-navy text-white rounded-2xl p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div>
-            <p className="font-extrabold text-xl mb-1">Darurat? Butuh towing?</p>
-            <p className="text-gray-400 text-sm">Telepon langsung — kami kirim mobil derek.</p>
+            <p className="spec-label text-berlin-red mb-2">Layanan 24 Jam</p>
+            <p className="font-extrabold text-xl mb-1">Darurat di jalan? Butuh towing?</p>
+            <p className="text-gray-400 text-sm">Telepon kapan saja, siang atau malam — bengkel servis kami siaga 24 jam, kami kirim mobil derek.</p>
           </div>
           <a href="tel:082112773501" className="bg-berlin-red hover:bg-berlin-red/90 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer inline-flex items-center gap-2 shrink-0">
             <Phone className="w-4 h-4" /> 0821 1277 3501

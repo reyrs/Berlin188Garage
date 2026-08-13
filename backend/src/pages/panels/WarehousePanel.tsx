@@ -844,6 +844,12 @@ export default function WarehousePanel({
                   <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-wider block">Pelanggan</span>
                   <span className="text-xs font-bold text-gray-800 dark:text-gray-100 block">{selectedOrder.customerName}</span>
                   <span className="text-[10px] text-gray-500 dark:text-gray-400 font-sans">{selectedOrder.customerPhone}</span>
+                  <div className="mt-2">
+                    <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-wider block">Estimasi Total (ACC)</span>
+                    <span className="text-sm font-black text-berlin-red dark:text-red-400 font-sans tabular-nums">
+                      {formatRupiah(selectedOrder.serviceItems.filter(i => i.status !== 'pending' && i.status !== 'rejected').reduce((sum, i) => sum + i.price * i.qty, 0))}
+                    </span>
+                  </div>
                 </div>
               </div>
 

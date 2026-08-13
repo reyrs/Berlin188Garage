@@ -1,62 +1,39 @@
 import React, { useState, useMemo } from 'react';
-import { TrendUp, Car, CheckCircle, Clock, ChartBar } from '@phosphor-icons/react';
+import { TrendUp, TrendDown, Car, CheckCircle, Clock, ChartBar } from '@phosphor-icons/react';
 import { Order, CashTransaction } from '../types';
-import { STATUS_CONFIG, STATUS_SOLID, type KpiTone } from '../lib/design';
+import { STATUS_CONFIG, type KpiTone } from '../lib/design';
+import {
+  PeriodFilter as PeriodFilterType, PERIOD_LABEL, inPeriod,
+  sumRevenue, sumOutflowTransactions, orderStatusBreakdown,
+} from '../lib/metrics';
 import KpiTile from './ui/KpiTile';
+import PeriodFilter from './ui/PeriodFilter';
 
 interface ManagerPanelProps {
   orders: Order[];
   transactions: CashTransaction[];
 }
 
-type PeriodFilter = 'harian' | 'mingguan' | 'bulanan';
+const PERIOD_OPTIONS: PeriodFilterType[] = ['hari_ini', 'minggu_ini', 'bulan_ini'];
 
 export default function ManagerPanel({ orders, transactions }: ManagerPanelProps) {
-  const [period, setPeriod] = useState<PeriodFilter>('harian');
-
+  const [period, setPeriod] = useState<PeriodFilterType>('hari_ini');
   const now = new Date();
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter(o => {
-      const d = new Date(o.createdAt);
-      if (period === 'harian') {
-        return d.toDateString() === now.toDateString();
-      } else if (period === 'mingguan') {
-        const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
-        return d >= weekAgo;
-      } else {
-        const monthAgo = new Date(now); monthAgo.setMonth(now.getMonth() - 1);
-        return d >= monthAgo;
-      }
-    });
-  }, [orders, period]);
+  const filteredOrders = useMemo(
+    () => orders.filter(o => inPeriod(o.createdAt, period, now)),
+    [orders, period]
+  );
 
-  const filteredTx = useMemo(() => {
-    return transactions.filter(t => {
-      const d = new Date(t.timestamp);
-      if (period === 'harian') return d.toDateString() === now.toDateString();
-      if (period === 'mingguan') { const w = new Date(now); w.setDate(now.getDate() - 7); return d >= w; }
-      const m = new Date(now); m.setMonth(now.getMonth() - 1); return d >= m;
-    });
-  }, [transactions, period]);
-
-  const totalPemasukan = filteredTx.filter(t => t.type === 'masuk').reduce((s, t) => s + t.amount, 0);
-  const totalPengeluaran = filteredTx.filter(t => t.type === 'keluar').reduce((s, t) => s + t.amount, 0);
+  const totalPemasukan = useMemo(() => sumRevenue(transactions, period, now), [transactions, period]);
+  const totalPengeluaran = useMemo(() => sumOutflowTransactions(transactions, period, now), [transactions, period]);
   const selesai = filteredOrders.filter(o => o.status === 'selesai').length;
   const aktif = filteredOrders.filter(o => o.status !== 'selesai').length;
 
   const fmt = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
 
-  const periodLabel = { harian: 'Hari Ini', mingguan: '7 Hari Terakhir', bulanan: '30 Hari Terakhir' };
-
-  // Status breakdown
-  const statusBreakdown = [
-    { label: 'Antre', count: orders.filter(o => o.status === 'antre').length, color: STATUS_SOLID.antre },
-    { label: 'Dikerjakan', count: orders.filter(o => o.status === 'dikerjakan').length, color: STATUS_SOLID.dikerjakan },
-    { label: 'Temuan', count: orders.filter(o => o.status === 'temuan_dilaporkan').length, color: STATUS_SOLID.temuan_dilaporkan },
-    { label: 'Menunggu Pembayaran', count: orders.filter(o => o.status === 'menunggu_pembayaran').length, color: STATUS_SOLID.menunggu_pembayaran },
-    { label: 'Selesai', count: orders.filter(o => o.status === 'selesai').length, color: STATUS_SOLID.selesai },
-  ];
+  // Status breakdown — always all-time (live shop-floor board, not period-scoped).
+  const statusBreakdown = useMemo(() => orderStatusBreakdown(orders), [orders]);
 
   return (
     <div className="space-y-6">
@@ -68,16 +45,7 @@ export default function ManagerPanel({ orders, transactions }: ManagerPanelProps
             <h3 className="text-xl font-bold text-[#1A1A1A] dark:text-white mt-2">Dashboard Pantauan Keseluruhan</h3>
             <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Pantau performa bengkel, data order, dan laporan keuangan.</p>
           </div>
-          <div className="flex gap-1.5 bg-gray-100 dark:bg-[#22252c] p-1 rounded-xl">
-            {(['harian', 'mingguan', 'bulanan'] as PeriodFilter[]).map(p => (
-              <button key={p} onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  period === p ? 'bg-white dark:bg-[#1a1d23] text-berlin-navy shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}>
-                {p === 'harian' ? 'Harian' : p === 'mingguan' ? 'Mingguan' : 'Bulanan'}
-              </button>
-            ))}
-          </div>
+          <PeriodFilter value={period} onChange={setPeriod} options={PERIOD_OPTIONS} />
         </div>
       </div>
 
@@ -85,11 +53,11 @@ export default function ManagerPanel({ orders, transactions }: ManagerPanelProps
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {([
           { label: 'Pemasukan', value: fmt(totalPemasukan), icon: TrendUp, tone: 'success' as KpiTone },
-          { label: 'Pengeluaran', value: fmt(totalPengeluaran), icon: TrendUp, tone: 'danger' as KpiTone },
+          { label: 'Pengeluaran (Kas Keluar)', value: fmt(totalPengeluaran), icon: TrendDown, tone: 'danger' as KpiTone },
           { label: 'WO Selesai', value: selesai.toString(), icon: CheckCircle, tone: 'success' as KpiTone },
           { label: 'WO Aktif', value: aktif.toString(), icon: Clock, tone: 'info' as KpiTone },
         ]).map(s => (
-          <KpiTile key={s.label} label={s.label} value={s.value} sublabel={periodLabel[period]} icon={s.icon} tone={s.tone} />
+          <KpiTile key={s.label} label={s.label} value={s.value} sublabel={PERIOD_LABEL[period]} icon={s.icon} tone={s.tone} />
         ))}
       </div>
 
@@ -101,7 +69,7 @@ export default function ManagerPanel({ orders, transactions }: ManagerPanelProps
           </h4>
           <div className="space-y-2.5">
             {statusBreakdown.map(s => (
-              <div key={s.label} className="flex items-center gap-3">
+              <div key={s.status} className="flex items-center gap-3">
                 <span className="text-[10px] text-gray-500 dark:text-gray-400 w-28 shrink-0 font-semibold">{s.label}</span>
                 <div className="flex-1 bg-gray-100 dark:bg-[#22252c] rounded-full h-2">
                   <div className={`${s.color} h-2 rounded-full transition-all`}
@@ -117,7 +85,7 @@ export default function ManagerPanel({ orders, transactions }: ManagerPanelProps
         {/* Order terbaru */}
         <div className="card-padded space-y-3">
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 flex items-center gap-2">
-            <Car className="w-4 h-4" weight="duotone" /> Order Terbaru ({periodLabel[period]})
+            <Car className="w-4 h-4" weight="duotone" /> Order Terbaru ({PERIOD_LABEL[period]})
           </h4>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {filteredOrders.slice(0, 10).map(o => (

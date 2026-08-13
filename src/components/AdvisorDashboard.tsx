@@ -2,12 +2,17 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Wrench, CheckCircle, CaretRight, Warning, MagnifyingGlass,
   ArrowLeft, Check, X, Car, DeviceMobile,
-  Camera, UploadSimple, Trash, WarningCircle, Plus, PaperPlaneTilt, Package
+  Camera, UploadSimple, Trash, WarningCircle, Plus, PaperPlaneTilt, Package, WhatsappLogo, Printer
 } from '@phosphor-icons/react';
 import { Order, User as StaffUser, ServiceItem, DiagnosticFinding } from '../types';
 import { STATUS_CONFIG } from '../lib/design';
+import { genId } from '../lib/id';
+import { buildWhatsAppLink, buildTrackingLink } from '../lib/whatsapp';
+import { COMMON_JASA_NAMES } from '../data/jasaCatalog';
 import TrackingPortal from './TrackingPortal';
 import InvoicePrint from './InvoicePrint';
+import SPPPrintCard from './SPPPrintCard';
+import SPKPrintCard from './SPKPrintCard';
 import ImageLightbox from './ImageLightbox';
 
 const MOCK_PROOFS = [
@@ -62,6 +67,8 @@ export default function AdvisorDashboard({
   const [statusFilter, setStatusFilter] = useState<FilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [sppOrder, setSppOrder] = useState<Order | null>(null);
+  const [spkOrder, setSpkOrder] = useState<Order | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<Order['status']>('dikerjakan');
 
@@ -145,7 +152,7 @@ export default function AdvisorDashboard({
   const handleAddTemuan = (orderId: string) => {
     if (!wsDesc.trim()) return;
     const finding: DiagnosticFinding = {
-      id: `f-${Date.now()}`,
+      id: genId('f'),
       description: wsDesc.trim(),
       estimatedCost: Number(wsCost) || 0,
       status: 'pending',
@@ -157,12 +164,24 @@ export default function AdvisorDashboard({
     setShowTemuanForm(false);
   };
 
+  // Klik-kirim WA — bukan integrasi API (nggak ada biaya/backend), cuma
+  // buka wa.me dengan pesan siap kirim ke no HP customer. Link tracking-nya
+  // deep-link langsung ke portal (lihat App.tsx `?track=` handling), jadi
+  // customer nggak perlu ngetik ulang no HP-nya buat lihat detail/foto temuan.
+  const notifyFindingViaWhatsApp = (order: Order, finding: DiagnosticFinding) => {
+    const costLine = (finding.estimatedCost || 0) > 0
+      ? `\nEstimasi biaya: ${formatRupiah(finding.estimatedCost || 0)}`
+      : '';
+    const message = `Halo ${order.customerName}, ada temuan baru untuk ${order.carBrand} ${order.carModel} (${order.plateNumber}) di Berlin188 Garage:\n\n"${finding.description}"${costLine}\n\nCek detail & foto, lalu setujui/tolak temuan ini di:\n${buildTrackingLink(order.customerPhone)}\n\nTerima kasih.`;
+    window.open(buildWhatsAppLink(order.customerPhone, message), '_blank', 'noopener,noreferrer');
+  };
+
   const handleAddJasaToFinding = (orderId: string, findingId: string) => {
     if (!jasaName.trim() || !jasaPrice) return;
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     const newItem: ServiceItem = {
-      id: `item-${Date.now()}`,
+      id: genId('item'),
       name: jasaName.trim(),
       type: 'jasa',
       price: Number(jasaPrice) || 0,
@@ -197,19 +216,6 @@ export default function AdvisorDashboard({
     const mec = mechanics.find(m => m.name.trim().toLowerCase() === trimmedName.toLowerCase());
     onSendSPK?.(orderId, mec?.id, trimmedName);
     setSelectedMechanicName('');
-
-    // Send invoice to customer
-    const order = orders.find(o => o.id === orderId);
-    if (order) {
-      showToast(`Invoice untuk ${order.customerName} telah dikirim ke WhatsApp. Silakan cek Tracking Portal.`);
-      setInvoiceOrder(order);
-    }
-  };
-
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 4000);
   };
 
   // Checklist state for SA
@@ -296,7 +302,7 @@ export default function AdvisorDashboard({
     onUpdateOrder?.(order.id, {
       status: 'menunggu_pembayaran',
       timeline: [...order.timeline, {
-        id: `t-sa-done-${Date.now()}`,
+        id: genId('t-sa-done'),
         status: 'menunggu_pembayaran' as const,
         timestamp: new Date().toISOString(),
         title: 'Servis Selesai — Konfirmasi SA',
@@ -378,6 +384,40 @@ export default function AdvisorDashboard({
   if (selectedOrder) {
     return (
       <div className="space-y-4">
+        {/* Print modals — sppOrder/invoiceOrder/spkOrder get set from buttons
+            inside THIS branch, so the popups have to render here too. They
+            used to only be rendered in the list-view return below, which
+            meant clicking "CETAK SPP" from inside an order's detail page set
+            state that nothing ever read — the button silently did nothing. */}
+        {invoiceOrder && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, overflow: 'auto' }}>
+            <InvoicePrint
+              order={invoiceOrder}
+              invoiceNumber={`INV-${invoiceOrder.id}-${new Date().getFullYear()}`}
+              kasirName={activeUser?.name}
+              onClose={() => setInvoiceOrder(null)}
+            />
+          </div>
+        )}
+        {sppOrder && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, overflow: 'auto', padding: '24px' }}>
+            <SPPPrintCard order={sppOrder} onClose={() => setSppOrder(null)} />
+          </div>
+        )}
+        {spkOrder && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, overflow: 'auto', padding: '24px' }}>
+            <div className="max-w-3xl mx-auto space-y-3">
+              <button
+                onClick={() => setSpkOrder(null)}
+                className="print:hidden bg-white/10 hover:bg-white/20 border border-white/30 text-white px-3 py-2 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Tutup
+              </button>
+              <SPKPrintCard order={spkOrder} />
+            </div>
+          </div>
+        )}
+
         {/* Back navigation header */}
         <div className="card p-4 flex items-center justify-between">
           <button
@@ -394,8 +434,13 @@ export default function AdvisorDashboard({
           </div>
         </div>
 
-        {/* SA WORKSPACE */}
-        {selectedOrder.status === 'antre' && (
+        {/* SA WORKSPACE — dulu cuma nongol pas status === 'antre', padahal
+            lapor temuan/cetak SPP paling sering dibutuhkan justru pas mobil
+            LAGI dikerjakan (temuan baru muncul waktu mekanik bongkar). Batas
+            'selesai'/'menunggu_pembayaran' disamain sama TrackingPortal's
+            sendiri punya kondisi buat "order udah closed" (lihat
+            TrackingPortal.tsx baris ~541), biar konsisten. */}
+        {selectedOrder.status !== 'selesai' && selectedOrder.status !== 'menunggu_pembayaran' && (
           <div className="space-y-4">
 
             {/* 1. Vehicle header card */}
@@ -427,6 +472,18 @@ export default function AdvisorDashboard({
                     className="bg-berlin-navy text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer hover:bg-berlin-navy-dark transition-colors">
                     <Camera className="w-3.5 h-3.5" weight="duotone" /> MELAPORKAN TEMUAN
                   </button>
+                  <button
+                    onClick={() => setSppOrder(selectedOrder)}
+                    className="bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] text-gray-600 dark:text-gray-400 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                    <Printer className="w-3.5 h-3.5" weight="duotone" /> CETAK SPP
+                  </button>
+                  {selectedOrder.spkSent && (
+                    <button
+                      onClick={() => setSpkOrder(selectedOrder)}
+                      className="bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] text-gray-600 dark:text-gray-400 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                      <Printer className="w-3.5 h-3.5" weight="duotone" /> CETAK SPK
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -548,6 +605,14 @@ export default function AdvisorDashboard({
                         )}
                       </div>
 
+                      <button
+                        type="button"
+                        onClick={() => notifyFindingViaWhatsApp(selectedOrder, finding)}
+                        className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        <WhatsappLogo className="w-3.5 h-3.5" weight="duotone" /> Kirim ke WA Customer
+                      </button>
+
                       {/* Jasa list for this finding */}
                       <div>
                         <div className="text-[9px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">DAFTAR JASA PENGERJAAN:</div>
@@ -579,8 +644,12 @@ export default function AdvisorDashboard({
                             <div className="col-span-1 space-y-1">
                               <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 block">NAMA JASA SERVICE</label>
                               <input value={jasaName} onChange={e => setJasaName(e.target.value)}
+                                list="jasa-catalog-suggestions"
                                 placeholder="Contoh: Bongkar Pasang & Kali..."
                                 className="w-full border border-gray-200 dark:border-[#2a2d35] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-black dark:focus:border-gray-500 bg-white dark:bg-[#1a1d23] text-gray-800 dark:text-gray-100" />
+                              <datalist id="jasa-catalog-suggestions">
+                                {COMMON_JASA_NAMES.map(name => <option key={name} value={name} />)}
+                              </datalist>
                             </div>
                             <div className="space-y-1">
                               <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 block">BIAYA JASA (RP)</label>
@@ -704,7 +773,7 @@ export default function AdvisorDashboard({
             onApproveServiceItem={onApproveServiceItem}
             onRejectServiceItem={onRejectServiceItem}
             onConfirmPayment={onConfirmPayment}
-            onUpdateOrderStatus={onUpdateOrderStatus}
+            onConfirmDPPayment={onConfirmDPPayment}
             onUpdateFindingCost={onUpdateFindingCost}
             onUpdateOrder={onUpdateOrder}
             onNotify={onNotify}
@@ -879,6 +948,11 @@ export default function AdvisorDashboard({
             kasirName={activeUser?.name}
             onClose={() => setInvoiceOrder(null)}
           />
+        </div>
+      )}
+      {sppOrder && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, overflow: 'auto', padding: '24px' }}>
+          <SPPPrintCard order={sppOrder} onClose={() => setSppOrder(null)} />
         </div>
       )}
     <div className="space-y-6">
@@ -1147,13 +1221,6 @@ export default function AdvisorDashboard({
           </div>
         )}
       </div>
-
-      {/* Toast notification */}
-      {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] p-4 rounded-xl shadow-lg max-w-sm flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
-          <span className="text-sm text-gray-800 dark:text-gray-100">{toastMsg}</span>
-        </div>
-      )}
 
       {zoomedImage && <ImageLightbox src={zoomedImage} alt="Bukti temuan" onClose={() => setZoomedImage(null)} />}
     </div>

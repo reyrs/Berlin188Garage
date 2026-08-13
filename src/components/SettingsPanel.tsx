@@ -1,5 +1,5 @@
-import React from 'react';
-import { Users, ShieldCheck, Check, Minus } from '@phosphor-icons/react';
+import React, { useState } from 'react';
+import { Users, ShieldCheck, Check, Minus, PencilSimple } from '@phosphor-icons/react';
 import { User, UserRole } from '../types';
 
 interface TabRoleEntry {
@@ -12,6 +12,7 @@ interface SettingsPanelProps {
   onlineStaffIds: Set<string>;
   tabs: TabRoleEntry[];
   activeUser: User;
+  onUpdateSpecialization?: (userId: string, specialization: string) => void;
 }
 
 const STAFF_ROLES: UserRole[] = ['owner', 'manager', 'advisor', 'kasir', 'gudang', 'mekanik', 'marketing', 'accounting'];
@@ -21,7 +22,20 @@ const ROLE_LABEL: Record<string, string> = {
   gudang: 'Gudang', mekanik: 'Mekanik', marketing: 'Marketing', accounting: 'Accounting',
 };
 
-export default function SettingsPanel({ staffUsers, onlineStaffIds, tabs, activeUser }: SettingsPanelProps) {
+export default function SettingsPanel({ staffUsers, onlineStaffIds, tabs, activeUser, onUpdateSpecialization }: SettingsPanelProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftSpecialization, setDraftSpecialization] = useState('');
+
+  const startEdit = (u: User) => {
+    setEditingId(u.id);
+    setDraftSpecialization(u.specialization || '');
+  };
+
+  const saveEdit = (userId: string) => {
+    onUpdateSpecialization?.(userId, draftSpecialization.trim());
+    setEditingId(null);
+  };
+
   return (
     <div className="space-y-6">
 
@@ -60,11 +74,11 @@ export default function SettingsPanel({ staffUsers, onlineStaffIds, tabs, active
         </h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {staffUsers.map(u => (
-            <div key={u.id} className="bg-gray-50 dark:bg-[#22252c] border border-gray-150 dark:border-[#2a2d35] p-3.5 rounded-xl flex items-center gap-3">
+            <div key={u.id} className="bg-gray-50 dark:bg-[#22252c] border border-gray-150 dark:border-[#2a2d35] p-3.5 rounded-xl flex items-start gap-3">
               <div className="w-9 h-9 rounded-full bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] flex items-center justify-center font-bold text-gray-700 dark:text-gray-200 text-xs shrink-0">
                 {u.name.charAt(0)}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-gray-800 dark:text-gray-100 truncate">{u.name}</p>
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{u.email}</p>
                 <p className="text-[9px] uppercase font-bold tracking-wider mt-0.5 flex items-center gap-1">
@@ -73,6 +87,34 @@ export default function SettingsPanel({ staffUsers, onlineStaffIds, tabs, active
                     {ROLE_LABEL[u.role] || u.role}
                   </span>
                 </p>
+
+                {editingId === u.id ? (
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <input
+                      autoFocus
+                      value={draftSpecialization}
+                      onChange={e => setDraftSpecialization(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveEdit(u.id); if (e.key === 'Escape') setEditingId(null); }}
+                      placeholder="Contoh: Mercedes-Benz, BMW"
+                      className="flex-1 min-w-0 bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] rounded-lg px-2 py-1 text-[10px] text-gray-800 dark:text-gray-100 focus:outline-none focus:border-berlin-navy"
+                    />
+                    <button onClick={() => saveEdit(u.id)} className="shrink-0 text-emerald-600 dark:text-emerald-400 cursor-pointer">
+                      <Check className="w-3.5 h-3.5" weight="bold" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => startEdit(u)}
+                    className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 hover:text-berlin-navy dark:hover:text-white transition-colors cursor-pointer"
+                  >
+                    <PencilSimple className="w-3 h-3 shrink-0" />
+                    {u.specialization ? (
+                      <span className="truncate">{u.specialization}</span>
+                    ) : (
+                      <span className="italic text-gray-400 dark:text-gray-500">Tambah spesialisasi brand</span>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           ))}

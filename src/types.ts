@@ -7,6 +7,7 @@ export interface User {
   email: string;
   phone: string;
   avatarUrl?: string;
+  specialization?: string;
 }
 
 export interface ServiceItem {
@@ -122,6 +123,7 @@ export interface WarehouseStockItem {
   price: number;
   stock: number;
   rackLocation: string;
+  marketplaceProductId?: string;
 }
 
 export interface Expense {
@@ -129,7 +131,7 @@ export interface Expense {
   date: string;
   description: string;
   amount: number;
-  category: 'operasional' | 'pembelian_part' | 'gaji' | 'utilitas' | 'lainnya';
+  category: 'operasional' | 'pembelian_part' | 'gaji' | 'utilitas' | 'bayar_supplier' | 'bayar_hutang_owner' | 'lainnya';
   method: 'tunai' | 'transfer' | 'qris' | 'edc';
   createdBy: string;
   receiptUrl?: string;

@@ -78,7 +78,7 @@ export default function AiChat({ products, onClose, onSelectProduct }: Props) {
 
                 {msg.role === 'ai' && msg.needsInspection && (
                   <a
-                    href={`https://wa.me/6285156010707?text=${encodeURIComponent('Halo Berlin 188, saya mau tanya soal keluhan mobil saya, bisa dibantu cek jadwal periksanya?')}`}
+                    href={`https://wa.me/6281319438602?text=${encodeURIComponent('Halo Berlin 188, saya mau tanya soal keluhan mobil saya, bisa dibantu cek jadwal periksanya?')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-3 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl transition-colors cursor-pointer"

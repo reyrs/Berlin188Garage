@@ -11,6 +11,7 @@ interface Props {
 const fmt = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
 const SHOPEE_SHOP_ID = '1396592299';
 const shopeeUrl = (p: Product) => `https://shopee.co.id/product/${SHOPEE_SHOP_ID}/${p.code}`;
+const shopeeShopUrl = `https://shopee.co.id/shop/${SHOPEE_SHOP_ID}`;
 
 export default function CartDrawer({ cart, onRemove, onClose }: Props) {
   const total = cart.reduce((s, p) => s + p.price, 0);
@@ -19,6 +20,8 @@ export default function CartDrawer({ cart, onRemove, onClose }: Props) {
     const items = cart.map((p, i) => `${i + 1}. ${p.name} (${p.code}) — ${fmt(p.price)}`).join('\n');
     return `Halo Berlin 188,%0A%0ASaya mau pesan:%0A${items}%0A%0ATotal: ${fmt(total)}%0A%0ATolong dibantu ya. Terima kasih.`;
   };
+
+  const shopeeCheckoutUrl = cart.length === 1 ? shopeeUrl(cart[0]) : shopeeShopUrl;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -49,14 +52,6 @@ export default function CartDrawer({ cart, onRemove, onClose }: Props) {
                     <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{p.name}</p>
                     <p className="text-xs text-gray-400">{p.code}</p>
                     <p className="text-sm font-black text-berlin-navy dark:text-berlin-gold tabular-nums mt-0.5">{fmt(p.price)}</p>
-                    <a
-                      href={shopeeUrl(p)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[10px] font-semibold text-berlin-red hover:underline mt-1"
-                    >
-                      <ArrowSquareOut className="w-3 h-3" weight="bold" /> Lihat di Shopee
-                    </a>
                   </div>
                   <button onClick={() => onRemove(p.id)} className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center cursor-pointer transition-colors shrink-0">
                     <Trash className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" weight="duotone" />
@@ -70,14 +65,24 @@ export default function CartDrawer({ cart, onRemove, onClose }: Props) {
                 <span className="text-sm text-gray-500 dark:text-gray-400">Total</span>
                 <span className="text-xl font-black text-berlin-navy dark:text-berlin-gold tabular-nums">{fmt(total)}</span>
               </div>
-              <a
-                href={`https://wa.me/6285156010707?text=${waMessage()}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
-              >
-                <ChatCircle className="w-4 h-4" weight="duotone" /> Pesan via WhatsApp
-              </a>
+              <div className="flex gap-2">
+                <a
+                  href={`https://wa.me/6281319438602?text=${waMessage()}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <ChatCircle className="w-4 h-4" weight="duotone" /> WhatsApp
+                </a>
+                <a
+                  href={shopeeCheckoutUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-berlin-red hover:bg-berlin-red/90 text-white font-bold text-sm py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <ArrowSquareOut className="w-4 h-4" weight="bold" /> Shopee
+                </a>
+              </div>
             </div>
           </>
         )}

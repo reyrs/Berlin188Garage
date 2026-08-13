@@ -86,20 +86,45 @@ export default function SlotBoard({ orders, interactive }: SlotBoardProps) {
                 order ? 'border-gray-800' : 'border-gray-800/50 border-dashed'
               } ${clickable ? 'cursor-pointer hover:border-berlin-gold/50 transition-colors' : ''}`}
             >
-              <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Slot {slotNum}</div>
+              <div className="text-sm font-black text-berlin-gold uppercase tracking-widest mb-2 text-center">Slot {slotNum}</div>
               {order ? (
-                <div className="space-y-1.5 flex-1">
-                  <div className="text-sm font-bold text-white">{order.plateNumber}</div>
-                  <div className="text-xs text-gray-400">{order.carBrand} {order.carType || order.carModel}</div>
-                  <div className="text-xs text-gray-300 flex items-center gap-1">
-                    <Wrench className="w-3 h-3 shrink-0" weight="duotone" /> {order.assignedMechanicName || '—'}
-                  </div>
-                  {badge && (
-                    <span className={`inline-block mt-1 ${BADGE_CLASS} ${badge.bg} ${badge.text} ${badge.border}`}>
-                      {badge.label}
-                    </span>
-                  )}
-                </div>
+                // Field MECHANIC/PLAT/TYPE/MEREK/STATUS berlabel eksplisit,
+                // sama urutan kayak papan slot asli (CATATAN ALUR SYSTEM
+                // BENGKEL BERLIN 188.pdf hal.3) — tetap dark theme karena ini
+                // layar monitor ruang service/tunggu, bukan dokumen kertas,
+                // jadi kontras tinggi buat kebacaan dari jauh dipertahankan.
+                <table className="w-full text-xs border-collapse flex-1">
+                  <tbody>
+                    <tr className="border-b border-gray-700/60">
+                      <td className="py-1 pr-2 text-gray-500 font-bold uppercase tracking-wide w-[38%]">Mechanic</td>
+                      <td className="py-1 text-gray-100 font-semibold flex items-center gap-1">
+                        <Wrench className="w-3 h-3 shrink-0" weight="duotone" /> {order.assignedMechanicName || '—'}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-gray-700/60">
+                      <td className="py-1 pr-2 text-gray-500 font-bold uppercase tracking-wide">Plat</td>
+                      <td className="py-1 text-white font-bold font-sans">{order.plateNumber}</td>
+                    </tr>
+                    <tr className="border-b border-gray-700/60">
+                      <td className="py-1 pr-2 text-gray-500 font-bold uppercase tracking-wide">Type</td>
+                      <td className="py-1 text-gray-200">{order.carType || order.carModel}</td>
+                    </tr>
+                    <tr className="border-b border-gray-700/60">
+                      <td className="py-1 pr-2 text-gray-500 font-bold uppercase tracking-wide">Merek</td>
+                      <td className="py-1 text-gray-200">{order.carBrand}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 pr-2 text-gray-500 font-bold uppercase tracking-wide align-top">Status</td>
+                      <td className="py-1">
+                        {badge && (
+                          <span className={`inline-block ${BADGE_CLASS} ${badge.bg} ${badge.text} ${badge.border}`}>
+                            {badge.label}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-gray-700 text-xs">Slot Kosong</div>
               )}

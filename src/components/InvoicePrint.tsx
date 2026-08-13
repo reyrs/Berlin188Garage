@@ -48,19 +48,22 @@ export default function InvoicePrint({ order, invoiceNumber, kasirName = '-', on
 
       {/* ===== INVOICE BODY ===== */}
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '20px 24px' }}>
-        
+
+        {/* JUDUL — center, sama kayak contoh Faktur Penjualan asli */}
+        <div style={{ textAlign: 'center', fontSize: '18px', fontWeight: 'bold', letterSpacing: '2px', color: '#000', marginBottom: '10px' }}>
+          FAKTUR PENJUALAN
+        </div>
+
         {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
           {/* Left: Company info */}
           <div>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', letterSpacing: '1px', color: '#000' }}>
-              FAKTUR PENJUALAN
-            </div>
             <div style={{ marginTop: '6px', fontSize: '10px', lineHeight: '1.6' }}>
               ALAM SUTERA JL. RAWA KUTUK NO.31<br />
               PONDOK JAGUNG TIMUR,<br />
               TANGERANG SELATAN 15324<br />
-              Telp : 0818 188 188 01
+              Telp : 0818 188 188 01<br />
+              <span style={{ fontStyle: 'italic' }}>npwp : 12.393.665.0-411.000</span>
             </div>
           </div>
 
@@ -211,35 +214,45 @@ export default function InvoicePrint({ order, invoiceNumber, kasirName = '-', on
           </tbody>
         </table>
 
-        {/* SUBTOTAL + GRAND TOTAL */}
-        <div style={{ borderTop: '1.5px solid #000', display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-          <table style={{ fontSize: '11px', minWidth: '280px' }}>
-            <tbody>
-              <tr>
-                <td style={{ padding: '4px 8px', fontWeight: 'bold' }}>SUB TOTAL</td>
-                <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>
-                  Rp {formatRp(grandTotal)}
-                </td>
-              </tr>
-              <tr style={{ borderTop: '2px solid #000', background: '#f8f8f8' }}>
-                <td style={{ padding: '6px 8px', fontWeight: 'bold', fontSize: '13px' }}>GRAND TOTAL</td>
-                <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '13px' }}>
-                  Rp {formatRp(grandTotal)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        {/* SUBTOTAL + DP + GRAND TOTAL — sama kayak contoh Faktur asli, yang
+            punya baris DP di antara Sub Total dan Grand Total (Grand Total
+            di situ = sisa yang harus dibayar sekarang, dikurangi DP yang
+            udah masuk duluan). */}
+        {(() => {
+          const dpPaid = order.dpAmountPaid || 0;
+          const sisaDibayar = grandTotal - dpPaid;
+          return (
+            <div style={{ borderTop: '1.5px solid #000', display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <table style={{ fontSize: '11px', minWidth: '280px' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '4px 8px', fontWeight: 'bold' }}>SUB TOTAL</td>
+                    <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                      Rp {formatRp(grandTotal)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '4px 8px', fontWeight: 'bold' }}>DP</td>
+                    <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                      Rp {formatRp(dpPaid)}
+                    </td>
+                  </tr>
+                  <tr style={{ borderTop: '2px solid #000', background: '#f8f8f8' }}>
+                    <td style={{ padding: '6px 8px', fontWeight: 'bold', fontSize: '13px' }}>GRAND TOTAL</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '13px' }}>
+                      Rp {formatRp(sisaDibayar)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
 
         {/* PAYMENT INFO + NOTES */}
         <div style={{ display: 'flex', gap: '16px', marginTop: '16px', fontSize: '9.5px' }}>
           {/* Rekening */}
           <div style={{ flex: 1 }}>
-            <div style={{ marginBottom: '6px' }}>
-              <div style={{ fontWeight: 'bold' }}>Pembayaran transfer ke rekening Bank BNI</div>
-              <div>No. Rekening : <strong>555-1881-880</strong></div>
-              <div>a/n PT. GRAHA OTOMOTIF ANDALAN</div>
-            </div>
             <div style={{ marginBottom: '6px' }}>
               <div style={{ fontWeight: 'bold' }}>Pembayaran transfer ke rekening Bank BCA</div>
               <div>No. Rekening : <strong>604-465-6242</strong></div>

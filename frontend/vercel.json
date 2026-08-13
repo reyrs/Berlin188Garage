@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/sitemap.xml" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/generate-blog-draft", "schedule": "0 1 * * *" },
+    { "path": "/api/generate-blog-draft", "schedule": "0 8 * * *" }
+  ]
+}

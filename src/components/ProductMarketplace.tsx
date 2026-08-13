@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
-  MagnifyingGlass, ShoppingCart, CaretLeft, CaretRight, CaretDown, X, Package, SlidersHorizontal, Heart, ChatCircle, Sparkle,
+  MagnifyingGlass, ShoppingCart, CaretLeft, CaretRight, CaretDown, X, Package, SlidersHorizontal, Heart, ChatCircle, Sparkle, ArrowSquareOut,
 } from '@phosphor-icons/react';
 import { PRODUCTS, CATEGORIES, Product } from '../data/products';
 import ProductCard from './ProductCard';
@@ -12,9 +12,12 @@ import CurveAccent from './CurveAccent';
 import { useWishlist } from '../lib/wishlist';
 import { useTheme } from '../lib/theme';
 import { useCountUp } from '../lib/useCountUp';
+import { supabase } from '../lib/supabase';
 
 const PAGE_SIZE = 12;
 const fmt = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
+const SHOPEE_SHOP_ID = '1396592299';
+const shopeeUrl = (p: Product) => `https://shopee.co.id/product/${SHOPEE_SHOP_ID}/${p.code}`;
 
 export default function ProductMarketplace() {
   const [search, setSearch] = useState('');
@@ -29,6 +32,18 @@ export default function ProductMarketplace() {
   const [detail, setDetail] = useState<Product | null>(null);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const { ids: wishlistIds, isWishlisted, toggle: toggleWishlist, remove: removeFromWishlist } = useWishlist();
+  const [liveStockMap, setLiveStockMap] = useState<Map<string, number>>(new Map());
+
+  // Stok bengkel real-time — cuma buat produk yang staf udah link manual di
+  // WarehousePanel (lihat migrasi 20260808150000). Diam-diam skip kalau
+  // Supabase env belum ke-set (mis. build preview), badge tetap hilang.
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.rpc('public_marketplace_stock_lookup').then(({ data, error }) => {
+      if (error || !data) return;
+      setLiveStockMap(new Map(data.map((row: { marketplace_product_id: string; stock: number }) => [row.marketplace_product_id, row.stock])));
+    });
+  }, []);
   const { theme } = useTheme();
   const logoSrc = theme === 'dark' ? '/logo.png' : '/logo-on-white.png';
   const wishlistItems = useMemo(() => PRODUCTS.filter(p => wishlistIds.includes(p.id)), [wishlistIds]);
@@ -310,7 +325,7 @@ export default function ProductMarketplace() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {paged.map((p: Product) => (
-                    <ProductCard key={p.id} product={p} onAdd={addToCart} onDetail={setDetail} inCart={inCart(p.id)} wishlisted={isWishlisted(p.id)} onToggleWishlist={toggleWishlist} />
+                    <ProductCard key={p.id} product={p} onAdd={addToCart} onDetail={setDetail} inCart={inCart(p.id)} wishlisted={isWishlisted(p.id)} onToggleWishlist={toggleWishlist} liveStock={liveStockMap.get(p.id)} />
                   ))}
                 </div>
 
@@ -413,14 +428,24 @@ export default function ProductMarketplace() {
                 <ShoppingCart className="w-4 h-4" weight="duotone" />
                 {inCart(detail.id) ? 'Sudah di keranjang' : 'Tambah ke Keranjang'}
               </button>
-              <a
-                href={`https://wa.me/6285156010707?text=${encodeURIComponent(`Halo Berlin 188, saya mau tanya soal part ini:\n${detail.name} (${detail.code}) — ${fmt(detail.price)}\n\nMasih ada stok? Terima kasih.`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full font-bold text-sm py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 border border-emerald-600 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-              >
-                <ChatCircle className="w-4 h-4" weight="duotone" /> Tanya via WhatsApp
-              </a>
+              <div className="flex gap-2">
+                <a
+                  href={`https://wa.me/6281319438602?text=${encodeURIComponent(`Halo Berlin 188, saya mau tanya soal part ini:\n${detail.name} (${detail.code}) — ${fmt(detail.price)}\n\nMasih ada stok? Terima kasih.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 font-bold text-sm py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 border border-emerald-600 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                >
+                  <ChatCircle className="w-4 h-4" weight="duotone" /> WhatsApp
+                </a>
+                <a
+                  href={shopeeUrl(detail)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 font-bold text-sm py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 border border-berlin-red text-berlin-red hover:bg-red-50 dark:hover:bg-red-950/30"
+                >
+                  <ArrowSquareOut className="w-4 h-4" weight="bold" /> Shopee
+                </a>
+              </div>
             </div>
           </div>
         </div>

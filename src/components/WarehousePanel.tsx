@@ -1,18 +1,113 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Package, MagnifyingGlass, Plus, MapPin, Trash, ClipboardText, WarningCircle, CheckCircle, CaretRight, ArrowElbowDownRight, Compass, Sliders, HashStraight, Check, X, ArrowCounterClockwise
+  Package, MagnifyingGlass, Plus, MapPin, Trash, ClipboardText, WarningCircle, CheckCircle, Compass, Check, X, ArrowCounterClockwise, LinkSimple
 } from '@phosphor-icons/react';
 import { Order, ServiceItem, User as StaffUser, WarehouseStockItem } from '../types';
 import { STATUS_CONFIG } from '../lib/design';
+import { genId } from '../lib/id';
+import { PRODUCTS } from '../data/products';
 import ImageLightbox from './ImageLightbox';
 
 interface StockItemCardProps {
   stockItem: WarehouseStockItem;
   onAdd: (stockItem: WarehouseStockItem, qty: number) => void;
+  onUpdateMarketplaceLink?: (itemId: string, marketplaceProductId: string | null) => void;
   formatRupiah: (num: number) => string;
 }
 
-function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
+// Picker manual (bukan auto-match) buat nghubungin satu item gudang ke satu
+// listing marketplace publik — kode gudang (SP-XX-NN) dan id produk hasil
+// scrape Shopee sama sekali nggak nyambung secara penamaan, jadi matching
+// otomatis berisiko salah pasang stok di halaman customer.
+function MarketplaceLinkPicker({ stockItem, onUpdateMarketplaceLink, formatRupiah }: {
+  stockItem: WarehouseStockItem;
+  onUpdateMarketplaceLink?: (itemId: string, marketplaceProductId: string | null) => void;
+  formatRupiah: (num: number) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const linkedProduct = stockItem.marketplaceProductId
+    ? PRODUCTS.find(p => p.id === stockItem.marketplaceProductId)
+    : undefined;
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (q.length < 3) return [];
+    return PRODUCTS.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)).slice(0, 50);
+  }, [query]);
+
+  if (!onUpdateMarketplaceLink) return null;
+
+  if (linkedProduct) {
+    return (
+      <div className="flex items-center justify-between gap-2 border-t border-gray-100 dark:border-[#2a2d35] pt-2.5 text-[10px]">
+        <div className="flex items-center gap-1.5 min-w-0 text-emerald-700 dark:text-emerald-400">
+          <LinkSimple className="w-3 h-3 shrink-0" weight="duotone" />
+          <span className="truncate">Terhubung: {linkedProduct.name}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onUpdateMarketplaceLink(stockItem.id, null)}
+          className="shrink-0 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+          title="Putuskan link"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-gray-100 dark:border-[#2a2d35] pt-2.5">
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 hover:text-berlin-navy dark:hover:text-berlin-gold transition-colors cursor-pointer"
+        >
+          <LinkSimple className="w-3 h-3" weight="duotone" /> Link ke Marketplace
+        </button>
+      ) : (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <input
+              autoFocus
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari produk marketplace (min. 3 huruf)..."
+              className="flex-1 min-w-0 bg-gray-50 dark:bg-[#22252c] border border-gray-200 dark:border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-[10px] text-gray-800 dark:text-gray-100 focus:outline-none focus:border-black dark:focus:border-gray-500"
+            />
+            <button type="button" onClick={() => { setOpen(false); setQuery(''); }} className="shrink-0 text-gray-400 hover:text-gray-600 cursor-pointer">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {results.length > 0 && (
+            <div className="max-h-40 overflow-y-auto space-y-1 border border-gray-150 dark:border-[#2a2d35] rounded-lg p-1.5 bg-white dark:bg-[#1a1d23]">
+              {results.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { onUpdateMarketplaceLink(stockItem.id, p.id); setOpen(false); setQuery(''); }}
+                  className="w-full text-left px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-[#22252c] text-[10px] text-gray-700 dark:text-gray-300 cursor-pointer flex items-center justify-between gap-2"
+                >
+                  <span className="truncate">{p.name}</span>
+                  <span className="shrink-0 text-gray-400 font-sans">{formatRupiah(p.price)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {query.trim().length >= 3 && results.length === 0 && (
+            <p className="text-[10px] text-gray-400 italic">Tidak ada produk marketplace yang cocok.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StockItemCard({ stockItem, onAdd, onUpdateMarketplaceLink, formatRupiah }: StockItemCardProps) {
   const [qtyToAssign, setQtyToAssign] = useState<number>(1);
   const isOutOfStock = stockItem.stock <= 0;
 
@@ -94,6 +189,8 @@ function StockItemCard({ stockItem, onAdd, formatRupiah }: StockItemCardProps) {
           Pasang
         </button>
       </div>
+
+      <MarketplaceLinkPicker stockItem={stockItem} onUpdateMarketplaceLink={onUpdateMarketplaceLink} formatRupiah={formatRupiah} />
     </div>
   );
 }
@@ -105,6 +202,7 @@ interface WarehousePanelProps {
   onUpdateOrderStatus: (orderId: string, status: Order['status'], timelineDescription: string) => void;
   onUpdateOrder: (orderId: string, updatedFields: Partial<Order>) => void;
   onUpdateStock?: (itemId: string, newStock: number) => void;
+  onUpdateMarketplaceLink?: (itemId: string, marketplaceProductId: string | null) => void;
   onNotify?: (message: string) => void;
   activeUser: StaffUser;
 }
@@ -116,6 +214,7 @@ export default function WarehousePanel({
   onUpdateOrderStatus,
   onUpdateOrder,
   onUpdateStock,
+  onUpdateMarketplaceLink,
   onNotify,
   activeUser
 }: WarehousePanelProps) {
@@ -130,14 +229,19 @@ export default function WarehousePanel({
   const [customPrice, setCustomPrice] = useState<number>(0);
   const [customQty, setCustomQty] = useState<number>(1);
   const [customCode, setCustomCode] = useState('');
-  const [customRack, setCustomRack] = useState('');
 
   // Selected stock item map for resolving findings
   const [selectedFindingStockMap, setSelectedFindingStockMap] = useState<Record<string, string>>({});
 
   // Active orders that warehouse needs to support (excluding completed ones)
+  // 'menunggu_pembayaran' dikeluarin juga (bukan cuma 'selesai') — mobil di
+  // status itu udah kelar dikerjakan, tinggal nunggu bayar. Kalau masih bisa
+  // dipasangin part / "Kirim Pengajuan ke SA" dari sini, itu bisa
+  // ngebalikin status order ke 'temuan_dilaporkan' padahal harusnya udah
+  // ditutup buat pengerjaan baru. Batas yang sama dipakai TrackingPortal.tsx
+  // buat nentuin order "masih aktif buat diutak-atik" atau nggak.
   const activeOrders = useMemo(() => {
-    return orders.filter(o => o.status !== 'selesai');
+    return orders.filter(o => o.status !== 'selesai' && o.status !== 'menunggu_pembayaran');
   }, [orders]);
 
   const selectedOrder = useMemo(() => {
@@ -160,6 +264,15 @@ export default function WarehousePanel({
     return 'Rp ' + num.toLocaleString('id-ID');
   };
 
+  // warehouse_stock RLS cuma izinin write dari owner/gudang (lihat
+  // supabase-schema.sql) — advisor juga bisa buka tab ini (buat pasang part
+  // ke WO, yang nulis ke orders bukan warehouse_stock), tapi kalau tombol
+  // link marketplace tetap kelihatan buat advisor, update-nya bakal silent
+  // no-op (matched 0 baris, RLS nggak nge-throw error) dan UI kelihatan
+  // "berhasil" padahal DB nggak berubah. Jadi affordance-nya disembunyikan
+  // total, bukan cuma di-disable, buat role yang emang gak bisa nulis.
+  const canManageMarketplaceLink = activeUser.role === 'owner' || activeUser.role === 'gudang';
+
   // Add stock item to order
   const handleAddStockToOrder = (stockItem: WarehouseStockItem, qtyToAdd: number) => {
     if (!selectedOrder) return;
@@ -177,7 +290,7 @@ export default function WarehousePanel({
 
     // Create ServiceItem
     const newItem: ServiceItem = {
-      id: `part-${Date.now()}-${stockItem.code}`,
+      id: genId('part'),
       name: `${stockItem.name} (${stockItem.code})`,
       type: 'part',
       price: stockItem.price,
@@ -197,7 +310,7 @@ export default function WarehousePanel({
     const codeStr = customCode.trim() || `PART-OUT-${Date.now().toString().slice(-4)}`;
     
     const newItem: ServiceItem = {
-      id: `part-${Date.now()}-custom`,
+      id: genId('part-custom'),
       name: `${customName} [Non-Stock] (${codeStr})`,
       type: 'part',
       price: customPrice,
@@ -213,7 +326,6 @@ export default function WarehousePanel({
     setCustomPrice(0);
     setCustomQty(1);
     setCustomCode('');
-    setCustomRack('');
     setShowCustomForm(false);
   };
 
@@ -222,7 +334,23 @@ export default function WarehousePanel({
     if (!selectedOrder) return;
 
     const updatedItems = selectedOrder.serviceItems.filter(item => item.id !== itemId);
-    onUpdateServiceItems(selectedOrder.id, updatedItems);
+
+    // Part yang di-resolve lewat temuan (handleResolveWithStock) juga
+    // ke-mirror ke finding.resolvedParts — kalau dihapus dari sini (daftar
+    // utama) tanpa nyentuh itu juga, resolvedParts nyisain entri hantu yang
+    // nunjuk ke serviceItem yang udah nggak ada. handleRemovePartFromFinding
+    // di bawah udah bener nangani dua-duanya sekaligus; disamain di sini.
+    const hasResolvedPartRef = selectedOrder.findings.some(f => (f.resolvedParts || []).some(p => p.id === itemId));
+    if (hasResolvedPartRef) {
+      const updatedFindings = selectedOrder.findings.map(f => (
+        (f.resolvedParts || []).some(p => p.id === itemId)
+          ? { ...f, resolvedParts: (f.resolvedParts || []).filter(p => p.id !== itemId) }
+          : f
+      ));
+      onUpdateOrder(selectedOrder.id, { serviceItems: updatedItems, findings: updatedFindings });
+    } else {
+      onUpdateServiceItems(selectedOrder.id, updatedItems);
+    }
 
     // Try to restock if it was from warehouse stock
     const codeMatch = itemCodeAndName.match(/\((SP-[\w-]+)\)/);
@@ -255,7 +383,7 @@ export default function WarehousePanel({
     const newStockAmt = stockItem.stock - 1;
     onUpdateStock?.(stockItem.id, newStockAmt);
 
-    const itemId = `part-${Date.now()}-${stockItem.code}`;
+    const itemId = genId('part');
     // Create ServiceItem
     const newItem: ServiceItem = {
       id: itemId,
@@ -289,7 +417,7 @@ export default function WarehousePanel({
 
     // Create timeline event
     const newTimelineEvent = {
-      id: `t-wh-add-${Date.now()}`,
+      id: genId('t-wh-add'),
       status: selectedOrder.status,
       timestamp: new Date().toISOString(),
       title: 'Barang Gudang Dialokasikan',
@@ -317,7 +445,7 @@ export default function WarehousePanel({
   const handleResolveWithBawaSendiri = (findingId: string, findingDescription: string) => {
     if (!selectedOrder) return;
 
-    const itemId = `part-${Date.now()}-bawa-sendiri`;
+    const itemId = genId('part-bawa-sendiri');
     // Create free ServiceItem (Bawa Sendiri)
     const newItem: ServiceItem = {
       id: itemId,
@@ -351,7 +479,7 @@ export default function WarehousePanel({
 
     // Create timeline event
     const newTimelineEvent = {
-      id: `t-wh-add-self-${Date.now()}`,
+      id: genId('t-wh-add-self'),
       status: selectedOrder.status,
       timestamp: new Date().toISOString(),
       title: 'Sparepart Bawa Sendiri Ditambahkan',
@@ -386,7 +514,7 @@ export default function WarehousePanel({
     });
 
     const newTimelineEvent = {
-      id: `t-wh-none-${Date.now()}`,
+      id: genId('t-wh-none'),
       status: selectedOrder.status,
       timestamp: new Date().toISOString(),
       title: 'Temuan Tanpa Sparepart',
@@ -430,7 +558,7 @@ export default function WarehousePanel({
     });
 
     const newTimelineEvent = {
-      id: `t-wh-lock-${Date.now()}`,
+      id: genId('t-wh-lock'),
       status: selectedOrder.status,
       timestamp: new Date().toISOString(),
       title: 'Sourcing Sparepart Selesai',
@@ -525,7 +653,7 @@ export default function WarehousePanel({
     });
 
     const newTimelineEvent = {
-      id: `t-wh-reset-${Date.now()}`,
+      id: genId('t-wh-reset'),
       status: selectedOrder.status,
       timestamp: new Date().toISOString(),
       title: 'Reset Sourcing Temuan',
@@ -1000,6 +1128,7 @@ export default function WarehousePanel({
                     <StockItemCard
                       stockItem={stockItem}
                       onAdd={handleAddStockToOrder}
+                      onUpdateMarketplaceLink={canManageMarketplaceLink ? onUpdateMarketplaceLink : undefined}
                       formatRupiah={formatRupiah}
                     />
                   </div>

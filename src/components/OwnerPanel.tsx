@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  CurrencyDollar, Car, Users, ShieldWarning
+  CurrencyDollar, Car, Users, ShieldWarning, Wrench, Gauge, ArrowsClockwise, BellRinging, WhatsappLogo
 } from '@phosphor-icons/react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 import { Order, CashTransaction, CashClosing, User as StaffUser } from '../types';
 import KpiTile from './ui/KpiTile';
+import PeriodFilter from './ui/PeriodFilter';
 import { useTheme } from '../lib/theme';
+import { buildWhatsAppLink } from '../lib/whatsapp';
+import {
+  PeriodFilter as PeriodFilterType, PERIOD_LABEL,
+  sumRevenue, pendingRevenue as calcPendingRevenue, mechanicProductivity,
+  bayUtilization, repeatCustomerRate, serviceDueList, revenueChartData,
+} from '../lib/metrics';
 
 interface OwnerPanelProps {
   orders: Order[];
@@ -17,37 +24,57 @@ interface OwnerPanelProps {
   onlineStaffIds: Set<string>;
 }
 
+const PERIOD_OPTIONS: PeriodFilterType[] = ['semua', 'hari_ini', 'bulan_ini', 'tahun_ini'];
+
 export default function OwnerPanel({ orders, transactions, closings, staffUsers, onlineStaffIds }: OwnerPanelProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const [period, setPeriod] = useState<PeriodFilterType>('semua');
+  const now = new Date();
 
-  // Rincian Keuangan (Slide 8 Metrics)
-  const totalRevenue = transactions.reduce((acc, curr) => acc + curr.amount, 0);
-  const pendingRevenue = orders
-    .filter(o => o.paymentStatus === 'belum_dibayar')
-    .reduce((acc, curr) => {
-      const orderApprovedTotal = curr.serviceItems
-        .filter(item => item.status !== 'pending' && item.status !== 'rejected')
-        .reduce((sum, item) => sum + (item.price * item.qty), 0);
-      return acc + orderApprovedTotal;
-    }, 0);
+  // Rincian Keuangan (Slide 8 Metrics) — all period-aware via the shared
+  // period selector, so switching it updates every number below together
+  // instead of only some (the old bug: mechanic productivity was hardcoded
+  // to "this month" while revenue was silently all-time).
+  const totalRevenue = sumRevenue(transactions, period, now);
+  const pendingRevenue = calcPendingRevenue(orders, period, now);
 
   const formatRupiah = (num: number) => {
     return 'Rp ' + num.toLocaleString('id-ID');
   };
 
-  const chartData = (() => {
-    const grouped: Record<string, number> = {};
-    transactions.filter(t => t.type === 'masuk').forEach(tx => {
-      const day = new Date(tx.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-      grouped[day] = (grouped[day] || 0) + tx.amount;
-    });
-    return Object.entries(grouped).map(([name, revenue]) => ({ name, revenue }));
-  })();
+  const mechanicStats = mechanicProductivity(orders, period, now);
+
+  // Utilisasi bay — snapshot posisi sekarang, BUKAN rata-rata historis. Nggak
+  // ada data waktu masuk/keluar bay tercatat, jadi jangan pura-pura tau rata-rata.
+  const { occupied: occupiedSlots, pct: bayUtilizationPct } = bayUtilization(orders, 10);
+
+  // Repeat customer rate — dari seluruh order, persentase no HP yang muncul >1x.
+  const repeatRate = repeatCustomerRate(orders);
+
+  // Servis jatuh tempo — WO selesai (per plat, ambil yang paling baru) yang
+  // servis terakhirnya udah lewat 6 bulan. Bukan pengingat otomatis (nggak
+  // ada cron di app ini) — SA yang klik kirim WA manual per kendaraan.
+  const SERVICE_DUE_MONTHS = 6;
+  const serviceDueOrders = serviceDueList(orders, SERVICE_DUE_MONTHS, now);
+
+  const notifyServiceDue = (order: Order) => {
+    const lastDate = new Date(order.paidAt!).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    const message = `Halo ${order.customerName}, kendaraan ${order.carBrand} ${order.carModel} (${order.plateNumber}) sudah waktunya servis berkala — terakhir servis di Berlin188 Garage pada ${lastDate}. Yuk jadwalkan kunjungan berikutnya. Terima kasih.`;
+    window.open(buildWhatsAppLink(order.customerPhone, message), '_blank', 'noopener,noreferrer');
+  };
+
+  const chartData = revenueChartData(transactions, period, now);
 
   return (
     <div className="space-y-6">
-      
+
+      {/* Period selector — applies to every period-aware metric on this page */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <span className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">Periode: {PERIOD_LABEL[period]}</span>
+        <PeriodFilter value={period} onChange={setPeriod} options={PERIOD_OPTIONS} />
+      </div>
+
       {/* Metrics Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiTile
@@ -80,20 +107,71 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers,
         />
       </div>
 
+      {/* KPI Operasional */}
+      <div className="grid lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-4 grid grid-cols-2 gap-4">
+          <KpiTile
+            label="UTILISASI BAY"
+            value={`${bayUtilizationPct}%`}
+            sublabel={`${occupiedSlots} dari 10 bay terpakai`}
+            icon={Gauge}
+            tone={bayUtilizationPct >= 80 ? 'danger' : bayUtilizationPct >= 50 ? 'info' : 'neutral'}
+          />
+          <KpiTile
+            label="PELANGGAN KEMBALI"
+            value={`${repeatRate}%`}
+            sublabel="Dari seluruh riwayat WO"
+            icon={ArrowsClockwise}
+            tone="success"
+          />
+        </div>
+
+        <div className="lg:col-span-8 card p-6 space-y-4">
+          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-[#2a2d35] pb-3">
+            <Wrench className="w-4 h-4 text-gray-500 dark:text-gray-400" weight="duotone" />
+            <div>
+              <h3 className="text-sm font-bold text-[#1A1A1A] dark:text-white">Produktivitas Mekanik</h3>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">Dari WO selesai — {PERIOD_LABEL[period]}</p>
+            </div>
+          </div>
+          {mechanicStats.length === 0 ? (
+            <div className="py-6 text-center text-xs text-gray-400 dark:text-gray-500 italic">Belum ada WO selesai pada periode ini.</div>
+          ) : (
+            <div className="space-y-2">
+              {mechanicStats.map(m => (
+                <div key={m.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[#22252c] border border-gray-150 dark:border-[#2a2d35] rounded-xl text-xs">
+                  <span className="font-bold text-gray-800 dark:text-gray-100">{m.name}</span>
+                  <div className="flex items-center gap-4 text-right">
+                    <div>
+                      <span className="text-gray-400 dark:text-gray-500 block text-[9px] uppercase font-bold">WO Selesai</span>
+                      <span className="font-sans font-bold text-gray-700 dark:text-gray-300">{m.count}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 dark:text-gray-500 block text-[9px] uppercase font-bold">Revenue</span>
+                      <span className="font-sans font-bold text-emerald-700 dark:text-emerald-400">{formatRupiah(m.revenue)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Main Charts & History rows */}
       <div className="grid lg:grid-cols-12 gap-6 items-start">
-        
+
         {/* Revenue chart */}
         <div className="lg:col-span-8 card p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#2a2d35] pb-3">
             <div>
               <span className="text-[10px] bg-gray-100 dark:bg-[#22252c] text-black dark:text-white px-2 py-0.5 rounded font-bold">Grafik Omset</span>
-              <h3 className="text-sm font-bold text-[#1A1A1A] dark:text-white mt-1.5">Laporan Kas & Pendapatan Bulanan</h3>
+              <h3 className="text-sm font-bold text-[#1A1A1A] dark:text-white mt-1.5">Laporan Kas & Pendapatan</h3>
             </div>
 
             <div className="text-right text-xs">
               <span className="text-gray-400 dark:text-gray-500 font-bold block">PENDAPATAN</span>
-              <span className="font-bold text-gray-800 dark:text-gray-100">{new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</span>
+              <span className="font-bold text-gray-800 dark:text-gray-100">{PERIOD_LABEL[period]}</span>
             </div>
           </div>
 
@@ -169,6 +247,38 @@ export default function OwnerPanel({ orders, transactions, closings, staffUsers,
         </div>
 
       </div>
+
+      {/* Servis jatuh tempo */}
+      {serviceDueOrders.length > 0 && (
+        <div className="card p-6 space-y-4">
+          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-[#2a2d35] pb-3">
+            <BellRinging className="w-4 h-4 text-amber-600 dark:text-amber-400" weight="duotone" />
+            <div>
+              <h3 className="text-sm font-bold text-[#1A1A1A] dark:text-white">Servis Jatuh Tempo</h3>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">Servis terakhir lebih dari {SERVICE_DUE_MONTHS} bulan lalu — {serviceDueOrders.length} kendaraan</p>
+            </div>
+          </div>
+          <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+            {serviceDueOrders.map(o => (
+              <div key={o.id} className="flex items-center justify-between gap-3 p-3 bg-amber-50/50 dark:bg-amber-500/10 border border-amber-150 dark:border-amber-500/20 rounded-xl text-xs">
+                <div className="min-w-0">
+                  <span className="font-bold text-gray-800 dark:text-gray-100">{o.customerName}</span>
+                  <span className="text-gray-400 dark:text-gray-500"> · {o.carBrand} {o.carModel} · {o.plateNumber}</span>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                    Servis terakhir: {new Date(o.paidAt!).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => notifyServiceDue(o)}
+                  className="shrink-0 flex items-center gap-1.5 bg-berlin-navy text-white px-3 py-1.5 rounded-lg text-[11px] font-bold hover:bg-berlin-navy-dark transition-colors cursor-pointer"
+                >
+                  <WhatsappLogo className="w-3.5 h-3.5" weight="duotone" /> Kirim WA
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Staff directory */}
       <div className="card p-6 space-y-4">

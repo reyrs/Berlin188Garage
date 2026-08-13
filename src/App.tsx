@@ -45,8 +45,8 @@ import {
   fetchTransactions, createTransaction,
   fetchExpenses, createExpense,
   fetchClosings, createClosing,
-  fetchWarehouseStock, updateStockQuantity,
-  fetchProfiles, seedWarehouseStock,
+  fetchWarehouseStock, adjustWarehouseStock, updateWarehouseStockMarketplaceLink,
+  fetchProfiles, seedWarehouseStock, updateProfileSpecialization,
   fetchHeroContent, uploadLandingAsset,
   fetchPortfolioItems, createPortfolioItem, deletePortfolioItem,
   mapOrder,
@@ -58,6 +58,7 @@ import { useNotifications } from './lib/notifications';
 import { trackPageView } from './lib/analytics';
 import { logReactError } from './lib/errorLogger';
 import { computeSlotBackfill } from './lib/slotAllocation';
+import { genId } from './lib/id';
 
 type ActiveTab = 'dashboard' | 'create_order' | 'track_dashboard' | 'accounting' | 'gudang' | 'monitor_service' | 'monitor_tunggu' | 'spk' | 'manager_dashboard' | 'marketing' | 'finance_report' | 'audit_log' | 'settings';
 
@@ -85,7 +86,7 @@ function StaffLoadingFallback() {
   );
 }
 
-class StaffChunkErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+class ChunkErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
@@ -97,7 +98,7 @@ class StaffChunkErrorBoundary extends React.Component<{ children: React.ReactNod
 
   componentDidCatch(error: Error) {
     console.error('Failed to load dashboard chunk:', error);
-    logReactError(error, 'StaffChunkErrorBoundary');
+    logReactError(error, 'ChunkErrorBoundary');
   }
 
   render() {
@@ -128,7 +129,13 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   const [heroContent, setHeroContent] = useState<HeroContent | null>(null);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [activeStaffUser, setActiveStaffUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor_service' | 'monitor_tunggu' | 'marketplace' | 'staff_login'>(entryMode === 'staff' ? 'staff_login' : 'landing');
+  // `?track=<no HP>` — dipakai link WA yang dikirim ke customer (lihat
+  // src/lib/whatsapp.ts buildTrackingLink) biar langsung ke halaman tracking
+  // dengan no HP udah keisi, bukan nyuruh customer ketik ulang dari landing page.
+  const [currentView, setCurrentView] = useState<'landing' | 'tracking' | 'staff_portal' | 'monitor_service' | 'monitor_tunggu' | 'marketplace' | 'staff_login'>(() => {
+    if (entryMode === 'staff') return 'staff_login';
+    return new URLSearchParams(window.location.search).get('track') ? 'tracking' : 'landing';
+  });
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('staff_sidebar_collapsed') === 'true');
@@ -136,7 +143,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     localStorage.setItem('staff_sidebar_collapsed', String(!prev));
     return !prev;
   });
-  const [trackingQuery, setTrackingQuery] = useState('');
+  const [trackingQuery, setTrackingQuery] = useState(() => new URLSearchParams(window.location.search).get('track') || '');
   const [sandboxNotification, setSandboxNotification] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
@@ -268,7 +275,11 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     const subscription = onAuthStateChange((session) => {
       if (!session) {
         setActiveStaffUser(null);
-        setCurrentView(entryMode === 'staff' ? 'staff_login' : 'landing');
+        // Supabase fires this once on subscribe even with no real session
+        // change (not just on an actual logout) — only force-navigate away
+        // from an active staff view, so it doesn't stomp on 'tracking' (e.g.
+        // a `?track=` deep link) or other public views on that first fire.
+        setCurrentView((v) => (v === 'staff_portal' || v === 'staff_login') ? (entryMode === 'staff' ? 'staff_login' : 'landing') : v);
       }
     });
 
@@ -333,7 +344,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
           ...o,
           status,
           timeline: [...o.timeline, {
-            id: `t-${Date.now()}`,
+            id: genId('t'),
             status,
             timestamp: now,
             title: statusTitles[status],
@@ -402,7 +413,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         ...o,
         findings: o.findings.map(f => f.id === findingId ? { ...f, status: 'approved' as const } : f),
         timeline: [...o.timeline, {
-          id: `t-approve-${Date.now()}`,
+          id: genId('t-approve'),
           status: o.status,
           timestamp: new Date().toISOString(),
           title: 'Temuan Disetujui Pemilik',
@@ -434,7 +445,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         ...o,
         findings: o.findings.map(f => f.id === findingId ? { ...f, status: 'rejected' as const } : f),
         timeline: [...o.timeline, {
-          id: `t-reject-${Date.now()}`,
+          id: genId('t-reject'),
           status: o.status,
           timestamp: new Date().toISOString(),
           title: 'Temuan Ditolak Pemilik',
@@ -466,7 +477,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         ...o,
         serviceItems: o.serviceItems.map(i => i.id === itemId ? { ...i, status: 'approved' as const } : i),
         timeline: [...o.timeline, {
-          id: `t-approve-item-${Date.now()}`,
+          id: genId('t-approve-item'),
           status: o.status,
           timestamp: new Date().toISOString(),
           title: 'Estimasi Disetujui Pemilik',
@@ -498,7 +509,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         ...o,
         serviceItems: o.serviceItems.map(i => i.id === itemId ? { ...i, status: 'rejected' as const } : i),
         timeline: [...o.timeline, {
-          id: `t-reject-item-${Date.now()}`,
+          id: genId('t-reject-item'),
           status: o.status,
           timestamp: new Date().toISOString(),
           title: 'Estimasi Ditolak Pemilik',
@@ -519,8 +530,36 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, serviceItems: previousItems } : o));
         showNotification(`❌ Gagal menyimpan penolakan jasa/part di ${orderId}. Coba lagi.`);
       });
+
+      // Part yang sumbernya gudang_stock udah kepotong stoknya pas
+      // di-assign (lihat WarehousePanel handleAddStockToOrder/
+      // handleResolveWithStock) — kalau ditolak di sini, unit itu nggak
+      // jadi kepasang, jadi harus balik ke stok. Match by code (bukan nama)
+      // karena nama tersimpan sebagai "Nama Part (KODE)" — sama pola yang
+      // dipakai AdvisorPanel buat saran riwayat.
+      // Nggak ngandelin `partSource === 'gudang_stock'` doang — field itu
+      // cuma keisi kalau part-nya di-assign lewat resolusi temuan
+      // (handleResolveWithStock); assign biasa dari tombol "Pasang"
+      // (handleAddStockToOrder) motong stok yang sama tapi nggak nyetel
+      // partSource sama sekali. Match-by-code sendiri udah cukup selektif —
+      // part "bawa sendiri"/custom non-stock nggak akan pernah punya kode
+      // yang cocok sama warehouseStock asli.
+      const rejectedItem = order.serviceItems.find(i => i.id === itemId);
+      if (rejectedItem?.type === 'part') {
+        const codeMatch = rejectedItem.name.match(/\(([^()]+)\)\s*$/);
+        const stockItem = codeMatch ? warehouseStock.find(s => s.code.trim().toLowerCase() === codeMatch[1].trim().toLowerCase()) : undefined;
+        if (stockItem) {
+          const restoredStock = stockItem.stock + rejectedItem.qty;
+          setWarehouseStock(prev => prev.map(s => s.id === stockItem.id ? { ...s, stock: restoredStock } : s));
+          adjustWarehouseStock(stockItem.id, rejectedItem.qty).catch(err => {
+            console.error('Failed to restore stock after rejection:', err);
+            setWarehouseStock(prev => prev.map(s => s.id === stockItem.id ? { ...s, stock: stockItem.stock } : s));
+            showNotification(`❌ Gagal mengembalikan stok "${stockItem.name}" setelah penolakan. Cek manual di Gudang.`);
+          });
+        }
+      }
     }
-  }, [orders]);
+  }, [orders, warehouseStock]);
 
   const handleUpdateServiceItems = useCallback((orderId: string, items: any[]) => {
     const previousItems = orders.find(o => o.id === orderId)?.serviceItems ?? [];
@@ -572,7 +611,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         assignedMechanicName: mechanicName,
         slotNumber: assignedSlot,
         timeline: [...o.timeline, {
-          id: `t-spk-${Date.now()}`,
+          id: genId('t-spk'),
           status: 'dikerjakan' as const,
           timestamp: now,
           title: 'SPK Dikirim ke Mekanik',
@@ -640,10 +679,10 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   const createTransactionRecord = useCallback(async (
     orderId: string, amount: number, method: 'tunai' | 'transfer' | 'qris' | 'edc',
     type: 'masuk' | 'keluar', category: CashTransaction['category'],
-    description: string, customerName?: string
+    description: string, customerName?: string, txId?: string
   ) => {
     const tx: CashTransaction = {
-      id: `TX-${Date.now()}`,
+      id: txId || genId('TX'),
       orderId,
       customerName,
       amount,
@@ -661,10 +700,12 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
 
   const handleConfirmPayment = useCallback((orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dest: string) => {
     const order = orders.find(o => o.id === orderId);
-    const total = order?.serviceItems
+    if (!order) return;
+    const previousOrder = order;
+    const total = order.serviceItems
       .filter(i => i.status !== 'rejected' && i.status !== 'pending')
-      .reduce((s, i) => s + i.price * i.qty, 0) || 0;
-    const dpAlreadyPaid = order?.dpAmountPaid || 0;
+      .reduce((s, i) => s + i.price * i.qty, 0);
+    const dpAlreadyPaid = order.dpAmountPaid || 0;
     const remaining = total - dpAlreadyPaid;
     const now = new Date().toISOString();
 
@@ -673,6 +714,8 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     // status 'selesai') — jadi backfill slot ke antrian berikutnya harus
     // dipicu dari sini.
     const backfill = computeSlotBackfill(orders, order);
+    const previousBackfillSlot = backfill ? orders.find(o => o.id === backfill.backfillOrderId)?.slotNumber : undefined;
+    const txId = genId('TX');
 
     setOrders(prev => prev.map(o => {
       if (o.id === orderId) {
@@ -684,7 +727,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
           paymentDestination: dest,
           paidAt: now,
           timeline: [...o.timeline, {
-            id: `t-pay-${Date.now()}`,
+            id: genId('t-pay'),
             status: 'selesai' as const,
             timestamp: now,
             title: 'Pembayaran Lunas',
@@ -707,23 +750,36 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         paymentMethod: method, paymentDestination: dest, paidAt: now,
       }),
       createTransactionRecord(orderId, remaining, method, 'masuk', 'pendapatan_jasa',
-        `Pembayaran ${orderId} — ${order?.carBrand} ${order?.carModel}`, order?.customerName),
+        `Pembayaran ${orderId} — ${order.carBrand} ${order.carModel}`, order.customerName, txId),
       ...(backfill ? [updateOrder(backfill.backfillOrderId, { slotNumber: backfill.freedSlot })] : []),
-    ]).catch(err => {
+    ]).then(() => {
+      showNotification(`💰 Pembayaran ${orderId} lunas — Rp ${remaining.toLocaleString('id-ID')}`);
+      pushNotification(`Pembayaran WO ${orderId} telah dikonfirmasi lunas`);
+    }).catch(err => {
       console.error('Failed to process payment:', err);
-      showNotification('❌ Gagal memproses pembayaran');
+      // Rollback — order ini balik ke state sebelum pembayaran, slot backfill
+      // (kalau ada) juga dibalikin, dan transaksi kas yang udah kelanjur
+      // tampil optimis dihapus lagi. Tanpa ini UI bilang "lunas" padahal
+      // servernya nolak, dan itu baru ketauan pas reload manual.
+      setOrders(prev => prev.map(o => {
+        if (o.id === orderId) return previousOrder;
+        if (backfill && o.id === backfill.backfillOrderId) return { ...o, slotNumber: previousBackfillSlot };
+        return o;
+      }));
+      setTransactions(prev => prev.filter(t => t.id !== txId));
+      showNotification(`❌ Gagal memproses pembayaran ${orderId}. Perubahan dibatalkan, coba lagi.`);
     });
-
-    showNotification(`💰 Pembayaran ${orderId} lunas — Rp ${remaining.toLocaleString('id-ID')}`);
-    pushNotification(`Pembayaran WO ${orderId} telah dikonfirmasi lunas`);
   }, [orders, activeStaffUser, createTransactionRecord, pushNotification]);
 
   const handleConfirmDPPayment = useCallback((orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dpAmount: number, dest: string) => {
     const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const previousOrder = order;
     const now = new Date().toISOString();
-    const total = order?.serviceItems
+    const total = order.serviceItems
       .filter(i => i.status !== 'rejected' && i.status !== 'pending')
-      .reduce((s, i) => s + i.price * i.qty, 0) || 0;
+      .reduce((s, i) => s + i.price * i.qty, 0);
+    const txId = genId('TX');
 
     setOrders(prev => prev.map(o =>
       o.id !== orderId ? o : {
@@ -733,7 +789,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         paymentDestination: dest,
         dpAmountPaid: dpAmount,
         timeline: [...o.timeline, {
-          id: `t-dp-${Date.now()}`,
+          id: genId('t-dp'),
           status: o.status,
           timestamp: now,
           title: 'DP Dibayar',
@@ -746,21 +802,23 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     Promise.all([
       updateOrder(orderId, { paymentStatus: 'dp', paymentMethod: method, paymentDestination: dest, dpAmountPaid: dpAmount }),
       createTransactionRecord(orderId, dpAmount, method, 'masuk', 'pendapatan_jasa',
-        `DP ${orderId} — Rp ${dpAmount.toLocaleString('id-ID')} (${order?.carBrand} ${order?.carModel})`, order?.customerName)
-    ]).catch(err => {
+        `DP ${orderId} — Rp ${dpAmount.toLocaleString('id-ID')} (${order.carBrand} ${order.carModel})`, order.customerName, txId)
+    ]).then(() => {
+      showNotification(`💳 DP Rp ${dpAmount.toLocaleString('id-ID')} diterima untuk ${orderId}`);
+    }).catch(err => {
       console.error('Failed to process DP payment:', err);
-      showNotification('❌ Gagal memproses DP');
+      setOrders(prev => prev.map(o => o.id === orderId ? previousOrder : o));
+      setTransactions(prev => prev.filter(t => t.id !== txId));
+      showNotification(`❌ Gagal memproses DP ${orderId}. Perubahan dibatalkan, coba lagi.`);
     });
-
-    showNotification(`💳 DP Rp ${dpAmount.toLocaleString('id-ID')} diterima untuk ${orderId}`);
   }, [orders, activeStaffUser, createTransactionRecord]);
 
   const handleAddExpense = useCallback((exp: Omit<Expense, 'id'>) => {
-    const newExp: Expense = { ...exp, id: `EXP-${Date.now()}` };
+    const newExp: Expense = { ...exp, id: genId('EXP') };
     setExpenses(prev => [newExp, ...prev]);
 
     const newTx: CashTransaction = {
-      id: `TX-${Date.now()}`,
+      id: genId('TX'),
       amount: exp.amount,
       type: 'keluar',
       method: exp.method,
@@ -774,16 +832,18 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     Promise.all([
       createExpense(newExp),
       createTransaction(newTx),
-    ]).catch(err => {
+    ]).then(() => {
+      showNotification(`📝 Pengeluaran dicatat: ${exp.description}`);
+    }).catch(err => {
       console.error('Failed to save expense:', err);
-      showNotification('❌ Gagal menyimpan pengeluaran');
+      setExpenses(prev => prev.filter(e => e.id !== newExp.id));
+      setTransactions(prev => prev.filter(t => t.id !== newTx.id));
+      showNotification('❌ Gagal menyimpan pengeluaran. Perubahan dibatalkan, coba lagi.');
     });
-
-    showNotification(`📝 Pengeluaran dicatat: ${exp.description}`);
   }, []);
 
   const handleAddPortfolioItem = useCallback((item: Omit<PortfolioItem, 'id' | 'createdAt'>) => {
-    const tempId = `temp-${Date.now()}`;
+    const tempId = genId('temp');
     const optimisticItem: PortfolioItem = { ...item, id: tempId, createdAt: new Date().toISOString() };
     setPortfolioItems(prev => [optimisticItem, ...prev]);
     createPortfolioItem(item)
@@ -814,22 +874,25 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
   }, []);
 
   const handleCashClosing = useCallback((closing: Omit<CashClosing, 'id'>) => {
-    const newClosing: CashClosing = { ...closing, id: `CLO-${Date.now()}` };
+    const newClosing: CashClosing = { ...closing, id: genId('CLO') };
     setClosings(prev => [newClosing, ...prev]);
-    createClosing(newClosing).catch(err => {
+    createClosing(newClosing).then(() => {
+      showNotification(`🔒 Kas hari ini ditutup oleh ${closing.closedBy}.`);
+    }).catch(err => {
       console.error('Failed to save closing:', err);
-      showNotification('❌ Gagal menyimpan tutup kas');
+      setClosings(prev => prev.filter(c => c.id !== newClosing.id));
+      showNotification('❌ Gagal menyimpan tutup kas. Perubahan dibatalkan, coba lagi.');
     });
-    showNotification(`🔒 Kas hari ini ditutup oleh ${closing.closedBy}.`);
   }, []);
 
   // ---- STOCK ----
   const handleUpdateStock = useCallback((itemId: string, newStock: number) => {
     const previousItem = warehouseStock.find(item => item.id === itemId);
+    const delta = newStock - (previousItem?.stock ?? newStock);
     setWarehouseStock(prev => prev.map(item =>
       item.id === itemId ? { ...item, stock: newStock } : item
     ));
-    updateStockQuantity(itemId, newStock).catch(err => {
+    adjustWarehouseStock(itemId, delta).catch(err => {
       console.error('Failed to update stock:', err);
       if (previousItem) {
         setWarehouseStock(prev => prev.map(item => item.id === itemId ? { ...item, stock: previousItem.stock } : item));
@@ -837,6 +900,30 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
       showNotification(`❌ Gagal menyimpan perubahan stok "${previousItem?.name || itemId}" ke server. Stok dikembalikan, coba lagi.`);
     });
   }, [warehouseStock]);
+
+  const handleUpdateMarketplaceLink = useCallback((itemId: string, marketplaceProductId: string | null) => {
+    const previousItem = warehouseStock.find(item => item.id === itemId);
+    setWarehouseStock(prev => prev.map(item =>
+      item.id === itemId ? { ...item, marketplaceProductId: marketplaceProductId ?? undefined } : item
+    ));
+    updateWarehouseStockMarketplaceLink(itemId, marketplaceProductId).catch(err => {
+      console.error('Failed to update marketplace link:', err);
+      if (previousItem) {
+        setWarehouseStock(prev => prev.map(item => item.id === itemId ? { ...item, marketplaceProductId: previousItem.marketplaceProductId } : item));
+      }
+      showNotification(`❌ Gagal menyimpan link marketplace "${previousItem?.name || itemId}". Coba lagi.`);
+    });
+  }, [warehouseStock]);
+
+  const handleUpdateSpecialization = useCallback((userId: string, specialization: string) => {
+    const previous = staffDirectory.find(u => u.id === userId)?.specialization;
+    setStaffDirectory(prev => prev.map(u => u.id === userId ? { ...u, specialization } : u));
+    updateProfileSpecialization(userId, specialization).catch(err => {
+      console.error('Failed to update specialization:', err);
+      setStaffDirectory(prev => prev.map(u => u.id === userId ? { ...u, specialization: previous } : u));
+      showNotification('❌ Gagal menyimpan spesialisasi. Coba lagi.');
+    });
+  }, [staffDirectory]);
 
   // ---- AUTH ----
   const handleLoginSuccess = (user: User) => {
@@ -870,17 +957,6 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
     setCurrentView(entryMode === 'staff' ? 'staff_login' : 'landing');
   };
 
-  const getStatusTitle = (status: Order['status']) => {
-    const map: Record<Order['status'], string> = {
-      antre: 'Masuk Antrian',
-      dikerjakan: 'Mulai Dikerjakan',
-      temuan_dilaporkan: 'Temuan Dilaporkan ke Customer',
-      menunggu_pembayaran: 'Selesai — Menunggu Pembayaran',
-      selesai: 'Kendaraan Diserahkan'
-    };
-    return map[status];
-  };
-
   const getTabsForRole = (role: string) => ALL_TABS.filter(t => t.roles.includes(role));
 
   const handleTabClick = (tab: { id: ActiveTab }) => {
@@ -900,11 +976,11 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         >
           ← Kembali
         </button>
-        <StaffChunkErrorBoundary>
+        <ChunkErrorBoundary>
           <React.Suspense fallback={<StaffLoadingFallback />}>
             <SlotBoard orders={orders} interactive={currentView === 'monitor_service'} />
           </React.Suspense>
-        </StaffChunkErrorBoundary>
+        </ChunkErrorBoundary>
       </div>
     );
   }
@@ -936,16 +1012,14 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
         {currentView === 'landing' && (
           <LandingPage
             onCheckOrder={() => setCurrentView('tracking')}
-            onSelectSampleOrder={() => { setTrackingQuery('085156010707'); setCurrentView('tracking'); }}
             onOpenMarketplace={() => setCurrentView('marketplace')}
-            orders={orders}
             heroContent={heroContent}
             portfolioItems={portfolioItems}
           />
         )}
 
         {currentView === 'staff_login' && (
-          <StaffChunkErrorBoundary>
+          <ChunkErrorBoundary>
             <React.Suspense fallback={<StaffLoadingFallback />}>
               <LoginModal
                 isOpen={true}
@@ -954,13 +1028,15 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                 onLoginSuccess={handleLoginSuccess}
               />
             </React.Suspense>
-          </StaffChunkErrorBoundary>
+          </ChunkErrorBoundary>
         )}
 
         {currentView === 'marketplace' && (
-          <React.Suspense fallback={<StaffLoadingFallback />}>
-            <ProductMarketplace />
-          </React.Suspense>
+          <ChunkErrorBoundary>
+            <React.Suspense fallback={<StaffLoadingFallback />}>
+              <ProductMarketplace />
+            </React.Suspense>
+          </ChunkErrorBoundary>
         )}
 
         {currentView === 'tracking' && (
@@ -1061,7 +1137,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
               </aside>
 
               <div className="flex-1 min-w-0">
-              <StaffChunkErrorBoundary>
+              <ChunkErrorBoundary>
               <React.Suspense fallback={<StaffLoadingFallback />}>
 
               {activeTab === 'dashboard' && (
@@ -1078,7 +1154,8 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                 <AdvisorPanel
                   onAddOrder={handleAddOrder}
                   activeUser={activeStaffUser}
-                  staffUsers={staffDirectory}
+                  orders={orders}
+                  warehouseStock={warehouseStock}
                 />
               )}
 
@@ -1110,7 +1187,6 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                   closings={closings}
                   expenses={expenses}
                   staffUser={activeStaffUser}
-                  onAddTransaction={() => {}}
                   onAddExpense={handleAddExpense}
                   onCashClosing={handleCashClosing}
                   onProcessPayment={handleConfirmPayment}
@@ -1151,6 +1227,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                   onlineStaffIds={onlineStaffIds}
                   tabs={ALL_TABS}
                   activeUser={activeStaffUser}
+                  onUpdateSpecialization={handleUpdateSpecialization}
                 />
               )}
 
@@ -1162,6 +1239,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                   onUpdateServiceItems={handleUpdateServiceItems}
                   onUpdateOrder={handleUpdateOrder}
                   activeUser={activeStaffUser}
+                  onNotify={showNotification}
                 />
               )}
 
@@ -1173,6 +1251,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                   onUpdateOrderStatus={handleUpdateOrderStatus}
                   onUpdateOrder={handleUpdateOrder}
                   onUpdateStock={handleUpdateStock}
+                  onUpdateMarketplaceLink={handleUpdateMarketplaceLink}
                   onNotify={showNotification}
                   activeUser={activeStaffUser}
                 />
@@ -1185,7 +1264,7 @@ export default function App({ entryMode = 'public' }: { entryMode?: 'public' | '
                 </div>
               )}
               </React.Suspense>
-              </StaffChunkErrorBoundary>
+              </ChunkErrorBoundary>
               </div>
             </div>
           </div>

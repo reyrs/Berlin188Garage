@@ -10,6 +10,7 @@ CREATE TABLE profiles (
   email TEXT,
   phone TEXT,
   avatar_url TEXT,
+  specialization TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -28,7 +29,8 @@ CREATE TABLE orders (
   car_type TEXT,
   car_year TEXT,
   car_engine_code TEXT,
-  complaint TEXT NOT NULL,
+  complaint TEXT, -- deprecated, superseded by complaints (jsonb array, max 3 enforced in app)
+  complaints JSONB DEFAULT '[]'::jsonb,
   service_type TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'antre' CHECK (status IN ('antre','dikerjakan','temuan_dilaporkan','menunggu_pembayaran','selesai')),
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -41,6 +43,7 @@ CREATE TABLE orders (
   payment_status TEXT DEFAULT 'belum_dibayar' CHECK (payment_status IN ('belum_dibayar','dp','lunas')),
   payment_method TEXT,
   payment_destination TEXT,
+  invoiced_at TIMESTAMPTZ,
   paid_at TIMESTAMPTZ,
   dp_amount NUMERIC,
   notes TEXT,
@@ -75,7 +78,7 @@ CREATE TABLE expenses (
   date DATE NOT NULL,
   description TEXT NOT NULL,
   amount NUMERIC NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('operasional','pembelian_part','gaji','utilitas','lainnya')),
+  category TEXT NOT NULL CHECK (category IN ('operasional','pembelian_part','gaji','utilitas','bayar_supplier','bayar_hutang_owner','lainnya')),
   method TEXT NOT NULL CHECK (method IN ('tunai','transfer','qris','edc')),
   created_by TEXT NOT NULL,
   receipt_url TEXT,
@@ -106,6 +109,10 @@ CREATE TABLE warehouse_stock (
   price NUMERIC NOT NULL,
   stock INTEGER NOT NULL DEFAULT 0,
   rack_location TEXT NOT NULL,
+  -- Plain TEXT reference (no real FK) to a product id in the static public
+  -- marketplace catalog (src/data/products.ts, not a DB table). Set
+  -- explicitly by staff via WarehousePanel, never auto-matched.
+  marketplace_product_id TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -230,28 +237,48 @@ AS $$
   SELECT * FROM orders WHERE customer_phone = p_phone;
 $$;
 
+-- approvedBy: 'customer' distinguishes a genuine self-service ACC (here) from
+-- a staff-recorded one (orderStore.approveFinding/approveServiceItem stamps
+-- 'advisor'). Both also write a timeline event now, previously only the
+-- staff path did — customer ACCs used to leave no timeline trace at all.
 CREATE OR REPLACE FUNCTION customer_set_finding_status(
   p_order_id TEXT, p_phone TEXT, p_finding_id TEXT, p_status TEXT
 )
 RETURNS SETOF orders
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
+DECLARE
+  v_finding_desc TEXT;
 BEGIN
   IF p_status NOT IN ('approved', 'rejected') THEN
     RAISE EXCEPTION 'invalid status: %', p_status;
   END IF;
 
+  SELECT elem->>'description' INTO v_finding_desc
+  FROM orders, jsonb_array_elements(findings) AS elem
+  WHERE id = p_order_id AND customer_phone = p_phone AND elem->>'id' = p_finding_id;
+
   RETURN QUERY
   UPDATE orders
   SET findings = (
-    SELECT jsonb_agg(
-      CASE WHEN elem->>'id' = p_finding_id
-           THEN elem || jsonb_build_object('status', p_status)
-           ELSE elem
-      END
-    )
-    FROM jsonb_array_elements(findings) AS elem
-  )
+        SELECT jsonb_agg(
+          CASE WHEN elem->>'id' = p_finding_id
+               THEN elem || jsonb_build_object('status', p_status, 'approvedBy', 'customer')
+               ELSE elem
+          END
+        )
+        FROM jsonb_array_elements(findings) AS elem
+      ),
+      timeline = timeline || jsonb_build_array(jsonb_build_object(
+        'id', 'rpc-finding-' || md5(random()::text || clock_timestamp()::text),
+        'status', status,
+        'timestamp', now(),
+        'title', CASE WHEN p_status = 'approved' THEN 'Temuan Disetujui Pemilik' ELSE 'Temuan Ditolak Pemilik' END,
+        'description', format('Pemilik %s temuan: "%s" (via portal tracking).',
+          CASE WHEN p_status = 'approved' THEN 'menyetujui' ELSE 'menolak' END,
+          coalesce(v_finding_desc, p_finding_id)),
+        'actor', 'Pemilik Kendaraan'
+      ))
   WHERE id = p_order_id AND customer_phone = p_phone
   RETURNING *;
 END;
@@ -263,29 +290,58 @@ CREATE OR REPLACE FUNCTION customer_set_service_item_status(
 RETURNS SETOF orders
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
+DECLARE
+  v_item_name TEXT;
 BEGIN
   IF p_status NOT IN ('approved', 'rejected') THEN
     RAISE EXCEPTION 'invalid status: %', p_status;
   END IF;
 
+  SELECT elem->>'name' INTO v_item_name
+  FROM orders, jsonb_array_elements(service_items) AS elem
+  WHERE id = p_order_id AND customer_phone = p_phone AND elem->>'id' = p_item_id;
+
   RETURN QUERY
   UPDATE orders
   SET service_items = (
-    SELECT jsonb_agg(
-      CASE WHEN elem->>'id' = p_item_id
-           THEN elem || jsonb_build_object('status', p_status)
-           ELSE elem
-      END
-    )
-    FROM jsonb_array_elements(service_items) AS elem
-  )
+        SELECT jsonb_agg(
+          CASE WHEN elem->>'id' = p_item_id
+               THEN elem || jsonb_build_object('status', p_status, 'approvedBy', 'customer')
+               ELSE elem
+          END
+        )
+        FROM jsonb_array_elements(service_items) AS elem
+      ),
+      timeline = timeline || jsonb_build_array(jsonb_build_object(
+        'id', 'rpc-item-' || md5(random()::text || clock_timestamp()::text),
+        'status', status,
+        'timestamp', now(),
+        'title', CASE WHEN p_status = 'approved' THEN 'Estimasi Disetujui Pemilik' ELSE 'Estimasi Ditolak Pemilik' END,
+        'description', format('Pemilik %s item: "%s" (via portal tracking).',
+          CASE WHEN p_status = 'approved' THEN 'menyetujui' ELSE 'menolak' END,
+          coalesce(v_item_name, p_item_id)),
+        'actor', 'Pemilik Kendaraan'
+      ))
   WHERE id = p_order_id AND customer_phone = p_phone
   RETURNING *;
 END;
 $$;
 
+-- Public marketplace stock badge: only exposes (product id, stock) for
+-- warehouse_stock rows staff have explicitly linked, never the full
+-- staff-only table (owner/gudang RLS on warehouse_stock stays unchanged).
+CREATE OR REPLACE FUNCTION public_marketplace_stock_lookup()
+RETURNS TABLE(marketplace_product_id TEXT, stock INTEGER)
+LANGUAGE sql SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT w.marketplace_product_id, w.stock
+  FROM warehouse_stock w
+  WHERE w.marketplace_product_id IS NOT NULL;
+$$;
+
 GRANT EXECUTE ON FUNCTION track_orders_by_phone(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION customer_set_finding_status(TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public_marketplace_stock_lookup() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION customer_set_service_item_status(TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;
 
 CREATE POLICY "transactions_role_based"
@@ -312,6 +368,37 @@ CREATE POLICY "stock_mutations_role_based"
   ON stock_mutations FOR ALL TO authenticated
   USING (current_staff_role() IN ('owner','gudang'))
   WITH CHECK (current_staff_role() IN ('owner','gudang'));
+
+-- warehouse_stock_role_based above locks writes to owner/gudang, but stock
+-- mutations are also triggered by advisor actions (Pasang part ke WO,
+-- reject-restock, resolve temuan pakai stock) — a plain UPDATE from an
+-- advisor session silently matches 0 rows under RLS instead of erroring.
+-- This RPC is scoped to the exact roles that can reach those UI actions and
+-- does an atomic delta update, throwing loudly when unauthorized or when
+-- stock would go negative.
+CREATE OR REPLACE FUNCTION adjust_warehouse_stock(p_item_id TEXT, p_delta INTEGER)
+RETURNS INTEGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_new_stock INTEGER;
+BEGIN
+  IF current_staff_role() NOT IN ('advisor', 'owner', 'gudang') THEN
+    RAISE EXCEPTION 'Not authorized to adjust warehouse stock';
+  END IF;
+
+  UPDATE warehouse_stock
+  SET stock = stock + p_delta
+  WHERE id = p_item_id AND stock + p_delta >= 0
+  RETURNING stock INTO v_new_stock;
+
+  IF v_new_stock IS NULL THEN
+    RAISE EXCEPTION 'Stok tidak mencukupi atau item tidak ditemukan';
+  END IF;
+
+  RETURN v_new_stock;
+END;
+$$;
 
 -- hero_content: baca terbuka (landing page publik), tulis marketing/owner saja
 CREATE POLICY "hero_content_select_anyone"

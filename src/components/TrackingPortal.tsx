@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { Search, MapPin, Phone, Calendar, Clock, AlertTriangle, FileText, CheckCircle2, ChevronRight, User, ArrowLeft, Heart, Printer, Share2, DollarSign, Check, X, Camera, Wrench, CreditCard } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, Calendar, Clock, AlertTriangle, FileText, ChevronRight, User, ArrowLeft, Printer, Share2, DollarSign, Check, X, Camera, CreditCard, MessageCircle, Plus } from 'lucide-react';
 import { Order, DiagnosticFinding, ServiceItem } from '../types';
 import { CAR_BRAND_LOGOS } from '../data/mockData';
 import CurveAccent from './CurveAccent';
 import ImageLightbox from './ImageLightbox';
 import { trackOrdersByPhone, customerSetFindingStatus, customerSetServiceItemStatus } from '../lib/db';
+import { genId } from '../lib/id';
+import { COMMON_JASA_NAMES } from '../data/jasaCatalog';
+import { buildWhatsAppLink, buildTrackingLink } from '../lib/whatsapp';
 
 interface TrackingPortalProps {
   orders: Order[];
@@ -15,7 +18,6 @@ interface TrackingPortalProps {
   onRejectServiceItem: (orderId: string, itemId: string) => void;
   onConfirmPayment?: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', bankDest: string) => void;
   onConfirmDPPayment?: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dpAmount: number, dest: string) => void;
-  onUpdateOrderStatus?: (orderId: string, status: Order['status'], timelineDescription: string) => void;
   onUpdateFindingCost?: (orderId: string, findingId: string, cost: number) => void;
   onUpdateOrder?: (orderId: string, fields: Partial<Order>) => void;
   onNotify?: (message: string) => void;
@@ -33,7 +35,6 @@ export default function TrackingPortal({
   onRejectServiceItem,
   onConfirmPayment,
   onConfirmDPPayment,
-  onUpdateOrderStatus,
   onUpdateFindingCost,
   onUpdateOrder,
   onNotify,
@@ -44,7 +45,14 @@ export default function TrackingPortal({
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [searched, setSearched] = useState(initialSearchQuery !== '');
-  const [findingCostInputs, setFindingCostInputs] = useState<Record<string, number>>({});
+  // Staff-only — input harga jasa buat temuan yang udah di-ACC. Sengaja
+  // nggak dibatasi status order (lihat AdvisorDashboard.tsx's antre-only
+  // "SA Workspace" — itu buat diagnosis awal sebelum SPK; ini buat temuan
+  // yang muncul PAS pengerjaan berjalan, jalur yang sebelumnya buntu).
+  const [activeFindingJasaId, setActiveFindingJasaId] = useState<string | null>(null);
+  const [jasaName, setJasaName] = useState('');
+  const [jasaPrice, setJasaPrice] = useState('');
+  const [jasaQty, setJasaQty] = useState('1');
   const [activeOrder, setActiveOrder] = useState<Order | null>(() => {
     if (!initialSearchQuery || !isStaffView) return null; // customer lookup resolves async below
     return orders.find(o => o.id === initialSearchQuery || o.customerPhone === initialSearchQuery) || null;
@@ -55,6 +63,7 @@ export default function TrackingPortal({
   // searchQuery (which stays bound to the input) so later ACC actions still
   // use the phone that unlocked this order even if the input gets edited.
   const [customerPhone, setCustomerPhone] = useState(isStaffView ? '' : initialSearchQuery);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Payment form states
   const [payMethod, setPayMethod] = useState<'tunai' | 'transfer' | 'qris' | 'edc'>('transfer');
@@ -64,6 +73,22 @@ export default function TrackingPortal({
 
   // Sync activeOrder with orders prop
   const currentOrder = activeOrder ? (orders.find(o => o.id === activeOrder.id) || activeOrder) : null;
+
+  // Riwayat servis kendaraan ini (plat sama), dari order lain — staff-only.
+  // Garansi dihitung dari kebijakan yang udah tertulis di invoice ("1 bulan
+  // dari pembuatan invoice"): paidAt + 30 hari, bukan field tersendiri.
+  const vehicleHistory = useMemo(() => {
+    if (!currentOrder) return [];
+    return orders
+      .filter(o => o.id !== currentOrder.id && o.plateNumber === currentOrder.plateNumber)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map(o => {
+        const total = o.serviceItems.filter(i => i.status !== 'rejected').reduce((s, i) => s + i.price * i.qty, 0);
+        const warrantyUntil = o.paidAt ? new Date(new Date(o.paidAt).getTime() + 30 * 24 * 60 * 60 * 1000) : null;
+        const underWarranty = !!warrantyUntil && warrantyUntil.getTime() > Date.now();
+        return { order: o, total, warrantyUntil, underWarranty };
+      });
+  }, [orders, currentOrder]);
 
   // Customer deep-link (e.g. "lihat contoh pesanan" on the landing page)
   // resolves the initial phone-number lookup async, same RPC as a manual search.
@@ -78,6 +103,27 @@ export default function TrackingPortal({
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleAddJasaToFinding = (findingId: string) => {
+    if (!currentOrder || !onUpdateOrder || !jasaName.trim() || !jasaPrice) return;
+    const newItem: ServiceItem = {
+      id: genId('item'),
+      name: jasaName.trim(),
+      type: 'jasa',
+      price: Number(jasaPrice) || 0,
+      qty: Number(jasaQty) || 1,
+      status: 'approved',
+      findingId
+    };
+    onUpdateOrder(currentOrder.id, { serviceItems: [...currentOrder.serviceItems, newItem] });
+    setJasaName(''); setJasaPrice(''); setJasaQty('1');
+    setActiveFindingJasaId(null);
+  };
+
+  const handleRemoveJasaItem = (itemId: string) => {
+    if (!currentOrder || !onUpdateOrder) return;
+    onUpdateOrder(currentOrder.id, { serviceItems: currentOrder.serviceItems.filter(i => i.id !== itemId) });
+  };
 
   const handleApproveFindingService = (findingId: string, srvId: string) => {
     if (!currentOrder || !onUpdateOrder) return;
@@ -112,7 +158,7 @@ export default function TrackingPortal({
       };
 
       const newTimelineEvent = {
-        id: `t-appr-find-srv-${Date.now()}`,
+        id: genId('t-appr-find-srv'),
         status: currentOrder.status,
         timestamp: new Date().toISOString(),
         title: 'Jasa Temuan Disetujui',
@@ -149,7 +195,7 @@ export default function TrackingPortal({
     const targetService = targetFinding?.services?.find(s => s.id === srvId);
 
     const newTimelineEvent = {
-      id: `t-rej-find-srv-${Date.now()}`,
+      id: genId('t-rej-find-srv'),
       status: currentOrder.status,
       timestamp: new Date().toISOString(),
       title: 'Jasa Temuan Ditolak',
@@ -254,6 +300,17 @@ export default function TrackingPortal({
 
   const formatRupiah = (num: number) => {
     return 'Rp ' + num.toLocaleString('id-ID');
+  };
+
+  // Staff-only (isStaffView) — klik-kirim WA, bukan integrasi API. Dipakai SA
+  // buat notifikasi customer pas ada temuan baru, biar nggak nunggu customer
+  // buka link tracking sendiri.
+  const notifyFindingViaWhatsApp = (order: Order, finding: DiagnosticFinding) => {
+    const costLine = (finding.estimatedCost || 0) > 0
+      ? `\nEstimasi biaya: ${formatRupiah(finding.estimatedCost || 0)}`
+      : '';
+    const message = `Halo ${order.customerName}, ada temuan baru untuk ${order.carBrand} ${order.carModel} (${order.plateNumber}) di Berlin188 Garage:\n\n"${finding.description}"${costLine}\n\nCek detail & foto, lalu setujui/tolak temuan ini di:\n${buildTrackingLink(order.customerPhone)}\n\nTerima kasih.`;
+    window.open(buildWhatsAppLink(order.customerPhone, message), '_blank', 'noopener,noreferrer');
   };
 
   const calculateTotal = (order: Order) => {
@@ -412,6 +469,47 @@ export default function TrackingPortal({
                 </div>
               </div>
 
+              {/* Riwayat servis kendaraan ini — staff-only */}
+              {isStaffView && vehicleHistory.length > 0 && (
+                <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden shadow-xs">
+                  <button
+                    onClick={() => setShowHistory(v => !v)}
+                    className="w-full flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">Riwayat Servis Kendaraan Ini</span>
+                      <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">{vehicleHistory.length}</span>
+                    </div>
+                    <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${showHistory ? 'rotate-90' : ''}`} />
+                  </button>
+                  {showHistory && (
+                    <div className="border-t border-gray-100 divide-y divide-gray-100">
+                      {vehicleHistory.map(({ order: h, total, warrantyUntil, underWarranty }) => (
+                        <div key={h.id} className="px-5 py-3 flex items-start justify-between gap-3 text-xs">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-sans text-gray-400">{new Date(h.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider border ${getStatusColor(h.status)}`}>{getStatusLabel(h.status)}</span>
+                              {underWarranty && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200">
+                                  GARANSI S/D {warrantyUntil!.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-gray-700 mt-1 italic">"{h.complaint}"</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-bold text-gray-900 font-sans tabular-nums">{formatRupiah(total)}</div>
+                            <div className="text-[10px] text-gray-400 font-sans">{h.id}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Tab Navigation */}
               <div className="flex border-b border-gray-200">
                 <button
@@ -437,65 +535,19 @@ export default function TrackingPortal({
                   {/* Left: Interactive findings & approvals */}
                   <div className="md:col-span-7 space-y-6">
 
-                    {/* Service Advisor Work Command Panel */}
-                    {isStaffView && (currentOrder.status !== 'selesai' && currentOrder.status !== 'menunggu_pembayaran') && (() => {
-                      const pendingItems = currentOrder.serviceItems.filter(item => item.status === 'pending');
-                      const pendingFindings = currentOrder.findings.filter(f => f.status === 'pending');
-                      const isAllResolved = pendingItems.length === 0 && pendingFindings.length === 0;
-                      
-                      return (
-                        <div className={`p-5 rounded-2xl border ${isAllResolved ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/50 border-amber-200'} space-y-3.5 shadow-xs`}>
-                          <div className="flex items-center gap-2">
-                            <Wrench className={`w-5 h-5 ${isAllResolved ? 'text-emerald-700' : 'text-amber-700'}`} />
-                            <h4 className={`text-xs sm:text-sm font-extrabold uppercase tracking-wide ${isAllResolved ? 'text-emerald-950' : 'text-amber-950'}`}>
-                              Kendali Perintah Kerja (Advisor)
-                            </h4>
-                          </div>
-                          
-                          {isAllResolved ? (
-                            <div className="space-y-3">
-                              <p className="text-xs text-emerald-800 leading-relaxed">
-                                Seluruh estimasi pengerjaan tambahan, jasa, dan sparepart telah disetujui (ACC) atau ditolak. Tidak ada item tertunda. Anda dapat mengirimkan surat perintah kerja (SPK) aktif ke mekanik.
-                              </p>
-                              {currentOrder.status !== 'dikerjakan' ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (onUpdateOrderStatus) {
-                                      onUpdateOrderStatus(
-                                        currentOrder.id,
-                                        'dikerjakan',
-                                        `Service Advisor memberikan instruksi pengerjaan aktif. Mekanik mulai mengerjakan seluruh item pengerjaan & sparepart yang telah mendapatkan ACC.`
-                                      );
-                                      notify("✅ Surat Perintah Kerja (SPK) berhasil dikirim! Status kendaraan diubah ke DIKERJAKAN.");
-                                    }
-                                  }}
-                                  className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm text-center"
-                                >
-                                  <CheckCircle2 className="w-4 h-4 text-white" />
-                                  KIRIM PERINTAH KERJA KE MEKANIK (MULAI PENGERJAAN)
-                                </button>
-                              ) : (
-                                <div className="bg-emerald-100/50 text-emerald-800 border border-emerald-200/50 p-2.5 rounded-xl text-center font-bold text-xs flex items-center justify-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                                  <span>Mekanik Sedang Mengerjakan Item Yang Disetujui (ACC)</span>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <p className="text-xs text-amber-800 leading-relaxed">
-                                Masih terdapat <strong>{pendingItems.length} item pengerjaan/part</strong> dan <strong>{pendingFindings.length} temuan</strong> yang berstatus <strong>PENDING (Menunggu Keputusan)</strong>.
-                              </p>
-                              <p className="text-[11px] text-amber-700/80 italic">
-                                *Harap berikan keputusan (ACC/Tolak) pada item-item di bawah sebelum Anda dapat meluncurkan perintah mulai pengerjaan kepada mekanik.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                    
+                    {/* NOTE: this used to have its own "Kirim Perintah Kerja ke
+                        Mekanik" button that duplicated AdvisorDashboard's SA
+                        workspace send-SPK flow, but incorrectly — it only
+                        flipped status to 'dikerjakan' via onUpdateOrderStatus
+                        without setting spkSent/assignedMechanicId/slot, while
+                        still telling the advisor "SPK berhasil dikirim!". That
+                        left orders stuck in 'dikerjakan' with no mechanic
+                        ever assigned. Removed 2026-08-08 — sending SPK now
+                        only happens through AdvisorDashboard's own panel
+                        (which requires picking a mechanic and sets the real
+                        fields), so this component no longer has an isStaffView
+                        work-command control at all. */}
+
                     {/* Findings notification (Informational) */}
                     <div className="bg-white border border-gray-200/80 p-5 rounded-2xl space-y-4 shadow-xs">
                       <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -643,6 +695,16 @@ export default function TrackingPortal({
                                 </button>
                               )}
 
+                              {isStaffView && (
+                                <button
+                                  type="button"
+                                  onClick={() => notifyFindingViaWhatsApp(currentOrder, finding)}
+                                  className="print:hidden flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" /> Kirim ke WA Customer
+                                </button>
+                              )}
+
                               {finding.status === 'pending' ? (
                                 <div className="flex justify-between items-center border-t border-gray-200/60 pt-3 mt-1.5">
                                   <span className="text-[10px] text-amber-800 font-bold uppercase flex items-center gap-1.5">
@@ -676,6 +738,75 @@ export default function TrackingPortal({
                                   </span>
                                 </div>
                               )}
+
+                              {isStaffView && finding.status === 'approved' && (() => {
+                                const findingJasa = currentOrder.serviceItems.filter(i => i.type === 'jasa' && i.findingId === finding.id);
+                                const isAddingJasa = activeFindingJasaId === finding.id;
+                                return (
+                                  <div className="print:hidden border-t border-gray-200/60 pt-3 mt-1.5 space-y-2.5">
+                                    <div className="text-[9px] font-bold uppercase tracking-widest text-gray-400">JASA PENGERJAAN TEMUAN INI:</div>
+                                    {findingJasa.length === 0 ? (
+                                      <p className="text-xs text-gray-400 italic">Belum ada jasa pengerjaan yang dimasukkan.</p>
+                                    ) : (
+                                      <div className="space-y-1.5">
+                                        {findingJasa.map(item => (
+                                          <div key={item.id} className="flex items-center justify-between py-2 px-3 bg-blue-50 border border-blue-100 rounded-xl text-xs">
+                                            <span className="font-semibold text-blue-900">{item.name}</span>
+                                            <div className="flex items-center gap-3 shrink-0">
+                                              <span className="text-blue-600 tabular-nums">{formatRupiah(item.price)} × {item.qty}</span>
+                                              <button onClick={() => handleRemoveJasaItem(item.id)} className="text-gray-300 hover:text-red-500 transition-colors cursor-pointer">
+                                                <X className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {isAddingJasa ? (
+                                      <div className="border border-gray-200 rounded-xl p-3.5 space-y-2.5 bg-gray-50/50">
+                                        <div className="grid grid-cols-3 gap-2">
+                                          <div className="col-span-1 space-y-1">
+                                            <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">NAMA JASA</label>
+                                            <input value={jasaName} onChange={e => setJasaName(e.target.value)}
+                                              list="jasa-catalog-suggestions"
+                                              placeholder="Contoh: Bongkar Pasang"
+                                              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-black bg-white text-gray-800" />
+                                            <datalist id="jasa-catalog-suggestions">
+                                              {COMMON_JASA_NAMES.map(name => <option key={name} value={name} />)}
+                                            </datalist>
+                                          </div>
+                                          <div className="space-y-1">
+                                            <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">BIAYA (RP)</label>
+                                            <input value={jasaPrice} onChange={e => setJasaPrice(e.target.value)} type="number"
+                                              placeholder="150000"
+                                              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-black bg-white text-gray-800" />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block">QTY</label>
+                                            <input value={jasaQty} onChange={e => setJasaQty(e.target.value)} type="number" min="1"
+                                              className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-black bg-white text-gray-800" />
+                                          </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <button onClick={() => handleAddJasaToFinding(finding.id)}
+                                            className="bg-berlin-navy text-white px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:bg-berlin-navy/90 transition-colors">
+                                            Tambah
+                                          </button>
+                                          <button onClick={() => setActiveFindingJasaId(null)}
+                                            className="text-gray-500 text-xs px-3 py-1.5 cursor-pointer hover:text-gray-700">Batal</button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => { setActiveFindingJasaId(finding.id); setJasaName(''); setJasaPrice(''); setJasaQty('1'); }}
+                                        className="w-full border border-dashed border-gray-300 rounded-xl py-2.5 text-[10px] font-bold text-blue-600 hover:border-blue-300 hover:bg-blue-50/50 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                                        <Plus className="w-3.5 h-3.5" /> TAMBAH JASA & BIAYA
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ))}
                         </div>

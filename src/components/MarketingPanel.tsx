@@ -59,14 +59,10 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
   const [pfServiceType, setPfServiceType] = useState<PortfolioItem['serviceType']>(SERVICE_TYPES[0]);
   const [pfDescription, setPfDescription] = useState('');
   const [pfImageFile, setPfImageFile] = useState<File | null>(null);
-  const [pfImagePreview, setPfImagePreview] = useState<string | null>(null);
   const [isSavingPortfolio, setIsSavingPortfolio] = useState(false);
 
   const handlePortfolioImagePick = (file: File) => {
     setPfImageFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => setPfImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
   };
 
   const resetPortfolioForm = () => {
@@ -75,7 +71,6 @@ export default function MarketingPanel({ orders, portfolioItems = [], onAddPortf
     setPfServiceType(SERVICE_TYPES[0]);
     setPfDescription('');
     setPfImageFile(null);
-    setPfImagePreview(null);
   };
 
   const handleAddPortfolio = async () => {

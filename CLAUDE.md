@@ -3,30 +3,21 @@
 Car workshop management app (Indonesian, "Spesialis Bengkel Mobil Eropa"). React + Vite + Supabase.
 Brand guideline PDF: `/Users/reyhanresha/Documents/project/Berlin188Garage_BrandGuideline_v3.pdf` (colors, Instrument Sans typeface, "never straight" accent rule — see `src/components/CurveAccent.tsx`).
 
-## ⚠️ PENDING: backend database was never actually provisioned
+## Backend status: provisioned and working (as of 2026-08-07)
 
-**Status as of 2026-07-31**: `supabase-schema.sql` exists in the repo but was **never executed** against the live linked Supabase project (`berlin188`, ref `bkwosbuifkelucwxjtqp`, created 2026-07-29). Confirmed via `supabase db dump` (empty `public` schema) and the Supabase Dashboard SQL Editor itself returning `relation "orders" does not exist`. Every Supabase call in `src/lib/db.ts` is wrapped in silent `try/catch`, so the app has been running purely on in-memory mock data (`src/data/mockData.ts`) this whole time — nothing typed in by staff has ever actually persisted.
+**Update 2026-08-07**: the entry that used to live here (dated 2026-07-31) said the Supabase backend was never provisioned and that login was a mock check against `INITIAL_USERS`. That's now stale — confirmed live via a real browser login (`advisor@berlin188.com`) against the linked Supabase project: `profiles`/`orders`/etc. exist, staff login works, and creating a WO persists for real (e.g. `WO-260807-CDAKM`).
 
-Auditing `supabase-schema.sql` against `src/lib/db.ts` while investigating turned up **two more bugs** that would keep the backend broken even after creating the tables:
+What actually happened instead of the fix that was originally planned (rewriting `profiles.id`/`orders.advisor_id` to `TEXT` and opening RLS to `anon`): the auth layer was rebuilt around **real Supabase Auth** instead of the old mock `INITIAL_USERS` check.
+- `src/components/LoginModal.tsx` → `signInStaff()` (`src/lib/auth.ts`) now calls `supabase.auth.signInWithPassword` for real.
+- `scripts/provision-staff.mjs` (service-role, run once via `npm run staff:provision`) creates real Supabase Auth accounts for each staff member and a matching `profiles` row using that same UUID.
+- Because `activeUser.id` is now a real `auth.users` UUID instead of a mock string like `'owner-1'`, `profiles.id UUID REFERENCES auth.users(id)` and `orders.advisor_id/assigned_mechanic_id UUID REFERENCES profiles(id)` (still UUID in `supabase-schema.sql` — never rewritten to `TEXT`) just work.
+- Because login establishes a real Supabase Auth session, requests hit Postgres as `authenticated`, not `anon` — so the original `FOR ALL TO authenticated` RLS policies also just work as originally written (also never rewritten to `TO anon, authenticated`).
 
-1. `profiles.id` is `UUID PRIMARY KEY REFERENCES auth.users(id)` — but staff login (`src/components/LoginModal.tsx`) is a mock client-side check against `INITIAL_USERS` (plain string ids like `'owner-1'`, `'advisor-1'`), not real Supabase Auth. `seedProfiles()` would fail on every insert.
-2. `orders.advisor_id` / `orders.assigned_mechanic_id` are `UUID REFERENCES profiles(id)` — same mismatch, same string ids passed in from `App.tsx`. Every `createOrder`/`updateOrder` call setting these would fail (invalid UUID syntax).
-3. Every RLS policy is `FOR ALL TO authenticated` only — but this app never establishes a real Supabase Auth session (no code path calls `supabase.auth.signInWithPassword` anymore since the marketplace's customer/vendor auth was removed), so every request hits Postgres as `anon`. Anon gets silently denied everywhere, even once #1/#2 are fixed.
+So the 3 bugs originally logged here were real, but got resolved by fixing the auth architecture rather than loosening the schema — which is the better outcome (anon staying locked out of staff data is correct; a follow-up migration `20260803120000_fix_orders_anon_exposure.sql` even had to close an anon-read/write hole that briefly existed on `orders` for the public tracking portal, replacing it with narrow `SECURITY DEFINER` functions scoped by phone number).
 
-### The fix (already planned, not yet applied)
+Current known-good state: tables exist, staff login is real, WO create/update persists, orders realtime is live (`20260805130000_enable_orders_realtime.sql`), error logging has its own table (`20260806140000_create_error_logs.sql`). `dp_amount` migration (`20260731104328_add_dp_amount.sql`) referenced in the old entry is gone from `supabase/migrations/` — already reconciled into the base schema, nothing to do there.
 
-Rewrite `supabase-schema.sql`:
-- `profiles.id`: `TEXT PRIMARY KEY` (drop the `auth.users` FK).
-- `orders.advisor_id` / `orders.assigned_mechanic_id`: `TEXT REFERENCES profiles(id)` (was `UUID`).
-- Every RLS policy: `TO anon, authenticated` (was `TO authenticated` only).
-- Keep `dp_amount NUMERIC` on `orders` (already added this session, see below).
-- Everything else (table list, JSONB columns, indexes, `updated_at` trigger) stays as-is.
-
-No data-migration risk — nothing has ever actually been written, so this is a plain `CREATE`, not an `ALTER` of live data.
-
-**Next step**: rewrite `supabase-schema.sql` with the three fixes above, then the user runs it once via the Supabase Dashboard SQL Editor (confirmed-working connection path — the failed `ALTER TABLE` proved the editor itself works, it correctly reported the missing table). After that, delete `supabase/migrations/20260731104328_add_dp_amount.sql` (redundant once `dp_amount` is in the base `CREATE TABLE`), then verify: staff login → create a WO → reload the page → confirm it survived (proof of real persistence, not just React state).
-
-**Explicit constraint from the user**: do not touch `src/components/LandingPage.tsx`, the marketplace feature (`ProductMarketplace.tsx`, `ProductCard.tsx`, `CartDrawer.tsx`, `WishlistDrawer.tsx`, `AiChat.tsx`, `src/lib/ai.ts`, `supabase/functions/ai-chat/`, `src/data/products.ts`) while doing this backend fix — none of the above touches those anyway.
+**Correction (2026-08-07, same day)**: the "silent try/catch in `db.ts`" claim above was also carried over from the stale 2026-07-31 entry without re-checking — it's not accurate either. Every function in `src/lib/db.ts` does `if (error) throw error` (no swallowing), and every caller in `App.tsx` catches with `console.error` + a user-facing ❌ notification. The only intentional silent catch in the codebase is `src/lib/errorLogger.ts`'s own write failure (documented inline: logging the logger's failure risks an infinite loop). Don't re-flag this as a code-quality issue without re-verifying against the current file first.
 
 ## Other context from this session (2026-07-31)
 

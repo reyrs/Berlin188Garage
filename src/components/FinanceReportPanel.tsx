@@ -2,75 +2,36 @@ import React, { useMemo, useState } from 'react';
 import { TrendUp, TrendDown, Wallet, ChartBarHorizontal } from '@phosphor-icons/react';
 import { CashTransaction, Expense } from '../types';
 import { KPI_TONE, PAYMENT_LABEL, formatRupiah } from '../lib/design';
+import {
+  PeriodFilter as PeriodFilterType, PERIOD_LABEL, inPeriod,
+  sumRevenue, sumExpense, netProfit as calcNetProfit,
+  revenueByCategory as calcRevenueByCategory, expenseByCategory as calcExpenseByCategory,
+  REVENUE_CATEGORY_LABEL, EXPENSE_CATEGORY_LABEL,
+} from '../lib/metrics';
+import PeriodFilter from './ui/PeriodFilter';
 
 interface FinanceReportPanelProps {
   transactions: CashTransaction[];
   expenses: Expense[];
 }
 
-type PeriodFilter = 'harian' | 'mingguan' | 'tahunan';
-
-const PERIOD_LABEL: Record<PeriodFilter, string> = {
-  harian: 'Hari Ini',
-  mingguan: '7 Hari Terakhir',
-  tahunan: '1 Tahun Terakhir',
-};
-
-const REVENUE_CATEGORY_LABEL: Record<string, string> = {
-  pendapatan_jasa: 'Pendapatan Jasa',
-  pendapatan_part: 'Pendapatan Part',
-};
-
-const EXPENSE_CATEGORY_LABEL: Record<string, string> = {
-  operasional: 'Operasional',
-  pembelian_part: 'Pembelian Part',
-  gaji: 'Gaji',
-  utilitas: 'Utilitas',
-  lainnya: 'Lainnya',
-};
-
-function periodStart(period: PeriodFilter, now: Date): Date {
-  const start = new Date(now);
-  if (period === 'harian') {
-    start.setHours(0, 0, 0, 0);
-  } else if (period === 'mingguan') {
-    start.setDate(now.getDate() - 7);
-  } else {
-    start.setFullYear(now.getFullYear() - 1);
-  }
-  return start;
-}
+const PERIOD_OPTIONS: PeriodFilterType[] = ['hari_ini', 'minggu_ini', 'tahun_ini'];
 
 export default function FinanceReportPanel({ transactions, expenses }: FinanceReportPanelProps) {
-  const [period, setPeriod] = useState<PeriodFilter>('harian');
+  const [period, setPeriod] = useState<PeriodFilterType>('hari_ini');
   const now = new Date();
-  const start = periodStart(period, now);
 
   const filteredTx = useMemo(
-    () => transactions.filter(t => new Date(t.timestamp) >= start),
+    () => transactions.filter(t => inPeriod(t.timestamp, period, now)),
     [transactions, period]
   );
-  const filteredExpenses = useMemo(
-    () => expenses.filter(e => new Date(e.date) >= start),
-    [expenses, period]
-  );
 
-  const revenueTx = filteredTx.filter(t => t.type === 'masuk');
-  const totalRevenue = revenueTx.reduce((s, t) => s + t.amount, 0);
-  const revenueByCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const t of revenueTx) map.set(t.category, (map.get(t.category) || 0) + t.amount);
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-  }, [revenueTx]);
+  const totalRevenue = useMemo(() => sumRevenue(transactions, period, now), [transactions, period]);
+  const totalExpense = useMemo(() => sumExpense(expenses, period, now), [expenses, period]);
+  const revenueByCategory = useMemo(() => calcRevenueByCategory(transactions, period, now), [transactions, period]);
+  const expenseByCategory = useMemo(() => calcExpenseByCategory(expenses, period, now), [expenses, period]);
 
-  const totalExpense = filteredExpenses.reduce((s, e) => s + e.amount, 0);
-  const expenseByCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const e of filteredExpenses) map.set(e.category, (map.get(e.category) || 0) + e.amount);
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-  }, [filteredExpenses]);
-
-  const netProfit = totalRevenue - totalExpense;
+  const netProfit = calcNetProfit(totalRevenue, totalExpense);
   const isProfit = netProfit >= 0;
 
   return (
@@ -83,16 +44,7 @@ export default function FinanceReportPanel({ transactions, expenses }: FinanceRe
             <h3 className="text-xl font-bold text-[#1A1A1A] dark:text-white mt-2">Laba Rugi &amp; Ringkasan Kas</h3>
             <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Data baca-saja — transaksi harian tetap dicatat lewat Akunting/Kasir.</p>
           </div>
-          <div className="flex gap-1.5 bg-gray-100 dark:bg-[#22252c] p-1 rounded-xl">
-            {(['harian', 'mingguan', 'tahunan'] as PeriodFilter[]).map(p => (
-              <button key={p} onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  period === p ? 'bg-white dark:bg-[#1a1d23] text-berlin-navy shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}>
-                {p === 'harian' ? 'Harian' : p === 'mingguan' ? 'Mingguan' : 'Tahunan'}
-              </button>
-            ))}
-          </div>
+          <PeriodFilter value={period} onChange={setPeriod} options={PERIOD_OPTIONS} />
         </div>
       </div>
 

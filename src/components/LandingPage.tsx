@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Phone, Clock, ArrowRight, X } from 'lucide-react';
-import { Order, HeroContent, PortfolioItem } from '../types';
+import { HeroContent, PortfolioItem } from '../types';
 import ThemeToggle from './ThemeToggle';
 import CurveAccent from './CurveAccent';
 
 interface LandingPageProps {
   onCheckOrder: () => void;
-  onSelectSampleOrder: () => void;
   onOpenMarketplace?: () => void;
-  orders?: Order[];
   heroContent?: HeroContent | null;
   portfolioItems?: PortfolioItem[];
 }
@@ -38,7 +36,7 @@ const STEPS = [
   { step: '05', t: 'Serah terima', d: 'Selesai, invoice otomatis. Bayar & bawa pulang mobil.' },
 ];
 
-export default function LandingPage({ onCheckOrder, onSelectSampleOrder, onOpenMarketplace, orders = [], heroContent, portfolioItems = [] }: LandingPageProps) {
+export default function LandingPage({ onCheckOrder, onOpenMarketplace, heroContent, portfolioItems = [] }: LandingPageProps) {
   const hero = heroContent || DEFAULT_HERO;
   const [filter, setFilter] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -262,7 +260,7 @@ export default function LandingPage({ onCheckOrder, onSelectSampleOrder, onOpenM
               <Phone className="w-3.5 h-3.5 text-berlin-navy" />
               <p className="spec-label text-gray-400">Telepon</p>
             </div>
-            <a href="tel:081818818801" className="text-sm text-gray-700 dark:text-gray-300 font-sans hover:text-berlin-red transition-colors">0818 188 188 01</a>
+            <a href="tel:082112773501" className="text-sm text-gray-700 dark:text-gray-300 font-sans hover:text-berlin-red transition-colors">0821 1277 3501</a>
           </div>
           <div className="py-6 sm:pl-8">
             <div className="flex items-center gap-1.5 mb-2">
@@ -279,8 +277,8 @@ export default function LandingPage({ onCheckOrder, onSelectSampleOrder, onOpenM
             <p className="font-extrabold text-xl mb-1">Darurat? Butuh towing?</p>
             <p className="text-gray-400 text-sm">Telepon langsung — kami kirim mobil derek.</p>
           </div>
-          <a href="tel:081818818801" className="bg-berlin-red hover:bg-berlin-red/90 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer inline-flex items-center gap-2 shrink-0">
-            <Phone className="w-4 h-4" /> 0818 188 188 01
+          <a href="tel:082112773501" className="bg-berlin-red hover:bg-berlin-red/90 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer inline-flex items-center gap-2 shrink-0">
+            <Phone className="w-4 h-4" /> 0821 1277 3501
           </a>
         </div>
 

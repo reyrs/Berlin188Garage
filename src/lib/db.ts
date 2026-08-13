@@ -18,7 +18,12 @@ export async function fetchProfiles(): Promise<User[]> {
 }
 
 function mapProfileToUser(data: any): User {
-  return { id: data.id, name: data.name, role: data.role, email: data.email || '', phone: data.phone || '', avatarUrl: data.avatar_url }
+  return { id: data.id, name: data.name, role: data.role, email: data.email || '', phone: data.phone || '', avatarUrl: data.avatar_url, specialization: data.specialization || undefined }
+}
+
+export async function updateProfileSpecialization(id: string, specialization: string): Promise<void> {
+  const { error } = await db().from('profiles').update({ specialization: specialization || null }).eq('id', id)
+  if (error) throw error
 }
 
 // ============================================================
@@ -169,13 +174,26 @@ export async function fetchWarehouseStock(): Promise<WarehouseStockItem[]> {
   return (data || []).map(mapStockItem)
 }
 
-export async function updateStockQuantity(id: string, newStock: number): Promise<void> {
-  const { error } = await db().from('warehouse_stock').update({ stock: newStock }).eq('id', id)
+// warehouse_stock RLS only allows owner/gudang direct writes, but stock
+// mutations are also triggered by advisor actions (Pasang part ke WO,
+// reject-restock, resolve temuan) — a plain UPDATE from an advisor session
+// silently matches 0 rows under RLS (no error thrown) instead of failing
+// loudly. adjust_warehouse_stock() is a SECURITY DEFINER RPC scoped to
+// advisor/owner/gudang that does an atomic delta update and actually
+// throws when unauthorized or when stock would go negative.
+export async function adjustWarehouseStock(id: string, delta: number): Promise<number> {
+  const { data, error } = await db().rpc('adjust_warehouse_stock', { p_item_id: id, p_delta: delta })
+  if (error) throw error
+  return data as number
+}
+
+export async function updateWarehouseStockMarketplaceLink(id: string, marketplaceProductId: string | null): Promise<void> {
+  const { error } = await db().from('warehouse_stock').update({ marketplace_product_id: marketplaceProductId }).eq('id', id)
   if (error) throw error
 }
 
 function mapStockItem(data: any): WarehouseStockItem {
-  return { id: data.id, name: data.name, code: data.code, price: Number(data.price), stock: data.stock, rackLocation: data.rack_location }
+  return { id: data.id, name: data.name, code: data.code, price: Number(data.price), stock: data.stock, rackLocation: data.rack_location, marketplaceProductId: data.marketplace_product_id ?? undefined }
 }
 
 export async function seedWarehouseStock(items: WarehouseStockItem[]): Promise<void> {

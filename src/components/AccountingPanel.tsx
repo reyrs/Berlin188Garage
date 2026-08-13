@@ -5,7 +5,7 @@ import {
 } from '@phosphor-icons/react';
 import KpiTile from './ui/KpiTile';
 import { CashTransaction, CashClosing, Order, Expense, User } from '../types';
-import { KPI_TONE, KpiTone } from '../lib/design';
+import { KpiTone } from '../lib/design';
 import InvoicePrint from './InvoicePrint';
 
 interface AccountingPanelProps {
@@ -14,7 +14,6 @@ interface AccountingPanelProps {
   closings: CashClosing[];
   expenses: Expense[];
   staffUser: User;
-  onAddTransaction: (tx: Omit<CashTransaction, 'id' | 'timestamp'>) => void;
   onAddExpense: (exp: Omit<Expense, 'id'>) => void;
   onCashClosing: (closing: Omit<CashClosing, 'id'>) => void;
   onProcessPayment: (orderId: string, method: 'tunai' | 'transfer' | 'qris' | 'edc', dest: string) => void;
@@ -38,7 +37,7 @@ const METHOD_LABEL: Record<string, string> = {
 
 export default function AccountingPanel({
   orders, transactions, closings, expenses, staffUser,
-  onAddTransaction, onAddExpense, onCashClosing, onProcessPayment, onConfirmDPPayment
+  onAddExpense, onCashClosing, onProcessPayment, onConfirmDPPayment
 }: AccountingPanelProps) {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'pembayaran' | 'pengeluaran' | 'closing'>('dashboard');
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -59,6 +58,7 @@ export default function AccountingPanel({
   const [payDest, setPayDest] = useState('BCA');
   const [isDP, setIsDP] = useState(false);
   const [dpAmount, setDpAmount] = useState('');
+  const [cashReceived, setCashReceived] = useState('');
 
   // Closing form
   const [physicalCash, setPhysicalCash] = useState('');
@@ -100,6 +100,7 @@ export default function AccountingPanel({
     if (!showPaymentModal) return;
     onProcessPayment(showPaymentModal.id, payMethod, payDest);
     setShowPaymentModal(null);
+    setCashReceived('');
   };
 
   const handleClosing = () => {
@@ -221,7 +222,7 @@ export default function AccountingPanel({
           <div className="space-y-3">
             {pendingOrders.map(order => {
               const total = order.serviceItems
-                .filter(i => i.status !== 'rejected')
+                .filter(i => i.status !== 'rejected' && i.status !== 'pending')
                 .reduce((s, i) => s + i.price * i.qty, 0);
               return (
                 <div key={order.id} className="card-padded">
@@ -240,7 +241,7 @@ export default function AccountingPanel({
                     </div>
                     <div className="text-right">
                       <div className="text-xl font-bold text-gray-900 dark:text-white font-sans tabular-nums">{formatRp(total)}</div>
-                      <button onClick={() => setShowPaymentModal(order)}
+                      <button onClick={() => { setShowPaymentModal(order); setCashReceived(''); }}
                         className="mt-2 bg-berlin-navy text-white text-sm px-4 py-1.5 rounded-lg hover:bg-berlin-navy-dark transition-colors">
                         Proses Bayar
                       </button>
@@ -248,7 +249,7 @@ export default function AccountingPanel({
                   </div>
                   {/* Items breakdown */}
                   <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[#2a2d35] space-y-1">
-                    {order.serviceItems.filter(i => i.status !== 'rejected').map(item => (
+                    {order.serviceItems.filter(i => i.status !== 'rejected' && i.status !== 'pending').map(item => (
                       <div key={item.id} className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                         <span>{item.name} {item.qty > 1 ? `(×${item.qty})` : ''}</span>
                         <span className="font-sans tabular-nums">{formatRp(item.price * item.qty)}</span>
@@ -466,19 +467,31 @@ export default function AccountingPanel({
       )}
 
       {/* Payment Modal */}
-      {showPaymentModal && (
+      {showPaymentModal && (() => {
+        const totalTagihan = showPaymentModal.serviceItems.filter(i => i.status !== 'rejected' && i.status !== 'pending').reduce((s, i) => s + i.price * i.qty, 0);
+        const sudahDibayar = showPaymentModal.dpAmountPaid || 0;
+        const sisaTagihan = totalTagihan - sudahDibayar;
+        const cashReceivedNum = parseInt(cashReceived) || 0;
+        const kembalian = Math.max(0, cashReceivedNum - sisaTagihan);
+        const dpAmountNum = parseInt(dpAmount) || 0;
+        const isDpAmountValid = dpAmountNum > 0 && dpAmountNum <= sisaTagihan;
+        return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-gray-900 dark:text-white">Proses Pembayaran</h3>
-              <button onClick={() => setShowPaymentModal(null)}><X className="w-5 h-5 text-gray-400 dark:text-gray-500" weight="duotone" /></button>
+              <button onClick={() => { setShowPaymentModal(null); setCashReceived(''); }}><X className="w-5 h-5 text-gray-400 dark:text-gray-500" weight="duotone" /></button>
             </div>
-            <div className="bg-gray-50 dark:bg-[#22252c] rounded-xl p-4 mb-4">
+            <div className="bg-gray-50 dark:bg-[#22252c] rounded-xl p-4 mb-4 space-y-1.5">
               <p className="text-sm font-medium text-gray-900 dark:text-white">{showPaymentModal.id} — {showPaymentModal.customerName}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">{showPaymentModal.carBrand} {showPaymentModal.carModel} · {showPaymentModal.plateNumber}</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white font-sans mt-2">
-                {formatRp(showPaymentModal.serviceItems.filter(i=>i.status!=='rejected').reduce((s,i)=>s+i.price*i.qty,0))}
-              </p>
+              <div className="border-t border-gray-200 dark:border-[#2a2d35] pt-2 mt-1 space-y-1 text-xs">
+                <div className="flex justify-between text-gray-500 dark:text-gray-400"><span>Total Tagihan</span><span className="font-sans tabular-nums">{formatRp(totalTagihan)}</span></div>
+                {sudahDibayar > 0 && (
+                  <div className="flex justify-between text-gray-500 dark:text-gray-400"><span>Sudah Dibayar (DP)</span><span className="font-sans tabular-nums">{formatRp(sudahDibayar)}</span></div>
+                )}
+                <div className="flex justify-between text-gray-900 dark:text-white font-bold text-sm"><span>Sisa Tagihan</span><span className="font-sans tabular-nums">{formatRp(sisaTagihan)}</span></div>
+              </div>
             </div>
             <div className="space-y-3 mb-5">
               <div>
@@ -486,8 +499,8 @@ export default function AccountingPanel({
                 <div className="grid grid-cols-2 gap-2">
                   {[
                      { id: 'tunai' as const, label: 'Tunai' },
-                     { id: 'transfer' as const, label: 'Transfer' },
                      { id: 'qris' as const, label: 'QRIS' },
+                     { id: 'transfer' as const, label: 'Transfer' },
                      { id: 'edc' as const, label: 'EDC' },
                   ].map(m => (
                     <button key={m.id} onClick={() => setPayMethod(m.id)}
@@ -497,6 +510,37 @@ export default function AccountingPanel({
                   ))}
                 </div>
               </div>
+              {payMethod === 'tunai' && !isDP && (
+                <div className="border border-gray-200 dark:border-[#2a2d35] rounded-xl p-3 space-y-2.5 bg-gray-50/60 dark:bg-[#22252c]/60">
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block">Nominal Cepat</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[50000, 100000, 200000, 500000, 1000000].map(n => (
+                      <button key={n} type="button" onClick={() => setCashReceived(String(n))}
+                        className="py-2 rounded-lg text-xs font-semibold border border-gray-200 dark:border-[#2a2d35] text-gray-600 dark:text-gray-400 hover:border-berlin-navy hover:text-berlin-navy dark:hover:text-white transition-all">
+                        {n >= 1000000 ? `${n / 1000000}jt` : `${n / 1000}rb`}
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => setCashReceived(String(sisaTagihan))}
+                      className="py-2 rounded-lg text-xs font-bold bg-berlin-navy text-white hover:bg-berlin-navy-dark transition-all">
+                      LUNAS
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">Jumlah Dibayar</label>
+                    <input type="number" value={cashReceived} onChange={e => setCashReceived(e.target.value)}
+                      placeholder="0"
+                      className="w-full bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] rounded-xl px-3 py-2.5 text-sm font-sans text-gray-800 dark:text-gray-100 focus:outline-none focus:border-gray-400 dark:focus:border-gray-500" />
+                  </div>
+                  <div className="flex justify-between text-xs pt-1 border-t border-gray-200 dark:border-[#2a2d35]">
+                    <span className="text-gray-500 dark:text-gray-400">Uang Diterima</span>
+                    <span className="font-sans tabular-nums text-gray-700 dark:text-gray-300">{formatRp(cashReceivedNum)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold">
+                    <span className="text-gray-900 dark:text-white">Kembalian</span>
+                    <span className="font-sans tabular-nums text-emerald-600 dark:text-emerald-400">{formatRp(kembalian)}</span>
+                  </div>
+                </div>
+              )}
               {(payMethod === 'transfer' || payMethod === 'qris') && (
                 <div>
                   <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
@@ -532,29 +576,40 @@ export default function AccountingPanel({
                   <input type="number" value={dpAmount} onChange={e => setDpAmount(e.target.value)}
                     placeholder="Masukkan nominal DP..."
                     className="w-full bg-white dark:bg-[#1a1d23] border border-gray-200 dark:border-[#2a2d35] rounded-xl px-3 py-2.5 text-sm font-sans text-gray-800 dark:text-gray-100 focus:outline-none focus:border-gray-400 dark:focus:border-gray-500" />
+                  {dpAmount.trim() !== '' && !isDpAmountValid && (
+                    <p className="text-xs text-red-500 mt-1.5">
+                      {dpAmountNum <= 0
+                        ? 'Nominal DP harus lebih dari Rp 0.'
+                        : `Nominal DP tidak boleh melebihi sisa tagihan (${formatRp(sisaTagihan)}).`}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowPaymentModal(null)}
+              <button onClick={() => { setShowPaymentModal(null); setCashReceived(''); }}
                 className="flex-1 border border-gray-200 dark:border-[#2a2d35] py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#22252c]">Batal</button>
-              <button onClick={() => {
-                if (isDP && showPaymentModal && onConfirmDPPayment) {
-                  onConfirmDPPayment(showPaymentModal.id, payMethod, parseInt(dpAmount) || 0, payDest);
-                  setShowPaymentModal(null);
-                  setIsDP(false);
-                  setDpAmount('');
-                } else {
-                  handlePayment();
-                }
-              }}
-                className="flex-1 bg-berlin-navy text-white py-2.5 rounded-xl text-sm font-medium hover:bg-berlin-navy-dark">
+              <button
+                disabled={(payMethod === 'tunai' && !isDP && cashReceivedNum < sisaTagihan) || (isDP && !isDpAmountValid)}
+                onClick={() => {
+                  if (isDP && showPaymentModal && onConfirmDPPayment) {
+                    onConfirmDPPayment(showPaymentModal.id, payMethod, dpAmountNum, payDest);
+                    setShowPaymentModal(null);
+                    setIsDP(false);
+                    setDpAmount('');
+                    setCashReceived('');
+                  } else {
+                    handlePayment();
+                  }
+                }}
+                className="flex-1 bg-berlin-navy text-white py-2.5 rounded-xl text-sm font-medium hover:bg-berlin-navy-dark disabled:opacity-40 disabled:cursor-not-allowed">
                 {isDP ? 'Konfirmasi DP' : 'Konfirmasi Lunas'}
               </button>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

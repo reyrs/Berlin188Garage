@@ -674,6 +674,11 @@ export default function AdvisorDashboard({
                   // dihapus (revisi 2026-08-13), gak ada lagi apa pun yang
                   // mengubah finding.status dari 'pending', jadi gerbang ini WAJIB
                   // derive dari estimasi (serviceItems) biar SPK gak kekunci permanen.
+                  // hasAnyEstimate: butuh MINIMAL satu serviceItem buat dikirim
+                  // (bisa dari gudang via temuan, ATAU dari item riwayat yang
+                  // ditambahin SA pas check-in — WO servis rutin tanpa temuan
+                  // tambahan sama sekali tetap harus bisa kirim SPK).
+                  const hasAnyEstimate = selectedOrder.serviceItems.length > 0;
                   const findingsWithoutEstimate = selectedOrder.findings.filter(
                     f => !selectedOrder.serviceItems.some(i => i.findingId === f.id)
                   );
@@ -684,11 +689,11 @@ export default function AdvisorDashboard({
                   // klik ulang bisa nge-assign order ke slot baru padahal
                   // mobilnya masih di bay yang sama (lihat handleSendSPK).
                   if (selectedOrder.spkSent) return null;
-                  const readyToSend = selectedOrder.findings.length > 0 && !hasUnestimatedFindings && !hasPendingItems;
+                  const readyToSend = hasAnyEstimate && !hasUnestimatedFindings && !hasPendingItems;
                   return (
                     <div className={`border rounded-2xl p-4 space-y-3 ${readyToSend ? 'border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10' : 'border-gray-200 dark:border-[#2a2d35] bg-gray-50 dark:bg-[#22252c]'}`}>
                       <p className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${readyToSend ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                        {selectedOrder.findings.length === 0 || hasUnestimatedFindings ? '⚠ Menunggu estimasi gudang (sparepart + jasa pasang)'
+                        {!hasAnyEstimate || hasUnestimatedFindings ? '⚠ Menunggu estimasi gudang (sparepart + jasa pasang)'
                           : hasPendingItems ? '⚠ Menunggu ACC/Tolak pelanggan atas semua estimasi'
                           : 'Semua sudah di-ACC pelanggan — kirim SPK ke mekanik'}
                       </p>
